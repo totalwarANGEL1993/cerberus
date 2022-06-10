@@ -1,0 +1,9 @@
+ldoc/*
+target/*
+doc/*
+*/s5c/*
+dbg
+var
+_*
+.project
+.settings

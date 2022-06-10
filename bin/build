@@ -1,0 +1,9 @@
+#!/bin/bash
+
+mkdir -p var #&>/dev/null
+cp -r lua/qsb var &>/dev/null
+cp lua/mapscriptTemplate.lua var/mapscript.lua &>/dev/null
+cd var
+zip -r -o qsb mapscript.lua qsb/* qsb/connector/* qsb/external/* qsb/library/*
+cd ..
+rm -rf var/qsb var/mapscript.lua
