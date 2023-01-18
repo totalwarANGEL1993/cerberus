@@ -8,13 +8,20 @@ Lib.Register("comfort/GetAllLeader");
 --- @version 1.0.0
 ---
 function GetAllLeader(_PlayerID)
-    local Leader = {};
-    local NumberOfLeaders = Logic.GetNumberOfLeader(_PlayerID);
-    local ID = 0;
-    for i=1, NumberOfLeaders do
-        ID = Logic.GetNextLeader(_PlayerID, ID);
-        table.insert(Leader, ID);
+    local LeaderList = {};
+    local FirstID = Logic.GetNextLeader(_PlayerID, 0);
+    if FirstID ~= 0 then
+        local PrevID = FirstID;
+        table.insert(LeaderList, FirstID);
+        while true do
+            local NextID = Logic.GetNextLeader(_PlayerID, PrevID);
+            if NextID == FirstID then
+                break;
+            end
+            table.insert(LeaderList, NextID);
+            PrevID = NextID;
+        end
     end
-    return Leader;
+    return LeaderList;
 end
 
