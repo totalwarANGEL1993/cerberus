@@ -1,3 +1,5 @@
+Lib.Register("comfort/CopyTable");
+
 --- Copies a table.
 --- @param _Source table Table to copy
 --- @param _Dest table   (Optional) Destination table

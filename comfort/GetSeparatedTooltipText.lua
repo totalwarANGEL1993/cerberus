@@ -1,3 +1,5 @@
+Lib.Register("comfort/GetSeparatedTooltipText");
+
 --- Returns the tooltip text separated in sections.
 --- @param _Key string Key of text
 --- @return table Text Table with text chunks 

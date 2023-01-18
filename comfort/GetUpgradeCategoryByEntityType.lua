@@ -1,3 +1,5 @@
+Lib.Register("comfort/GetUpgradeCategoryByEntityType");
+
 --- Returns the upgrade category of the entity type
 --- @param _Type number Entity type
 --- @return number Category Upgrade category

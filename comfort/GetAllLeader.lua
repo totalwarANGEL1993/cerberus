@@ -1,3 +1,5 @@
+Lib.Register("comfort/GetAllLeader");
+
 --- Returns all leader of the player.
 --- @param _PlayerID number ID of player
 --- @return table List List of leaders

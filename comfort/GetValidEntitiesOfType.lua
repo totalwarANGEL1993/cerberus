@@ -1,3 +1,6 @@
+Lib.Require("comfort/GetPlayerEntities");
+Lib.Register("comfort/GetValidEntitiesOfType");
+
 --- Returns all valid entities of the type.
 ---
 --- * Buildings must be fully constructed to be returned.
@@ -7,6 +10,7 @@
 --- @param _EntityType number Entity type or 0 for all
 --- @return table List List of entity IDs 
 ---
+--- @require GetPlayerEntities
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -29,4 +33,5 @@ function GetValidEntitiesOfType(_PlayerID, _EntityType)
     end
     return PlayerEntities;
 end
+GetCompletedEntitiesOfType = GetValidEntitiesOfType;
 

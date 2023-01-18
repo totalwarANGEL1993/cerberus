@@ -1,3 +1,6 @@
+Lib.Require("comfort/IsValidPosition");
+Lib.Register("comfort/GetCirclePosition");
+
 --- Returns a position around a central position.
 --- @param _Target any      Center position
 --- @param _Distance number Radius from center

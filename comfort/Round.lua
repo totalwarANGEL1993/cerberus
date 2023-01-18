@@ -1,3 +1,5 @@
+Lib.Register("comfort/Round");
+
 --- Rounds a number to the next integer.
 --- @return integer Number Rounded number
 ---

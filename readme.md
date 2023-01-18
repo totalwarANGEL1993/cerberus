@@ -1,0 +1,1 @@
+Script library for THE SETTLERS - Heritage of Kings.

@@ -1,3 +1,5 @@
+Lib.Register("comfort/ConvertSecondsToString");
+
 --- Converts seconds to a time string.
 --- (The string will be in the format hh:mm:ss.)
 --- @param _TotalSeconds number time in seconds

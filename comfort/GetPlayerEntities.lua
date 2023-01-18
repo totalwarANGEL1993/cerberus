@@ -1,3 +1,5 @@
+Lib.Register("comfort/GetPlayerEntities");
+
 --- Returns All entities of the type.
 --- @param _PlayerID   number ID of player
 --- @param _EntityType number Entity type or 0 for all

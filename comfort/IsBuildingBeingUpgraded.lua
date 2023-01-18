@@ -1,3 +1,5 @@
+Lib.Register("comfort/IsBuildingBeingUpgraded");
+
 --- Checks if the building is being upgraded.
 --- @param _Entity any Building to check
 --- @return boolean Upgrading Building is upgrading

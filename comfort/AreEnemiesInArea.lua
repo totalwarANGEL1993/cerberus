@@ -1,3 +1,5 @@
+Lib.Register("comfort/AreEnemiesInArea");
+
 --- Returns if enemies of the player are in the area.
 --- @param _player number ID of player
 --- @param _position any  Area center

@@ -1,3 +1,5 @@
+Lib.Register("comfort/RemoveResourcesFromPlayer");
+
 --- Takes a costs table and removes the resources from the player.
 --- @param _PlayerID number ID of player
 --- @param _Costs table     Costs table

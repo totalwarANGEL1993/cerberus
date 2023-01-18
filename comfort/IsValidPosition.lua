@@ -1,3 +1,5 @@
+Lib.Register("comfort/IsValidPosition");
+
 --- Checks if the position is valid.
 --- @param _pos table Position to check
 --- @return boolean Valid Position is valid

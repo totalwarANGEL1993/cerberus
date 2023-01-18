@@ -1,3 +1,5 @@
+Lib.Register("comfort/CreateWoodPile");
+
 --- Creates a pile of wood to extract.
 --- @param _posEntity any    Position of pile
 --- @param _resources number Amount of resources

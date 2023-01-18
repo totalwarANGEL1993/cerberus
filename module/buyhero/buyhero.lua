@@ -1,3 +1,8 @@
+Lib.Require("comfort/GetHeadquarters");
+Lib.Require("comfort/GetCirclePosition");
+Lib.Require("module/syncer/Syncer");
+Lib.Register("module/buyhero/BuyHero");
+
 ---
 --- Buy Hero
 ---
@@ -8,12 +13,14 @@
 --- * GetHeadquarters
 --- * Syncer
 ---
+--- @require GetHeadquarters
+--- @require GetCirclePosition
 --- @require Syncer
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
 
-BuyHero = {}
+BuyHero = {};
 
 -- -------------------------------------------------------------------------- --
 -- API

@@ -1,3 +1,8 @@
+Lib.Require("comfort/GetUpgradeCategoryByEntityType");
+Lib.Require("comfort/GetUpgradeLevelByEntityType");
+Lib.Require("module/syncer/Syncer");
+Lib.Register("module/entitytracker/EntityTracker");
+
 ---
 --- Entity Limitaions
 --- 
@@ -15,14 +20,7 @@
 --- @version 1.0.0
 ---
 
-EntityTracker = {
-    Internal = {
-        Data = {},
-        Config = {
-            Limit = {},
-        },
-    },
-}
+EntityTracker = {};
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -65,6 +63,13 @@ end
 
 -- -------------------------------------------------------------------------- --
 -- Internal
+
+EntityTracker.Internal = {
+    Data = {},
+    Config = {
+        Limit = {},
+    },
+};
 
 function EntityTracker.Internal:Install()
     if not self.IsInstalled then

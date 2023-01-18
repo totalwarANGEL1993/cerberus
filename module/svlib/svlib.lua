@@ -1,3 +1,5 @@
+Lib.Register("module/svlib/SVLib");
+
 ---
 --- Scripting Values
 --- 

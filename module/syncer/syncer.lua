@@ -1,3 +1,5 @@
+Lib.Register("module/syncer/Syncer");
+
 --- 
 --- Synchronizer script
 --- 

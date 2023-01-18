@@ -1,3 +1,5 @@
+Lib.Register("comfort/IsInTable");
+
 --- Returns the kay of the value in the table.
 --- @param _Value  any  Value to search
 --- @param _Table table Table to check

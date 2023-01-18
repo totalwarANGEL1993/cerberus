@@ -1,3 +1,6 @@
+Lib.Require("comfort/GetUpgradeCategoryByEntityType");
+Lib.Register("comfort/GetUpgradeLevelByEntityType");
+
 --- Returns the upgrade level associated to the type.
 --- @param _Type number Entity type
 --- @return number Level Upgrade level of type

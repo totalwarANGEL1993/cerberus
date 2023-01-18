@@ -1,3 +1,5 @@
+Lib.Register("comfort/IsValidEntity");
+
 --- Checks if the entity is valid. An entity is valid if it
 --- exists, has HP and is not busy with dying.
 --- @param _Entity any Entity to check
@@ -21,4 +23,5 @@ function IsValidEntity(_Entity)
     end
     return false;
 end
+IsEntityValid = IsValidEntity;
 

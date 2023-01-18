@@ -1,3 +1,6 @@
+Lib.Require("comfort/GetPlayerEntities");
+Lib.Register("comfort/GetAllWorker");
+
 --- Returns all worker of the player.
 --- @param _PlayerID number ID of player
 --- @return table List List of worker

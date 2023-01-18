@@ -1,3 +1,5 @@
+Lib.Register("comfort/GetHeadquarters");
+
 --- Returns the first Headquarters found for the player.
 --- @param _PlayerID number ID of player
 --- @return number ID Entity 

@@ -1,3 +1,5 @@
+Lib.Register("comfort/KeyOf");
+
 --- Returns the kay of the value in the table.
 --- @param _wert  any   Value to search
 --- @param _table table Table to check
