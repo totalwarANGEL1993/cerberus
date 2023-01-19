@@ -12,8 +12,6 @@ Lib.Register("module/syncer/Syncer");
 --- server and uses its API. If the server methods are not defined the script
 --- uses tributes and messages for synchronization.
 --- 
---- TODO: Not compatiple with EMS unless on community server!
---- 
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -120,8 +118,10 @@ function Syncer.Internal:Install(_TributeIdSequence)
         self.IsInstalled = true;
 
         if XNetwork.Manager_DoesExist() == 1 and not CNetwork then
-            self:OverrideMessageReceived();
-            self:ActivateTributePaidTrigger();
+            if not EMS then
+                self:OverrideMessageReceived();
+                self:ActivateTributePaidTrigger();
+            end
         end
     end
 end
@@ -131,8 +131,9 @@ function Syncer.Internal:CreateSyncEvent(_Function)
     local ActionIndex = self.Transaction.UniqueActionCounter;
 
     self.Data[ActionIndex] = {
-        Function = _Function,
-        CNetwork = "Syncer_CNetworkHandler_" .. self.Transaction.UniqueActionCounter;
+        Function   = _Function,
+        CNetwork   = "Syncer_CNetworkHandler_" .. self.Transaction.UniqueActionCounter,
+        EMSHandler = "Syncer_EMS_Handler_" .. self.Transaction.UniqueActionCounter,
     };
 
     -- Network handler for community server
@@ -147,6 +148,12 @@ function Syncer.Internal:CreateSyncEvent(_Function)
             NetworkHandler
         );
     end
+    -- Network handler for EMS
+    if not CNetwork and EMS then
+        _G[self.Data[ActionIndex].EMSHandler] = function(_ID, _PlayerID, ...)
+            Syncer.Internal.Data[_ID].Function(_PlayerID, unpack(arg));
+        end
+    end
     return self.Transaction.UniqueActionCounter;
 end
 
@@ -159,9 +166,15 @@ end
 function Syncer.Internal:Call(_ID, ...)
     arg = arg or {};
     if XNetwork.Manager_DoesExist() == 1 then
+        -- Use CNetwork on community server
         if CNetwork then
             local Name = self.Data[_ID].CNetwork;
             CNetwork.SendCommand(Name, _ID, unpack(arg));
+        -- Use EMS syncer if not CNetwork
+        elseif not CNetwork and EMS then
+            local Name = self.Data[_ID].EMSHandler;
+            Sync.Call(Name, _ID, GUI.GetPlayerID(), unpack(arg));
+        -- Use tributes and messages
         else
             local PlayerID = GUI.GetPlayerID();
             local Time = Logic.GetTimeMs();
