@@ -154,15 +154,19 @@ Archive.Internal = {
 }
 
 function Archive.Internal:Install()
-    self:InitRestoreAfterLoad();
-    self:InitAutomaticMapArchiveUnload();
-    self:OverrideFrameworkRestartMap();
-    self:DetectHookType();
-    if self.Data.HookType == -1 then
-        Message("Installing Hook failed. You propably run an incompatible game version!");
-        return;
+    if not self.IsInstalled then
+        self.IsInstalled = true;
+
+        self:InitRestoreAfterLoad();
+        self:InitAutomaticMapArchiveUnload();
+        self:OverrideFrameworkRestartMap();
+        self:DetectHookType();
+        if self.Data.HookType == -1 then
+            Message("Installing Hook failed. You propably run an incompatible game version!");
+            return;
+        end
+        self:LoadHook();
     end
-    self:LoadHook();
 end
 
 function Archive.Internal:InitRestoreAfterLoad()
