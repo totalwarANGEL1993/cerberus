@@ -27,6 +27,12 @@ CinematicEventStatus = {
 -- -------------------------------------------------------------------------- --
 -- API
 
+--- Installs the cinematic event controller
+--- (Will be called by code!)
+function Cinematic.Install()
+    Cinematic.Internal:Install();
+end
+
 --- Creates a new event with the name for the player.
 --- @param _PlayerID number ID of player
 --- @param _Name string     Name of event
@@ -42,23 +48,15 @@ function Cinematic.IsAnyCinematicActive(_PlayerID)
     return Cinematic.Internal:IsAnyCinematicEventActive(_PlayerID)
 end
 
---- Checks if the event is running for the player.
+--- Returns the state of the cinematic event.
 --- @param _PlayerID number ID of player
 --- @param _Name string     Name of event
---- @return boolean Active The event is active
-function Cinematic.IsCinematicActive(_PlayerID, _Name)
-    return Cinematic.Internal:GetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Active;
+--- @return number State State of cinematic event
+function Cinematic.GetCinematicEventState(_PlayerID, _Name)
+    return Cinematic.Internal:GetCinematicEventState(_PlayerID, _Name);
 end
 
---- Checks if the event is over for the player.
---- @param _PlayerID number ID of player
---- @param _Name string     Name of event
---- @return boolean Concluded The Event is over
-function Cinematic.IsCinematicConcluded(_PlayerID, _Name)
-    return Cinematic.Internal:GetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Over;
-end
-
---- Changes the state of the cinematic event.
+--- Sets the state of the cinematic event.
 --- @param _PlayerID number ID of player
 --- @param _Name string     Name of event
 --- @param _State number    New state for event
@@ -82,7 +80,7 @@ function Cinematic.Internal:Install()
         self.IsInstalled = true;
 
         for k, v in pairs(Syncer.GetActivePlayers()) do
-            self.EventStatus[k] = {};
+            self.Data.EventStatus[k] = {};
         end
     end
 end
