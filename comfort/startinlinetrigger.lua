@@ -142,6 +142,7 @@ function StartSimpleTradeTrigger(_Function, ...)
     return StartInlineTrigger(Events.LOGIC_EVENT_GOODS_TRADED, Function, unpack(arg));
 end
 
+-- Who needs a trigger fix? :P
 function StartInlineTrigger(_EventType, _Function, ...)
     JobQueueData.JobIDSequence = JobQueueData.JobIDSequence +1;
 
