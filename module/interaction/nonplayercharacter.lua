@@ -164,6 +164,9 @@ end
 function NonPlayerCharacter.Internal:OnNpcInteraction(_NpcScriptname, _HeroScriptname)
     GUIAction_MerchantReady();
 
+    gvLastInteractionHeroName = _HeroScriptname;
+    gvLastInteractionNpcName = _NpcScriptname;
+
     local HeroID = GetID(_HeroScriptname);
     local NpcID = GetID(_NpcScriptname);
     if Interaction.Internal.Data.IO[_NpcScriptname] then
