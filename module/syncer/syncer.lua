@@ -16,7 +16,7 @@ Lib.Register("module/syncer/Syncer");
 --- @version 1.0.0
 ---
 
-Syncer = {};
+Syncer = Syncer or {};
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -102,7 +102,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-Syncer.Internal = {
+Syncer.Internal = Syncer.Internal or {
     Data = {},
     Transaction = {
         TributeIdSequence = 0,

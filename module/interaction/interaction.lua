@@ -8,7 +8,7 @@ Lib.Register("module/interaction/Interaction");
 --- @version 1.0.0
 --- 
 
-Interaction = {}
+Interaction = Interaction or {}
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -52,7 +52,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-Interaction.Internal = {
+Interaction.Internal = Interaction.Internal or {
     Data = {
         IO = {}
     },

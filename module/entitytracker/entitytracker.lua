@@ -20,7 +20,7 @@ Lib.Register("module/entitytracker/EntityTracker");
 --- @version 1.0.0
 ---
 
-EntityTracker = {};
+EntityTracker = EntityTracker or {};
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -64,7 +64,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-EntityTracker.Internal = {
+EntityTracker.Internal = EntityTracker.Internal or {
     Data = {},
     Config = {
         Limit = {},

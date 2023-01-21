@@ -20,7 +20,7 @@ Lib.Register("module/buyhero/BuyHero");
 --- @version 1.0.0
 ---
 
-BuyHero = {};
+BuyHero = BuyHero or {};
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -96,7 +96,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-BuyHero.Internal = {
+BuyHero.Internal = BuyHero.Internal or {
     Data = {},
     Config = {
         MaxHeroAmount = 1,

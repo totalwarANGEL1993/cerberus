@@ -114,7 +114,7 @@ Lib.Register("module/uihacker/UiHacker");
 --- * GUIUpdate_WeatherEnergyProgress
 ---
 
-UiHacker = {}
+UiHacker = UiHacker or {}
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -149,7 +149,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-UiHacker.Internal = {
+UiHacker.Internal = UiHacker.Internal or {
     Data = {
         ID = 0,
         Originals = {},

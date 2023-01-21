@@ -16,7 +16,7 @@ Lib.Register("module/archive/Archive");
 --- @version 1.0.0
 ---
 
-Archive = {}
+Archive = Archive or {}
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -147,7 +147,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-Archive.Internal = {
+Archive.Internal = Archive.Internal or {
     Data = {
         HookType = 0;
     }
