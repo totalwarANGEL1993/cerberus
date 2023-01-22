@@ -196,11 +196,19 @@ function Interaction.Internal:OverrideNpcInteraction()
         Interaction.Internal.Orig_GameCallback_NPCInteraction(_HeroID, _NpcID);
 
         if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
-            local ID = Logic.GetMerchantBuildingId(_NpcID);
-            if ID ~= 0 then
-                GameCallback_Logic_InteractWithMerchant(_HeroID, _NpcID);
-            else
-                GameCallback_Logic_InteractWithCharacter(_HeroID, _NpcID);
+            local NpcID = _NpcID;
+            local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
+            if MerchantID ~= 0 then
+                NpcID = MerchantID;
+            end
+            local ScriptName = Logic.GetEntityName(NpcID);
+            local Data = Interaction.Internal.Data.IO[ScriptName];
+            if Data then
+                if Data.IsMerchant then
+                    GameCallback_Logic_InteractWithMerchant(_HeroID, NpcID);
+                else
+                    GameCallback_Logic_InteractWithCharacter(_HeroID, NpcID);
+                end
             end
         end
     end
