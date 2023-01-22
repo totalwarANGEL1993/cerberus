@@ -1,7 +1,7 @@
 Lib.Require("comfort/Round");
 Lib.Require("comfort/StartInlineTrigger");
-Lib.Require("comfort/GetLanguage");
 Lib.Require("module/syncer/Syncer");
+Lib.Require("module/placeholder/Placeholder");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Register("module/cinematic/BriefingSystem");
 
@@ -746,7 +746,7 @@ function BriefingSystem.Internal:PrintHeadline(_Text)
     if string.find(Text, "^%w/%w$") then
         Text = XGUIEng.GetStringTableText(Text);
     else
-        Text = Text --API.ReplacePlaceholders(Text);
+        Text = Placeholder.Replace(Text);
     end
     XGUIEng.SetText("CinematicMC_Headline", Text or "");
 end
@@ -766,7 +766,7 @@ function BriefingSystem.Internal:PrintText(_Text)
     if string.find(Text, "^%w/%w$") then
         Text = XGUIEng.GetStringTableText(Text);
     else
-        Text = Text --API.ReplacePlaceholders(Text);
+        Text = Placeholder.Replace(Text);
     end
     XGUIEng.SetText("CinematicMC_Text", Text or "");
 end
@@ -789,7 +789,7 @@ function BriefingSystem.Internal:PrintOptions(_Page)
                 if string.find(Text, "^%w/%w$") then
                     Text = XGUIEng.GetStringTableText(Text);
                 else
-                    Text = Text --API.ReplacePlaceholders(Text);
+                    Text = Placeholder.Replace(Text);
                 end
                 -- Set text
                 XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");

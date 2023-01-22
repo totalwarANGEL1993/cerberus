@@ -1,6 +1,6 @@
 Lib.Require("comfort/KeyOf");
 Lib.Require("comfort/GetResourceName");
-Lib.Require("comfort/GetLanguage");
+Lib.Require("module/placeholder/Placeholder");
 Lib.Require("module/interaction/Interaction");
 Lib.Register("module/interaction/NonPlayerMerchant");
 
@@ -29,6 +29,7 @@ MerchantOfferTypes = {
 --- Installs the interaction controller.
 --- (Must be called on game start!)
 function NonPlayerMerchant.Install()
+    Placeholder.Install()
     Interaction.Install();
     NonPlayerMerchant.Internal:Install();
 end
@@ -690,7 +691,7 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptname, _SlotIndex)
             return;
         end
         local NameString = "names/" .. EntityTypeName
-        Description = " @color:180,180,180,255 " .. XGUIEng.GetStringTableText(NameString) .. " @cr ";
+        Description = "{grey}" .. XGUIEng.GetStringTableText(NameString) .. "{nl}";
         Description = Description .. XGUIEng.GetStringTableText("MenuMerchant/TroopOfferTooltipText");
 
     -- Resource
@@ -704,7 +705,7 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptname, _SlotIndex)
         if Language ~= "de" then
             Title = "Buy " ..Data.Offers[_SlotIndex].Amount.. " of this resource.";
         end
-        Description = " @color:180,180,180,255 " .. Title .. " @cr @color:255,255,255,255 " ..Text;
+        Description = "{grey}" .. Title .. "{nl}{white}" ..Text;
 
     -- Technology
     elseif Data.Offers[_SlotIndex].Type == MerchantOfferTypes.Technology then
@@ -724,7 +725,7 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptname, _SlotIndex)
                 Title = "You have already researched this technology, your majesty!";
             end
         end
-        Description = " @color:180,180,180,255 " .. Title .. " @cr @color:255,255,255,255 " ..Text;
+        Description = "{grey}" .. Title .. "{nl}{white}" ..Text;
 
     -- Custom
     else
@@ -736,11 +737,11 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptname, _SlotIndex)
         if type(Text) == "table" then
             Text = Text[Language];
         end
-        Description = " @color:180,180,180,255 " .. Title .. " @cr @color:255,255,255,255 " ..Text;
+        Description = "{grey}" .. Title .. "{nl}{white}" ..Text;
     end
 
-    XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomText, Description);
-    XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomCosts, CostString);
+    XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomText, Placeholder.Replace(Description));
+    XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomCosts, Placeholder.Replace(CostString));
     XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomShortCut, "");
 end
 
