@@ -1,5 +1,6 @@
 Lib.Require("comfort/KeyOf");
 Lib.Require("comfort/GetResourceName");
+Lib.Require("comfort/GetLanguage");
 Lib.Require("module/interaction/Interaction");
 Lib.Register("module/interaction/NonPlayerMerchant");
 
@@ -679,7 +680,7 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptname, _SlotIndex)
     end
 
     local CostString = InterfaceTool_CreateCostString(Costs);
-    local Language = "de" --GetLanguage();
+    local Language = GetLanguage();
     local Description;
 
     -- Mercenary

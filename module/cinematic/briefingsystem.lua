@@ -1,5 +1,6 @@
 Lib.Require("comfort/Round");
 Lib.Require("comfort/StartInlineTrigger");
+Lib.Require("comfort/GetLanguage");
 Lib.Require("module/syncer/Syncer");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Register("module/cinematic/BriefingSystem");
@@ -733,7 +734,7 @@ function BriefingSystem.Internal:PrintHeadline(_Text)
         Text = CopyTable(Text, {});
     end
     -- Localize text
-    local Language = "de";
+    local Language = GetLanguage();
     if type(Text) == "table" then
         Text = Text[Language];
     end
@@ -757,7 +758,7 @@ function BriefingSystem.Internal:PrintText(_Text)
         Text = CopyTable(Text, {});
     end
     -- Localize text
-    local Language = "de";
+    local Language = GetLanguage();
     if type(Text) == "table" then
         Text = Text[Language];
     end
@@ -771,7 +772,7 @@ function BriefingSystem.Internal:PrintText(_Text)
 end
 
 function BriefingSystem.Internal:PrintOptions(_Page)
-    local Language = "de";
+    local Language = GetLanguage();
     if _Page.MC then
         Mouse.CursorShow();
         for i= 1, table.getn(_Page.MC), 1 do

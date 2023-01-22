@@ -1,5 +1,6 @@
 Lib.Require("comfort/GetHeadquarters");
 Lib.Require("comfort/GetCirclePosition");
+Lib.Require("comfort/GetLanguage");
 Lib.Require("module/syncer/Syncer");
 Lib.Register("module/buyhero/BuyHero");
 
@@ -75,9 +76,19 @@ end
 function GameCallback_GUI_BuyHero_GetHeadline(_PlayerID)
     local HeroCount = BuyHero.Internal:CountHeroes(_PlayerID);
     local HeroesToBuy = BuyHero.Internal:GetNumberOfBuyableHeroes(_PlayerID) - HeroCount;
-    local Caption = "Die Helden wurden gewählt!";
+    local Language = GetLanguage();
+
+    local Caption = "";
     if HeroesToBuy > 0 then
         Caption = "Wählt " ..HeroesToBuy.. " Helden!";
+        if Language ~= "de" then
+            Caption = "Choose " ..HeroesToBuy.. " heroes!";
+        end
+    else
+        Caption = "Die Helden wurden gewählt!";
+        if Language ~= "de" then
+            Caption = "Die Helden wurden gewählt!";
+        end
     end
     return Caption;
 end
@@ -89,6 +100,9 @@ end
 function GameCallback_GUI_BuyHero_GetMessage(_PlayerID, _Type)
     local TypeName = Logic.GetEntityTypeName(_Type);
     local Text = "%s @cr @cr Wählt %s als Euren Helden.";
+    if GetLanguage() ~= "de" then
+        Text = "%s @cr @cr Choose %s als your hero.";
+    end
     local Name = XGUIEng.GetStringTableText("Names/" ..TypeName);
     return string.format(Text, string.upper(Name), Name);
 end
