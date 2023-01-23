@@ -38,6 +38,7 @@ end
 ---
 --- Possible fields for definition:
 --- * ScriptName     (Required) Scriptname of NPC
+--- * Spawnpoint     (Optional) Spawnpoint for mercenaries
 --- * Hero           (Optional) Scriptname of hero who can talk to NPC
 --- * WrongHeroMsg   (Optional) Wrong hero message
 --- * Player         (Optional) Player that can talk to NPC
@@ -167,10 +168,10 @@ function NonPlayerMerchant.Internal:CreateNpc(_Data)
     Interaction.Internal:CreateNpc(_Data);
 
     local Data = Interaction.Internal.Data.IO[_Data.Scriptname];
-    Data.IsMerchant  = true;
-    Data.Waypoints   = _Data.Waypoints or {};
-    Data.Wanderer    = _Data.StrayPoints or {};
-    Data.Waittime    = _Data.Waittime or 0;
+    Data.IsMerchant = true;
+    Data.Waypoints  = _Data.Waypoints or {};
+    Data.Wanderer   = _Data.StrayPoints or {};
+    Data.Waittime   = _Data.Waittime or 0;
     Data.Spawnpoint = _Data.Spawnpoint;
     Data.Offers     = {};
 

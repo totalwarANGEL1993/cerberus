@@ -7,7 +7,7 @@ Lib.Register("comfort/AreEnemiesInArea");
 --- @return boolean EnemiesNear Enemies are in area
 ---
 --- @author Emzet
---- @version 1.0.0
+--- @version 1.0.1
 ---
 function AreEnemiesInArea(_player, _position, _range)
     return AreEntitiesOfDiplomacyStateInArea(_player, _position, _range, Diplomacy.Hostile);
@@ -20,7 +20,7 @@ end
 --- @return boolean AlliesNear Allies are in area
 ---
 --- @author Emzet
---- @version 1.0.0
+--- @version 1.0.1
 ---
 function AreAlliesInArea(_player, _position, _range)
     return AreEntitiesOfDiplomacyStateInArea(_player, _position, _range, Diplomacy.Friendly);
@@ -34,7 +34,16 @@ function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state)
     end
     for i = 1, 8 do
         if i ~= _player and Logic.GetDiplomacyState(_player, i) == _state then
-            if Logic.IsPlayerEntityOfCategoryInArea(i, Position.X, Position.Y, _range, "DefendableBuilding", "Military", "MilitaryBuilding") == 1 then
+            if Logic.IsPlayerEntityOfCategoryInArea(
+                i,
+                Position.X, Position.Y,
+                _range,
+                "DefendableBuilding",
+                "MilitaryBuilding",
+                "Hero",
+                "Leader",
+                "Serf"
+            ) == 1 then
                 return true;
             end
         end

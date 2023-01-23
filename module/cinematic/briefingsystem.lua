@@ -107,7 +107,7 @@ end
 --- * FadeIn            Duration of fading in from black
 --- * FadeOut           Duration of fading out to black
 --- * FaderAlpha        Opacity of fader mask
---- * Minimap           Display the minimap on this page
+--- * MiniMap           Display the minimap on this page
 --- * Signal            Mark the camera position on the minimap
 --- * Explore           Show an area while page is shown
 --- 
