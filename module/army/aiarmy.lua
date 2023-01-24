@@ -231,6 +231,68 @@ function AiArmy.Yield(_ID)
     end
 end
 
+--- Commands an army to hold position.
+--- @param _ID number    ID of army
+--- @param _Target table Position to defend
+function AiArmy:Defend(_ID, _Target)
+    local Army = AiArmy.Get(_ID);
+    if Army then
+        Army:SetPosition(_Target);
+    end
+end
+
+--- Commands an army to advance to a position
+--- @param _ID number    ID of army
+--- @param _Target table Position to attack
+function AiArmy:Advance(_ID, _Target)
+    local Army = AiArmy.Get(_ID);
+    if Army then
+        if GetDistance(Army:GetArmyPosition(), _Target) > 1200 then
+            Army:SetPosition(_Target);
+        end
+    end
+end
+
+--- Commands an army to retreat to the home position.
+---
+--- If enemies are encountered the army will hold the position and fight
+--- angainst them.
+---
+--- @param _ID number ID of army
+function AiArmy:Retreat(_ID)
+    local Army = AiArmy.Get(_ID);
+    if Army then
+        local Position = Army:GetArmyPosition();
+        if AreEnemiesInArea(Army.PlayerID, Position, Army.RodeLength) then
+            Army:SetPosition(Position);
+        elseif GetDistance(Position, Army.HomePosition) > 1200 then
+            Army:SetPosition(Army.HomePosition);
+        end
+    end
+end
+
+--- Commands an army to haistly retreat to the home position.
+---
+--- Enemies are ignored.
+---
+--- @param _ID number ID of army
+function AiArmy:Fallback(_ID)
+    local Army = AiArmy.Get(_ID);
+    if Army then
+        if Army.Position then
+            for j= 1, table.getn(Army.Reinforcements) do
+                Logic.SettlerStand(Army.Reinforcements[j]);
+            end
+            for j= 1, table.getn(Army.Troops) do
+                Logic.SettlerStand(Army.Troops[j]);
+            end
+        end
+        Army:SetAnchor(nil);
+        Army:SetPosition(nil);
+        Army:ResetArmySpeed();
+    end
+end
+
 -- -------------------------------------------------------------------------- --
 -- Config
 
@@ -371,7 +433,7 @@ function AiArmy.Internal:Controller()
 
         -- Army is waiting to act
         if Army.State == AiArmy.Behavior.WAITING then
-            Army:NormalizedArmySpeed();
+            Army:ResetArmySpeed();
             local ArmyPosition = Army:GetArmyPosition();
             if AreEnemiesInArea(Army.PlayerID, ArmyPosition, Army.RodeLength) then
                 local Enemies = self:GetEnemiesInTerritory(Army.PlayerID, ArmyPosition, Army.RodeLength);
@@ -386,10 +448,21 @@ function AiArmy.Internal:Controller()
                             Army:SetState(AiArmy.Behavior.ADVANCE);
                         end
                     end
+                else
+                    if ArePositionsConnected(ArmyPosition, Army.HomePosition) then
+                        if GetDistance(ArmyPosition, Army.HomePosition) > 1200 then
+                            for j= 1, table.getn(Army.Troops) do
+                                if Logic.IsEntityMoving(Army.Troops[j]) == false then
+                                    Logic.MoveSettler(Army.Troops[j], Army.HomePosition.X, Army.HomePosition.Y);
+                                end
+                            end
+                        end
+                    end
                 end
             end
 
         elseif Army.State == AiArmy.Behavior.REFILL then
+            Army:ResetArmySpeed();
             local ArmyPosition = Army:GetArmyPosition();
             if AreEnemiesInArea(Army.PlayerID, ArmyPosition, Army.RodeLength) then
                 local Enemies = self:GetEnemiesInTerritory(Army.PlayerID, ArmyPosition, Army.RodeLength);
@@ -405,6 +478,7 @@ function AiArmy.Internal:Controller()
 
         -- Army is advancing to the target
         elseif Army.State == AiArmy.Behavior.ADVANCE then
+            Army:NormalizedArmySpeed();
             local EncounteredEnemy = 0;
             for j= 1, table.getn(Army.Troops) do
                 local Exploration = Logic.GetEntityExplorationRange(Army.Troops[j]);
@@ -437,7 +511,6 @@ function AiArmy.Internal:Controller()
                                 Logic.MoveSettler(Army.Troops[j], Army.Position.X, Army.Position.Y);
                             end
                         else
-                            Army:SetPosition(nil);
                             Army:SetState(AiArmy.Behavior.WAITING);
                         end
                     end
@@ -447,7 +520,6 @@ function AiArmy.Internal:Controller()
         -- Army is combating enemies
         elseif Army.State == AiArmy.Behavior.BATTLE then
             if not AreEnemiesInArea(Army.PlayerID, Army.Anchor.Position, Army.Anchor.RodeLength) then
-                Army:NormalizedArmySpeed();
                 Army:SetState(AiArmy.Behavior.REGROUP);
                 Army:SetAnchor(nil, nil);
             else
@@ -496,7 +568,7 @@ end
 
 -- Checks for enemies in the area and removes not reachable.
 function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID)
-    local PlayerID = Logic.EntityGetPlayer(_TroopID) or _PlayerID;
+    local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
     local Position = (_TroopID and GetPosition(_TroopID)) or _Position;
     local Enemies = GetEnemiesInArea(PlayerID, Position, _Area);
     for i= table.getn(Enemies), 1, -1 do
@@ -504,7 +576,7 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
         if not IsExisting(Enemies[i])
         or (Task and string.find(Task, "DIE") ~= nil)
         or Logic.GetEntityHealth(Enemies[i]) == 0
-        or not ArePositionsConnected(Enemies[i], _TroopID)
+        or not ArePositionsConnected(Enemies[i], Position)
         or GetDistance(Position, Enemies[i]) > _Area then
             table.remove(Enemies, i);
         end
@@ -591,7 +663,6 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     PlayerID        = 1,
     State           = 0;
     Strength        = 8,
-    WaitForFull     = true,
     RodeLength  	= 3000,
     HomePosition    = nil,
     Position        = nil,
@@ -733,10 +804,6 @@ function AiArmy.Internal.Army:LockOn(_TroopID, _TargetID)
             end
         end
     end
-end
-
-function AiArmy.Internal.Army:SetWaitForFullStrength(_Wait)
-    self.WaitForFull = _Wait == true;
 end
 
 function AiArmy.Internal.Army:SetActive(_Active)
