@@ -7,7 +7,7 @@ Lib.Require("comfort/GetEntityCategoriesAsString");
 Lib.Require("comfort/GetGeometricCenter");
 Lib.Require("comfort/IsFighting");
 Lib.Require("comfort/StartInlineTrigger");
-Lib.Register("module/army/AiArmy");
+Lib.Register("module/ai/AiArmy");
 
 ---
 --- AI army script
