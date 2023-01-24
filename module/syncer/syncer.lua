@@ -341,7 +341,7 @@ function Syncer.Internal:CreateTribute(_PlayerID, _ID, ...)
     Logic.AddTribute(_PlayerID, self.Transaction.TributeIdSequence, 0, 0, "", {[ResourceType.Gold] = 0});
     self.Transaction.TransactionParameter[self.Transaction.TributeIdSequence] = {
         Action    = _ID,
-        Parameter = CopyTable(arg, {}),
+        Parameter = CopyTable(arg),
     };
     return self.Transaction.TributeIdSequence;
 end

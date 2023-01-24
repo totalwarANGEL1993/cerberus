@@ -2,7 +2,7 @@ Lib.Register("comfort/CopyTable");
 
 --- Copies a table.
 --- @param _Source table Table to copy
---- @param _Dest table   (Optional) Destination table
+--- @param _Dest? table   (Optional) Destination table
 --- @return table Found Value was found
 ---
 --- @author totalwarANGEL

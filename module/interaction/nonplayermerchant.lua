@@ -584,7 +584,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptname, _SlotIndex)
     if Data.Offers[_SlotIndex].Load < 1 then
         return;
     end
-    local Costs = CopyTable(Data.Offers[_SlotIndex].Costs, {});
+    local Costs = CopyTable(Data.Offers[_SlotIndex].Costs);
     for k, v in pairs(Costs) do
         Costs[k] = math.ceil(v * Data.Offers[_SlotIndex].Inflation);
     end
@@ -655,7 +655,7 @@ end
 
 function NonPlayerMerchant.Internal:SubResources(_NpcScriptname, _PlayerID, _SlotIndex)
     local Data = Interaction.Internal.Data.IO[_NpcScriptname];
-    local Costs = CopyTable(Data.Offers[_SlotIndex].Costs, {});
+    local Costs = CopyTable(Data.Offers[_SlotIndex].Costs);
     for k, v in pairs(Costs) do
         Costs[k] = math.ceil(v * Data.Offers[_SlotIndex].Inflation);
     end
@@ -676,7 +676,7 @@ end
 
 function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptname, _SlotIndex)
     local Data = Interaction.Internal.Data.IO[_NpcScriptname];
-    local Costs = CopyTable(Data.Offers[_SlotIndex].Costs, {});
+    local Costs = CopyTable(Data.Offers[_SlotIndex].Costs);
     for k, v in pairs(Costs) do
         Costs[k] = math.ceil(v * Data.Offers[_SlotIndex].Inflation);
     end

@@ -148,7 +148,7 @@ function StartInlineTrigger(_EventType, _Function, ...)
 
     local Sequence = JobQueueData.JobIDSequence;
     -- Save parameters
-    _G["InlineJob_Data_" ..Sequence] = CopyTable(arg, {});
+    _G["InlineJob_Data_" ..Sequence] = CopyTable(arg);
     -- Save function
     _G["InlineJob_Function_" ..Sequence] = _Function;
 

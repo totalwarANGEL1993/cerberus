@@ -366,7 +366,7 @@ function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefi
         return;
     end
     -- Insert in Queue
-    table.insert(self.Data.Queue[_PlayerID], {_BriefingName, CopyTable(_Briefing, {})});
+    table.insert(self.Data.Queue[_PlayerID], {_BriefingName, CopyTable(_Briefing)});
     -- Start cutscene if possible
     if Cinematic.IsAnyCinematicActive(_PlayerID) then
         return;
@@ -403,7 +403,7 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     end
     local Briefing = table.remove(self.Data.Queue[_PlayerID], 1);
 
-    self.Data.Book[_PlayerID]             = CopyTable(Briefing[2], {});
+    self.Data.Book[_PlayerID]             = CopyTable(Briefing[2]);
     self.Data.Book[_PlayerID].Exploration = {};
     self.Data.Book[_PlayerID].ID          = Briefing[1];
     self.Data.Book[_PlayerID].Page        = 0;
@@ -705,7 +705,7 @@ function BriefingSystem.Internal:AdjustBriefingPageCamHeight(_Page)
             local RotationRadiant = math.rad(_Page.Rotation or -45);
             -- Save backup for when page is visited again
             if not _Page.PositionOriginal then
-                _Page.PositionOriginal = CopyTable(_Page.Position, {});
+                _Page.PositionOriginal = CopyTable(_Page.Position);
             end
 
             -- New position
@@ -731,7 +731,7 @@ function BriefingSystem.Internal:PrintHeadline(_Text)
     -- Create local copy of text
     local Text = _Text;
     if type(Text) == "table" then
-        Text = CopyTable(Text, {});
+        Text = CopyTable(Text);
     end
     -- Localize text
     local Language = GetLanguage();
@@ -755,7 +755,7 @@ function BriefingSystem.Internal:PrintText(_Text)
     -- Create local copy of text
     local Text = _Text;
     if type(Text) == "table" then
-        Text = CopyTable(Text, {});
+        Text = CopyTable(Text);
     end
     -- Localize text
     local Language = GetLanguage();
