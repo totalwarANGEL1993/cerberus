@@ -38,6 +38,7 @@ function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state)
                 i,
                 Position.X, Position.Y,
                 _range,
+                -- If changed, GetEnemiesInArea must also be changed!
                 "DefendableBuilding",
                 "MilitaryBuilding",
                 "Hero",
