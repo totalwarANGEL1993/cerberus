@@ -59,7 +59,7 @@ end
 function AiArmy.Delete(_ID)
     for i= table.getn(AiArmy.Internal.Data.Armies), 1, -1 do
         if AiArmy.Internal.Data.Armies[i].ID == _ID then
-            AiArmy.Internal.Data.Armies[i]:Abadon();
+            AiArmy.Internal.Data.Armies[i]:Abadon(false);
             table.remove(AiArmy.Internal.Data.Armies, i);
             return;
         end
@@ -134,7 +134,7 @@ end
 function AiArmy.RemoveTroop(_ID, _TroopID)
     local Army = AiArmy.Get(_ID);
     if Army then
-        return Army:RemoveTroop(_TroopID);
+        return Army:RemoveTroop(_TroopID) ~= 0;
     end
     return false;
 end
@@ -179,10 +179,10 @@ end
 --- (Do not use unless you know what you are doing!)
 --- @param _ID number    ID of army
 --- @param _State number ID of state
-function AiArmy.SetState(_ID, _State)
+function AiArmy.SetBehavior(_ID, _State)
     local Army = AiArmy.Get(_ID);
     if Army then
-        Army:SetState(_State)
+        Army:SetBehavior(_State)
     end
 end
 
@@ -416,152 +416,25 @@ function AiArmy.Internal:Controller()
     for i= table.getn(QualifyingArmies), 1, -1 do
         local Army = QualifyingArmies[i];
         Army:SetLastTick(Turn);
-
-        -- Update troops
         Army:ManageArmyMembers();
 
-        -- Update army defeated
         if not Army:IsAlive() then
-            Army:SetState(AiArmy.Behavior.REFILL);
+            Army:SetBehavior(AiArmy.Behavior.REFILL);
             Army:SetPosition(nil);
             Army:SetAnchor(nil, nil);
-            for j= table.getn(Army.Troops), 1, -1 do
-                local x,y,z = Logic.EntityGetPos(Army.Troops[j]);
-                Logic.GroupAttackMove(Army.Troops[j], x, y);
-            end
+            Army:Abadon(true);
         end
 
-        -- Army is waiting to act
-        if Army.State == AiArmy.Behavior.WAITING then
-            Army:ResetArmySpeed();
-            local ArmyPosition = Army:GetArmyPosition();
-            if AreEnemiesInArea(Army.PlayerID, ArmyPosition, Army.RodeLength) then
-                local Enemies = self:GetEnemiesInTerritory(Army.PlayerID, ArmyPosition, Army.RodeLength);
-                if Enemies[1] then
-                    Army:SetState(AiArmy.Behavior.BATTLE);
-                    Army:SetAnchor(GetPosition(Enemies[1]), Army.RodeLength);
-                end
-            else
-                if Army.Position then
-                    if ArePositionsConnected(ArmyPosition, Army.Position) then
-                        if GetDistance(ArmyPosition, Army.Position) > 1200 then
-                            Army:SetState(AiArmy.Behavior.ADVANCE);
-                        end
-                    end
-                else
-                    if ArePositionsConnected(ArmyPosition, Army.HomePosition) then
-                        if GetDistance(ArmyPosition, Army.HomePosition) > 1200 then
-                            for j= 1, table.getn(Army.Troops) do
-                                if Logic.IsEntityMoving(Army.Troops[j]) == false then
-                                    Logic.MoveSettler(Army.Troops[j], Army.HomePosition.X, Army.HomePosition.Y);
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-
-        elseif Army.State == AiArmy.Behavior.REFILL then
-            Army:ResetArmySpeed();
-            local ArmyPosition = Army:GetArmyPosition();
-            if AreEnemiesInArea(Army.PlayerID, ArmyPosition, Army.RodeLength) then
-                local Enemies = self:GetEnemiesInTerritory(Army.PlayerID, ArmyPosition, Army.RodeLength);
-                if Enemies[1] then
-                    Army:SetState(AiArmy.Behavior.BATTLE);
-                    Army:SetAnchor(GetPosition(Enemies[1]), Army.RodeLength);
-                end
-            else
-                if Army:GetCurrentStregth() >= 1 then
-                    Army:SetState(AiArmy.Behavior.WAITING);
-                end
-            end
-
-        -- Army is advancing to the target
-        elseif Army.State == AiArmy.Behavior.ADVANCE then
-            Army:NormalizedArmySpeed();
-            local EncounteredEnemy = 0;
-            for j= 1, table.getn(Army.Troops) do
-                local Exploration = Logic.GetEntityExplorationRange(Army.Troops[j]);
-                if AreEnemiesInArea(Army.PlayerID, Army.Troops[j], Exploration * 100) then
-                    local Enemies = self:GetEnemiesInTerritory(Army.PlayerID, GetPosition(Army.Troops[j]), Exploration * 100);
-                    if Enemies[1] then
-                        EncounteredEnemy = Enemies[1];
-                    end
-                    break;
-                end
-            end
-
-            if EncounteredEnemy ~= 0 then
-                Army:SetState(AiArmy.Behavior.BATTLE);
-                Army:SetAnchor(GetPosition(EncounteredEnemy), Army.RodeLength);
-                for j= 1, table.getn(Army.Troops) do
-                    Logic.GroupAttackMove(Army.Troops[j], Army.Anchor.Position.X, Army.Anchor.Position.Y);
-                end
-            else
-                if Army:IsScattered() then
-                    Army:SetState(AiArmy.Behavior.REGROUP);
-                    for j= 1, table.getn(Army.Troops) do
-                        Logic.SettlerStand(Army.Troops[j]);
-                    end
-                else
-                    local ArmyPosition = Army:GetArmyPosition();
-                    if ArePositionsConnected(ArmyPosition, Army.Position) then
-                        if GetDistance(ArmyPosition, Army.Position) > 1200 then
-                            for j= 1, table.getn(Army.Troops) do
-                                Logic.MoveSettler(Army.Troops[j], Army.Position.X, Army.Position.Y);
-                            end
-                        else
-                            Army:SetState(AiArmy.Behavior.WAITING);
-                        end
-                    end
-                end
-            end
-
-        -- Army is combating enemies
-        elseif Army.State == AiArmy.Behavior.BATTLE then
-            if not AreEnemiesInArea(Army.PlayerID, Army.Anchor.Position, Army.Anchor.RodeLength) then
-                Army:SetState(AiArmy.Behavior.REGROUP);
-                Army:SetAnchor(nil, nil);
-            else
-                Army:ResetArmySpeed();
-                for j= 1, table.getn(Army.Troops) do
-                    if GetDistance(Army.Anchor.Position, Army.Troops[j]) > Army.Anchor.RodeLength then
-                        Logic.MoveSettler(Army.Troops[j], Army.Anchor.Position.X, Army.Anchor.Position.Y);
-                        Army:LockOn(Army.Troops[j], nil);
-                    else
-                        if not Army.Targets[Army.Troops[j]] then
-                            local Enemies = self:GetEnemiesInTerritory(Army.PlayerID, Army.Anchor.Position, Army.Anchor.RodeLength, Army.Troops[j]);
-                            if Enemies[1] then
-                                local TargetID = self:PriorityTarget(Army.Troops[j], Enemies);
-                                Army:LockOn(Army.Troops[j], TargetID);
-                                Logic.GroupAttack(Army.Troops[j], TargetID);
-                            else
-                                Logic.MoveSettler(Army.Troops[j], Army.Anchor.Position.X, Army.Anchor.Position.Y);
-                            end
-                        end
-                    end
-                end
-            end
-
-        -- Army is regrouping
-        elseif Army.State == AiArmy.Behavior.REGROUP then
-            local ArmyPosition = Army:GetArmyPosition();
-            Army:NormalizedArmySpeed();
-            if AreEnemiesInArea(Army.PlayerID, ArmyPosition, Army.RodeLength) then
-                local Enemies = self:GetEnemiesInTerritory(Army.PlayerID, ArmyPosition, Army.RodeLength);
-                if Enemies[1] then
-                    Army:SetState(AiArmy.Behavior.BATTLE);
-                    Army:SetAnchor(GetPosition(Enemies[1]), Army.RodeLength);
-                end
-            else
-                if Army:IsScattered() then
-                    for j= 1, table.getn(Army.Troops) do
-                        Logic.MoveSettler(Army.Troops[j], ArmyPosition.X, ArmyPosition.Y);
-                    end
-                else
-                    Army:SetState(AiArmy.Behavior.WAITING);
-                end
-            end
+        if Army.Behavior == AiArmy.Behavior.WAITING then
+            Army:WaitBehavior();
+        elseif Army.Behavior == AiArmy.Behavior.REFILL then
+            Army:RefillBehavior();
+        elseif Army.Behavior == AiArmy.Behavior.ADVANCE then
+            Army:AdvanceBehavior();
+        elseif Army.Behavior == AiArmy.Behavior.BATTLE then
+            Army:BattleBehavior();
+        elseif Army.Behavior == AiArmy.Behavior.REGROUP then
+            Army:RegroupBehavior();
         end
     end
 end
@@ -672,6 +545,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     Targets         = {},
     Reinforcements  = {},
     Troops          = {},
+    CleanUp         = {},
 
     Anchor          = {
         Position    = nil,
@@ -689,13 +563,153 @@ function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
 
     local Army = CopyTable(self);
     Army.PlayerID = _PlayerID;
-    Army.State = AiArmy.Behavior.WAITING;
+    Army.Behavior = AiArmy.Behavior.WAITING;
     Army.Tick = math.mod(self.ID, 10);
     Army.HomePosition = _Position;
     Army.Position = _Position;
     Army.RodeLength = _RodeLength;
     Army.Strength = _Strength;
     return Army;
+end
+
+function AiArmy.Internal.Army:WaitBehavior()
+    self:ResetArmySpeed();
+    local ArmyPosition = self:GetArmyPosition();
+    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
+        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+        if Enemies[1] then
+            self:SetBehavior(AiArmy.Behavior.BATTLE);
+            self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
+        end
+    else
+        if self.Position then
+            if ArePositionsConnected(ArmyPosition, self.Position) then
+                if GetDistance(ArmyPosition, self.Position) > 1200 then
+                    self:SetBehavior(AiArmy.Behavior.ADVANCE);
+                end
+            end
+        else
+            if ArePositionsConnected(ArmyPosition, self.HomePosition) then
+                if GetDistance(ArmyPosition, self.HomePosition) > 1200 then
+                    for j= 1, table.getn(self.Troops) do
+                        if Logic.IsEntityMoving(self.Troops[j]) == false then
+                            Logic.MoveSettler(self.Troops[j], self.HomePosition.X, self.HomePosition.Y);
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function AiArmy.Internal.Army:RefillBehavior()
+    self:ResetArmySpeed();
+    local ArmyPosition = self:GetArmyPosition();
+    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
+        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+        if Enemies[1] then
+            self:SetBehavior(AiArmy.Behavior.BATTLE);
+            self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
+        end
+    else
+        if self:GetCurrentStregth() >= 1 then
+            self:SetBehavior(AiArmy.Behavior.WAITING);
+        end
+    end
+end
+
+function AiArmy.Internal.Army:AdvanceBehavior()
+    self:NormalizedArmySpeed();
+    local EncounteredEnemy = 0;
+    for j= 1, table.getn(self.Troops) do
+        local Exploration = Logic.GetEntityExplorationRange(self.Troops[j]);
+        if AreEnemiesInArea(self.PlayerID, self.Troops[j], Exploration * 100) then
+            local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, GetPosition(self.Troops[j]), Exploration * 100);
+            if Enemies[1] then
+                EncounteredEnemy = Enemies[1];
+            end
+            break;
+        end
+    end
+
+    if EncounteredEnemy ~= 0 then
+        self:SetBehavior(AiArmy.Behavior.BATTLE);
+        self:SetAnchor(GetPosition(EncounteredEnemy), self.RodeLength);
+        for j= 1, table.getn(self.Troops) do
+            Logic.GroupAttackMove(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
+        end
+    else
+        if self:IsScattered() then
+            self:SetBehavior(AiArmy.Behavior.REGROUP);
+            for j= 1, table.getn(self.Troops) do
+                Logic.SettlerStand(self.Troops[j]);
+            end
+        else
+            local ArmyPosition = self:GetArmyPosition();
+            if ArePositionsConnected(ArmyPosition, self.Position) then
+                if GetDistance(ArmyPosition, self.Position) > 1200 then
+                    for j= 1, table.getn(self.Troops) do
+                        Logic.MoveSettler(self.Troops[j], self.Position.X, self.Position.Y);
+                    end
+                else
+                    self:SetBehavior(AiArmy.Behavior.WAITING);
+                end
+            end
+        end
+    end
+end
+
+function AiArmy.Internal.Army:BattleBehavior()
+    if not AreEnemiesInArea(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength) then
+        self:SetBehavior(AiArmy.Behavior.REGROUP);
+        self:SetAnchor(nil, nil);
+    else
+        self:ResetArmySpeed();
+        for j= 1, table.getn(self.Troops) do
+            if GetDistance(self.Anchor.Position, self.Troops[j]) > self.Anchor.RodeLength then
+                Logic.MoveSettler(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
+                self:LockOn(self.Troops[j], nil);
+            else
+                if not self.Targets[self.Troops[j]] then
+                    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
+                    if Enemies[1] then
+                        local TargetID = AiArmy.Internal:PriorityTarget(self.Troops[j], Enemies);
+                        self:LockOn(self.Troops[j], TargetID);
+                        Logic.GroupAttack(self.Troops[j], TargetID);
+                    else
+                        local ArmyPosition = self:GetArmyPosition();
+                        if GetDistance(ArmyPosition, self.Anchor.Position) > 1200 then
+                            Logic.MoveSettler(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function AiArmy.Internal.Army:RegroupBehavior()
+    local ArmyPosition = self:GetArmyPosition();
+    self:NormalizedArmySpeed();
+    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
+        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+        if Enemies[1] then
+            self:SetBehavior(AiArmy.Behavior.BATTLE);
+            self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
+        end
+    else
+        if self:IsScattered() then
+            for j= 1, table.getn(self.Troops) do
+                Logic.MoveSettler(self.Troops[j], ArmyPosition.X, ArmyPosition.Y);
+            end
+        else
+            if self.Position then
+                self:SetBehavior(AiArmy.Behavior.WAITING);
+            else
+                self:SetBehavior(AiArmy.Behavior.REFILL);
+            end
+        end
+    end
 end
 
 function AiArmy.Internal.Army:ManageArmyMembers()
@@ -722,6 +736,25 @@ function AiArmy.Internal.Army:ManageArmyMembers()
             self:LockOn(self.Troops[j], nil);
             local ID = table.remove(self.Troops, j);
             AiArmyData_TroopIdToArmyId[ID] = nil;
+        end
+    end
+
+    -- Update troop cleanup
+    for j= table.getn(self.CleanUp), 1, -1 do
+        local Alive = AiArmy.Internal:IsTroopAlive(self.CleanUp[j]);
+        local Fighting = AiArmy.Internal:IsTroopFighting(self.CleanUp[j]);
+        local Moving = AiArmy.Internal:IsTroopMoving(self.CleanUp[j]);
+        if not Alive or not Fighting or not Moving then
+            AiArmyData_TroopIdToArmyId[ID] = nil;
+            local ID = table.remove(self.CleanUp, j);
+            self:LockOn(ID, nil);
+            if not Fighting and not Moving then
+                local Soldiers = {Logic.GetSoldiersAttachedToLeader(ID)};
+                for i= Soldiers[1] +1, 1, -1 do
+                    SetHealth(Soldiers[i], 0);
+                end
+                SetHealth(ID, 0);
+            end
         end
     end
 
@@ -768,8 +801,7 @@ function AiArmy.Internal.Army:RemoveTroop(_ID)
                 AI.Army_EnableLeaderAi(_ID, 1);
             end
             AiArmyData_ReinforcementIdToArmyId[_ID] = nil;
-            table.remove(self.Troops, i);
-            return true;
+            return table.remove(self.Troops, i);
         end
     end
     for i= table.getn(self.Troops), 1, -1 do
@@ -778,19 +810,24 @@ function AiArmy.Internal.Army:RemoveTroop(_ID)
                 AI.Army_EnableLeaderAi(_ID, 1);
             end
             AiArmyData_TroopIdToArmyId[_ID] = nil;
-            table.remove(self.Troops, i);
-            return true;
+            return table.remove(self.Troops, i);
         end
     end
-    return false;
+    return 0;
 end
 
-function AiArmy.Internal.Army:Abadon(_ID)
+function AiArmy.Internal.Army:Abadon(_KillLater)
     for i= table.getn(self.Reinforcements), 1, -1 do
-        self:RemoveTroop(self.Reinforcements[i]);
+        local ID = self:RemoveTroop(self.Reinforcements[i]);
+        if _KillLater and ID ~= 0 and IsExisting(ID) then
+            table.insert(self.CleanUp, ID);
+        end
     end
     for i= table.getn(self.Troops), 1, -1 do
-        self:RemoveTroop(self.Troops[i]);
+        local ID = self:RemoveTroop(self.Troops[i]);
+        if _KillLater and ID ~= 0 and IsExisting(ID) then
+            table.insert(self.CleanUp, ID);
+        end
     end
 end
 
@@ -810,8 +847,8 @@ function AiArmy.Internal.Army:SetActive(_Active)
     self.Active = _Active == true;
 end
 
-function AiArmy.Internal.Army:SetState(_State)
-    self.State = _State;
+function AiArmy.Internal.Army:SetBehavior(_State)
+    self.Behavior = _State;
 end
 
 function AiArmy.Internal.Army:SetPosition(_Position)
