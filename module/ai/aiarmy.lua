@@ -47,7 +47,7 @@ AiArmy = AiArmy or {
 --- @return number ID ID of army
 function AiArmy.New(_PlayerID, _Strength, _Position, _RodeLength)
     local Army = AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength);
-    table.insert(AiArmy.Internal.Data.Armies, Army);
+    AiArmyData_ArmyIdToArmyInstance[Army.ID] = Army;
     return Army.ID;
 end
 
@@ -57,12 +57,8 @@ end
 ---
 --- @param _ID number ID of army
 function AiArmy.Delete(_ID)
-    for i= table.getn(AiArmy.Internal.Data.Armies), 1, -1 do
-        if AiArmy.Internal.Data.Armies[i].ID == _ID then
-            AiArmy.Internal.Data.Armies[i]:Abadon(false);
-            table.remove(AiArmy.Internal.Data.Armies, i);
-            return;
-        end
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:Dispose();
     end
 end
 
@@ -70,10 +66,8 @@ end
 --- @param _ID number ID of army
 --- @return table? Army Instance of army
 function AiArmy.Get(_ID)
-    for i= 1, table.getn(AiArmy.Internal.Data.Armies) do
-        if AiArmy.Internal.Data.Armies[i].ID == _ID then
-            return AiArmy.Internal.Data.Armies[i];
-        end
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID];
     end
 end
 
@@ -294,89 +288,17 @@ function AiArmy:Fallback(_ID)
 end
 
 -- -------------------------------------------------------------------------- --
--- Config
-
-AiArmyConfig = {
-    -- Configures the favorite target typew of specific entity categories.
-    -- (The lower the less focus. No entry means 0.)
-    Targeting = {
-        Sword = {
-            ["Hero"] = 1.0,
-            ["LongRange"] = 0.9,
-            ["Spear"] = 0.9,
-        },
-        Spear = {
-            ["CavalryHeavy"] = 1.0,
-            ["CavalryLight"] = 0.8,
-        },
-        CavalryHeavy = {
-            ["Hero"] = 1.0,
-            ["LongRange"] = 0.9,
-            ["Sword"] = 0.75,
-            ["MilitaryBuilding"] = 0.4,
-        },
-        LongRange = {
-            ["Hero"] = 1.0,
-            ["CavalryHeavy"] = 0.9,
-            ["CavalryLight"] = 0.7,
-            ["Spear"] = 0.6,
-        },
-        Rifle = {
-            ["MilitaryBuilding"] = 1.0,
-            ["EvilLeader"] = 1.0,
-            ["LongRange"] = 0.8,
-        },
-        Cannon = {
-            ["MilitaryBuilding"] = 1.0,
-            ["EvilLeader"] = 1.0,
-            ["LongRange"] = 0.7,
-        }
-    },
-
-    -- Holds the basic speed of the units.
-    BaseSpeed = {
-        ["Bow"] = 320,
-        ["CavalryLight"] = 500,
-        ["CavalryHeavy"] = 500,
-        ["Hero"] = 400,
-        ["Rifle"] = 320,
-
-        ["PV_Cannon1"] = 240,
-        ["PV_Cannon2"] = 260,
-        ["PV_Cannon3"] = 220,
-        ["PV_Cannon4"] = 180,
-
-        ["_Others"] = 360,
-    },
-
-    -- Configures how much a singular base speed influences the calculated
-    -- average speed of the army.
-    -- (We do not want wo make anyone as slow as the slowest unit!)
-    SpeedWeighting = {
-        ["CavalryLight"] = 0.4,
-        ["CavalryHeavy"] = 0.4,
-
-        ["PV_Cannon3"] = 0.3,
-        ["PV_Cannon4"] = 0.1,
-
-        ["_Others"] = 1.0
-    }
-}
-
--- -------------------------------------------------------------------------- --
 -- Internal
 
 AiArmy.Internal = AiArmy.Internal or {
-    Data = {
-        Armies = {},
-    },
+    Data = {},
 };
 
 function AiArmy.Internal:Install()
     if not self.isInstalled then
         self.isInstalled = true;
 
-        StartSimpleTurnTrigger(function ()
+        AiArmyControllerJobId = StartSimpleTurnTrigger(function ()
             AiArmy.Internal:Controller();
         end);
     end
@@ -405,7 +327,7 @@ function AiArmy.Internal:Controller()
     local Turn = Logic.GetCurrentTurn();
 
     local QualifyingArmies = {};
-    for k,v in pairs(self.Data.Armies) do
+    for k,v in pairs(AiArmyData_ArmyIdToArmyInstance) do
         if v.Active and v:IsAlive() then
             if math.mod(Turn, 10) == v.Tick and v.LastTick+19 < Turn then
                 table.insert(QualifyingArmies, v);
@@ -555,13 +477,15 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
 
 AiArmyData_TroopIdToArmyId = {};
 AiArmyData_ReinforcementIdToArmyId = {};
+AiArmyData_ArmyIdToArmyInstance = {};
+AiArmyData_IdSequence = 0;
 
 function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
+    AiArmyData_IdSequence = AiArmyData_IdSequence +1;
     AiArmy.Internal:Install();
 
-    self.ID = self.ID +1;
-
     local Army = CopyTable(self);
+    Army.ID = AiArmyData_IdSequence;
     Army.PlayerID = _PlayerID;
     Army.Behavior = AiArmy.Behavior.WAITING;
     Army.Tick = math.mod(self.ID, 10);
@@ -570,6 +494,11 @@ function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
     Army.RodeLength = _RodeLength;
     Army.Strength = _Strength;
     return Army;
+end
+
+function AiArmy.Internal.Army:Dispose()
+    self:Abadon(false);
+    AiArmyData_ArmyIdToArmyInstance[self.ID] = nil;
 end
 
 function AiArmy.Internal.Army:WaitBehavior()
@@ -999,4 +928,74 @@ function AiArmy.Internal.Army:GetTroopSpeedConfigKey(_TroopID)
     end
     return "_Others";
 end
+
+-- -------------------------------------------------------------------------- --
+-- Config
+
+AiArmyConfig = {
+    -- Configures the favorite target typew of specific entity categories.
+    -- (The lower the less focus. No entry means 0.)
+    Targeting = {
+        Sword = {
+            ["Hero"] = 1.0,
+            ["LongRange"] = 0.9,
+            ["Spear"] = 0.9,
+        },
+        Spear = {
+            ["CavalryHeavy"] = 1.0,
+            ["CavalryLight"] = 0.8,
+        },
+        CavalryHeavy = {
+            ["Hero"] = 1.0,
+            ["LongRange"] = 0.9,
+            ["Sword"] = 0.75,
+            ["MilitaryBuilding"] = 0.4,
+        },
+        LongRange = {
+            ["Hero"] = 1.0,
+            ["CavalryHeavy"] = 0.9,
+            ["CavalryLight"] = 0.7,
+            ["Spear"] = 0.6,
+        },
+        Rifle = {
+            ["MilitaryBuilding"] = 1.0,
+            ["EvilLeader"] = 1.0,
+            ["LongRange"] = 0.8,
+        },
+        Cannon = {
+            ["MilitaryBuilding"] = 1.0,
+            ["EvilLeader"] = 1.0,
+            ["LongRange"] = 0.7,
+        }
+    },
+
+    -- Holds the basic speed of the units.
+    BaseSpeed = {
+        ["Bow"] = 320,
+        ["CavalryLight"] = 500,
+        ["CavalryHeavy"] = 500,
+        ["Hero"] = 400,
+        ["Rifle"] = 320,
+
+        ["PV_Cannon1"] = 240,
+        ["PV_Cannon2"] = 260,
+        ["PV_Cannon3"] = 220,
+        ["PV_Cannon4"] = 180,
+
+        ["_Others"] = 360,
+    },
+
+    -- Configures how much a singular base speed influences the calculated
+    -- average speed of the army.
+    -- (We do not want wo make anyone as slow as the slowest unit!)
+    SpeedWeighting = {
+        ["CavalryLight"] = 0.4,
+        ["CavalryHeavy"] = 0.4,
+
+        ["PV_Cannon3"] = 0.3,
+        ["PV_Cannon4"] = 0.1,
+
+        ["_Others"] = 1.0
+    }
+}
 
