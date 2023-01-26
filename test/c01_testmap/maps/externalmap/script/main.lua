@@ -7,9 +7,24 @@ function OnMapStart()
     Script.Load("maps\\user\\cerberus\\loader.lua");
 
     Lib.Require("module/ai/AiArmy");
+    Lib.Require("module/ai/AiTroopSpawner");
 end
 
+function CreateTestArmyOne()
+    TestArmyID = AiArmy.New(3, 8, GetPosition("Player3_PatrolPoint1"), 3000);
+end
 
+function CreateTestSpawnerOne()
+    TestSpawnerID = AiTroopSpawner.Create {
+        ScriptName      = "P3robberyTower1",
+        SpawnPoint      = "P3robberySpawn1",
+        AllowedTypes    = {
+            {Entities.PU_LeaderPoleArm1, 3},
+            {Entities.PU_LeaderBow1, 3}
+        }
+    };
+    AiTroopSpawner.AddArmy(TestSpawnerID, TestArmyID, 30);
+end
 
 function CreateMapEntities()
     ReplaceEntity("P4residence1",Entities.PB_Residence2);

@@ -74,10 +74,10 @@ end
 --- The placeholder is placed in the text by typing {n:XXX} where XXX is the
 --- name of the placeholder.
 --- 
---- @param _Scriptname string placeholder name
+--- @param _ScriptName string placeholder name
 --- @param _Value any         Name for scriptname
-function Placeholder.DefineNamePlaceholder(_Scriptname, _Value)
-    Placeholder.Internal.Data.Names[_Scriptname] = _Value;
+function Placeholder.DefineNamePlaceholder(_ScriptName, _Value)
+    Placeholder.Internal.Data.Names[_ScriptName] = _Value;
 end
 
 -- -------------------------------------------------------------------------- --

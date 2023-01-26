@@ -21,13 +21,6 @@ BriefingSystem = BriefingSystem or {
 -- -------------------------------------------------------------------------- --
 -- API
 
---- Does install the briefing system.
---- (Must be called on game start!)
-function BriefingSystem.Install()
-    Cinematic.Install();
-    BriefingSystem.Internal:Install();
-end
-
 --- Starts a briefing for a player.
 ---
 --- If the briefing table contains a function 'Starting' then it is called
@@ -155,6 +148,9 @@ BriefingSystem.Internal = BriefingSystem.Internal or {
 }
 
 function BriefingSystem.Internal:Install()
+    Placeholder.Install();
+    Cinematic.Install();
+
     if not self.IsInstalled then
         self.IsInstalled = true;
         for k, v in pairs(Syncer.GetActivePlayers()) do
@@ -361,6 +357,7 @@ function BriefingSystem.Internal:IsBriefingActiveForAnyPlayer()
 end
 
 function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
+    self:Install();
     -- Abort if event can not be created
     if not Cinematic.CreateCinematicEvent(_PlayerID, _BriefingName) then
         return;

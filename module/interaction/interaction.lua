@@ -11,15 +11,6 @@ Lib.Register("module/interaction/Interaction");
 Interaction = Interaction or {}
 
 -- -------------------------------------------------------------------------- --
--- API
-
---- Installs the interaction controller.
---- (This is usually called by code from other scripts.)
-function Interaction.Install()
-    Interaction.Internal:Install();
-end
-
--- -------------------------------------------------------------------------- --
 -- Callback
 
 --- Called when a hero is talking to a normal npc.
@@ -67,10 +58,10 @@ function Interaction.Internal:Install()
 end
 
 function Interaction.Internal:CreateNpc(_Data)
-    Interaction.Internal:DeleteNpc(_Data.Scriptname);
+    Interaction.Internal:DeleteNpc(_Data.ScriptName);
 
     local Data = {
-        ScriptName = _Data.Scriptname,
+        ScriptName = _Data.ScriptName,
         Callback   = _Data.Callback or function() end,
         Active     = false,
         Hero       = _Data.Hero,
@@ -84,22 +75,22 @@ function Interaction.Internal:CreateNpc(_Data)
         "Interaction_Internal_NpcController",
         1,
         {},
-        {_Data.Scriptname}
+        {_Data.ScriptName}
     );
 
-    self.Data.IO[_Data.Scriptname] = Data;
+    self.Data.IO[_Data.ScriptName] = Data;
 end
 
-function Interaction.Internal:DeleteNpc(_Scriptname)
+function Interaction.Internal:DeleteNpc(_ScriptName)
     -- Delete old instance
-    if self.Data.IO[_Scriptname] then
-        if JobIsRunning(self.Data.IO[_Scriptname].JobID) then
-            EndJob(self.Data.IO[_Scriptname].JobID);
+    if self.Data.IO[_ScriptName] then
+        if JobIsRunning(self.Data.IO[_ScriptName].JobID) then
+            EndJob(self.Data.IO[_ScriptName].JobID);
         end
-        if self.Data.IO[_Scriptname].Active then
-            Interaction.Internal:Deactivate(_Scriptname);
+        if self.Data.IO[_ScriptName].Active then
+            Interaction.Internal:Deactivate(_ScriptName);
         end
-        self.Data.IO[_Scriptname] = nil;
+        self.Data.IO[_ScriptName] = nil;
     end
 end
 

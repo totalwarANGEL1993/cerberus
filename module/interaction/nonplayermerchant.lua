@@ -26,20 +26,12 @@ MerchantOfferTypes = {
 -- -------------------------------------------------------------------------- --
 -- API
 
---- Installs the interaction controller.
---- (Must be called on game start!)
-function NonPlayerMerchant.Install()
-    Placeholder.Install()
-    Interaction.Install();
-    NonPlayerMerchant.Internal:Install();
-end
-
 --- Creates a new merchant.
 ---
 --- Possible fields for definition:
---- * ScriptName     (Required) Scriptname of NPC
+--- * ScriptName     (Required) ScriptName of NPC
 --- * Spawnpoint     (Optional) Spawnpoint for mercenaries
---- * Hero           (Optional) Scriptname of hero who can talk to NPC
+--- * Hero           (Optional) ScriptName of hero who can talk to NPC
 --- * WrongHeroMsg   (Optional) Wrong hero message
 --- * Player         (Optional) Player that can talk to NPC
 --- * WrongPlayerMsg (Optional) Wrong player message
@@ -50,101 +42,101 @@ function NonPlayerMerchant.Create(_Data)
 end
 
 --- Deletes an merchant (but not the settler).
---- @param _Scriptname string Scriptname of NPC
-function NonPlayerMerchant.Delete(_Scriptname)
-    NonPlayerMerchant.Internal:DeleteNpc(_Scriptname);
+--- @param _ScriptName string ScriptName of NPC
+function NonPlayerMerchant.Delete(_ScriptName)
+    NonPlayerMerchant.Internal:DeleteNpc(_ScriptName);
 end
 
 --- Checks if the settler has an active merchant NPC.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @return boolean Active NPC is active
-function NonPlayerMerchant.IsActive(_Scriptname)
-    local Data = Interaction.Internal.Data.IO[_Scriptname];
+function NonPlayerMerchant.IsActive(_ScriptName)
+    local Data = Interaction.Internal.Data.IO[_ScriptName];
     return Data and Data.Active == true;
 end
 
 --- Activates an existing inactive merchant NPC.
 --- (The TalkedTo value is reset.)
---- @param _Scriptname string Scriptname of NPC
-function NonPlayerMerchant.Activate(_Scriptname)
-    Interaction.Internal:Activate(_Scriptname);
+--- @param _ScriptName string ScriptName of NPC
+function NonPlayerMerchant.Activate(_ScriptName)
+    Interaction.Internal:Activate(_ScriptName);
 end
 
 --- Deactivates an existing active merchant NPC.
---- @param _Scriptname string Scriptname of NPC
-function NonPlayerMerchant.Deactivate(_Scriptname)
-    Interaction.Internal:Deactivate(_Scriptname);
+--- @param _ScriptName string ScriptName of NPC
+function NonPlayerMerchant.Deactivate(_ScriptName)
+    Interaction.Internal:Deactivate(_ScriptName);
 end
 
 --- Returns the amount of offerts.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @return number Amount Amount of offers
-function NonPlayerMerchant.GetOfferCount(_Scriptname)
-    return NonPlayerMerchant.Internal:GetOfferCount(_Scriptname);
+function NonPlayerMerchant.GetOfferCount(_ScriptName)
+    return NonPlayerMerchant.Internal:GetOfferCount(_ScriptName);
 end
 
 --- Returns the amount of offer instances bought from the offer.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @param _OfferIdx number Index of offer
 --- @return number Amount Amount of purchase
-function NonPlayerMerchant.GetTradingVolume(_Scriptname, _OfferIdx)
-    return NonPlayerMerchant.Internal:GetTradingVolume(_Scriptname, _OfferIdx);
+function NonPlayerMerchant.GetTradingVolume(_ScriptName, _OfferIdx)
+    return NonPlayerMerchant.Internal:GetTradingVolume(_ScriptName, _OfferIdx);
 end
 
 --- Adds a resource offer to the merchant.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @param _Good number    Type of resource
 --- @param _Amount number  Amount of resource
 --- @param _Costs table    Costs of offer
 --- @param _Load number    Amount of resource offers
 --- @param _Refresh number Time until a wagonload is regenerated
-function NonPlayerMerchant.AddResourceOffer(_Scriptname, _Good, _Amount, _Costs, _Load, _Refresh)
-    if NonPlayerMerchant.Internal:GetOfferCount(_Scriptname) < 4 then
-        NonPlayerMerchant.Internal:AddResourceOffer(_Scriptname, _Good, _Amount, _Costs, _Load, _Refresh);
+function NonPlayerMerchant.AddResourceOffer(_ScriptName, _Good, _Amount, _Costs, _Load, _Refresh)
+    if NonPlayerMerchant.Internal:GetOfferCount(_ScriptName) < 4 then
+        NonPlayerMerchant.Internal:AddResourceOffer(_ScriptName, _Good, _Amount, _Costs, _Load, _Refresh);
     end
 end
 
 --- Adds a mercenary offer to the merchant.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @param _Type number    Type of mercenary
 --- @param _Costs table    Costs of offer
 --- @param _Amount number  Amount of troops
 --- @param _Refresh number Time until a wagonload is regenerated
-function NonPlayerMerchant.AddTroopOffer(_Scriptname, _Type, _Costs, _Amount, _Refresh)
-    if NonPlayerMerchant.Internal:GetOfferCount(_Scriptname) < 4 then
-        NonPlayerMerchant.Internal:AddTroopOffer(_Scriptname, _Type, _Costs, _Amount, _Refresh);
+function NonPlayerMerchant.AddTroopOffer(_ScriptName, _Type, _Costs, _Amount, _Refresh)
+    if NonPlayerMerchant.Internal:GetOfferCount(_ScriptName) < 4 then
+        NonPlayerMerchant.Internal:AddTroopOffer(_ScriptName, _Type, _Costs, _Amount, _Refresh);
     end
 end
 
 --- Adds a technology offer to the merchant.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @param _Tech number Technology type
 --- @param _Costs table Costs of offer
-function NonPlayerMerchant.AddTechnologyOffer(_Scriptname, _Tech, _Costs)
-    if NonPlayerMerchant.Internal:GetOfferCount(_Scriptname) < 4 then
-        NonPlayerMerchant.Internal:AddTechnologyOffer(_Scriptname, _Tech, _Costs);
+function NonPlayerMerchant.AddTechnologyOffer(_ScriptName, _Tech, _Costs)
+    if NonPlayerMerchant.Internal:GetOfferCount(_ScriptName) < 4 then
+        NonPlayerMerchant.Internal:AddTechnologyOffer(_ScriptName, _Tech, _Costs);
     end
 end
 
 --- Adds a custom defined offer to the merchant.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @param _Action function   Function to call
 --- @param _Amount number     Amount of wagonloads
 --- @param _Costs table       Costs of offer
 --- @param _Icon string       Icon name to display
 --- @param _Description table Description (Title and Text are separeted)
 --- @param _Refresh number    Time until a wagonload is regenerated
-function NonPlayerMerchant.AddCustomOffer(_Scriptname, _Action, _Amount, _Costs, _Icon, _Description, _Refresh)
-    if NonPlayerMerchant.Internal:GetOfferCount(_Scriptname) < 4 then
-        NonPlayerMerchant.Internal:AddCustomOffer(_Scriptname, _Action, _Amount, _Costs, _Icon, _Description, _Refresh);
+function NonPlayerMerchant.AddCustomOffer(_ScriptName, _Action, _Amount, _Costs, _Icon, _Description, _Refresh)
+    if NonPlayerMerchant.Internal:GetOfferCount(_ScriptName) < 4 then
+        NonPlayerMerchant.Internal:AddCustomOffer(_ScriptName, _Action, _Amount, _Costs, _Icon, _Description, _Refresh);
     end
 end
 
 --- Deletes an offer from the merchant.
---- @param _Scriptname string Scriptname of NPC
+--- @param _ScriptName string ScriptName of NPC
 --- @param _Index number      Index of offer
-function NonPlayerMerchant.RemoveOffer(_Scriptname, _Index)
-    NonPlayerMerchant.Internal:RemoveOffer(_Scriptname, _Index);
+function NonPlayerMerchant.RemoveOffer(_ScriptName, _Index)
+    NonPlayerMerchant.Internal:RemoveOffer(_ScriptName, _Index);
 end
 
 -- -------------------------------------------------------------------------- --
@@ -155,6 +147,9 @@ NonPlayerMerchant.Internal = {
 };
 
 function NonPlayerMerchant.Internal:Install()
+    Placeholder.Install();
+    Interaction.Internal:Install();
+
     if not self.IsInstalled then
         self.IsInstalled = true;
 
@@ -165,9 +160,10 @@ function NonPlayerMerchant.Internal:Install()
 end
 
 function NonPlayerMerchant.Internal:CreateNpc(_Data)
+    self:Install();
     Interaction.Internal:CreateNpc(_Data);
 
-    local Data = Interaction.Internal.Data.IO[_Data.Scriptname];
+    local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
     Data.IsMerchant = true;
     Data.Waypoints  = _Data.Waypoints or {};
     Data.Wanderer   = _Data.StrayPoints or {};
@@ -176,24 +172,24 @@ function NonPlayerMerchant.Internal:CreateNpc(_Data)
     Data.Offers     = {};
 
     Logic.AddMercenaryOffer(
-        GetID(_Data.Scriptname),
+        GetID(_Data.ScriptName),
         Entities.CU_Barbarian_LeaderClub1,
         1,
         ResourceType.Gold,
         1
     );
 
-    Interaction.Internal.Data.IO[_Data.Scriptname] = Data;
+    Interaction.Internal.Data.IO[_Data.ScriptName] = Data;
 end
 
-function NonPlayerMerchant.Internal:DeleteNpc(_Scriptname)
-    Interaction.Internal:DeleteNpc(_Scriptname);
+function NonPlayerMerchant.Internal:DeleteNpc(_ScriptName)
+    Interaction.Internal:DeleteNpc(_ScriptName);
 end
 
-function NonPlayerMerchant.Internal:OnNpcActivated(_Scriptname)
+function NonPlayerMerchant.Internal:OnNpcActivated(_ScriptName)
 end
 
-function NonPlayerMerchant.Internal:OnNpcDeactivated(_Scriptname)
+function NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName)
     GUIAction_MerchantReady();
 end
 
@@ -283,26 +279,26 @@ function NonPlayerMerchant.Internal:OverrideNpcInteractionCallbacks()
     end
 
     self.Orig_GameCallback_Logic_OnTickNpcController = GameCallback_Logic_OnTickNpcController;
-    GameCallback_Logic_OnTickNpcController = function(_Scriptname)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnTickNpcController(_Scriptname);
-        NonPlayerMerchant.Internal:OnTickNpcController(_Scriptname);
+    GameCallback_Logic_OnTickNpcController = function(_ScriptName)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnTickNpcController(_ScriptName);
+        NonPlayerMerchant.Internal:OnTickNpcController(_ScriptName);
     end
 
     self.Orig_GameCallback_Logic_OnNpcActivated = GameCallback_Logic_OnNpcActivated;
-    GameCallback_Logic_OnNpcActivated = function(_Scriptname)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcActivated(_Scriptname);
-        NonPlayerMerchant.Internal:OnNpcActivated(_Scriptname);
+    GameCallback_Logic_OnNpcActivated = function(_ScriptName)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcActivated(_ScriptName);
+        NonPlayerMerchant.Internal:OnNpcActivated(_ScriptName);
     end
 
     self.Orig_GameCallback_Logic_OnNpcDeactivated = GameCallback_Logic_OnNpcDeactivated;
-    GameCallback_Logic_OnNpcDeactivated = function(_Scriptname)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcDeactivated(_Scriptname);
-        NonPlayerMerchant.Internal:OnNpcDeactivated(_Scriptname);
+    GameCallback_Logic_OnNpcDeactivated = function(_ScriptName)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcDeactivated(_ScriptName);
+        NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName);
     end
 end
 
-function NonPlayerMerchant.Internal:OnTickNpcController(_NpcScriptname)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptname];
+function NonPlayerMerchant.Internal:OnTickNpcController(_NpcScriptName)
+    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     if Data.Active == true and Data.IsMerchant then
         for k, v in pairs(Data.Offers) do
             if v and v.Refresh > -1 then
@@ -325,18 +321,18 @@ function NonPlayerMerchant.Internal:OnTickNpcController(_NpcScriptname)
     end
 end
 
-function NonPlayerMerchant.Internal:GetTradingVolume(_Scriptname, _SlotIndex)
-    if Interaction.Internal.Data.IO[_Scriptname] then
-        if Interaction.Internal.Data.IO[_Scriptname].Offers[_SlotIndex] then
-            return Interaction.Internal.Data.IO[_Scriptname].Offers[_SlotIndex].Volume;
+function NonPlayerMerchant.Internal:GetTradingVolume(_ScriptName, _SlotIndex)
+    if Interaction.Internal.Data.IO[_ScriptName] then
+        if Interaction.Internal.Data.IO[_ScriptName].Offers[_SlotIndex] then
+            return Interaction.Internal.Data.IO[_ScriptName].Offers[_SlotIndex].Volume;
         end
     end
     return 0;
 end
 
-function NonPlayerMerchant.Internal:GetOfferCount(_Scriptname)
-    if Interaction.Internal.Data.IO[_Scriptname] then
-        return table.getn(Interaction.Internal.Data.IO[_Scriptname].Offers);
+function NonPlayerMerchant.Internal:GetOfferCount(_ScriptName)
+    if Interaction.Internal.Data.IO[_ScriptName] then
+        return table.getn(Interaction.Internal.Data.IO[_ScriptName].Offers);
     end
     return 0;
 end
@@ -404,13 +400,13 @@ end
 
 -- Offers --
 
-function NonPlayerMerchant.Internal:AddOffer(_Type, _Scriptname, _Costs, _Amount, _Good, _Load, _Icon, _Refresh, _Description)
-    if Interaction.Internal.Data.IO[_Scriptname] then
+function NonPlayerMerchant.Internal:AddOffer(_Type, _ScriptName, _Costs, _Amount, _Good, _Load, _Icon, _Refresh, _Description)
+    if Interaction.Internal.Data.IO[_ScriptName] then
         local CostsTable = self:CreateCostTable(_Costs);
 
-        local Length = table.getn(Interaction.Internal.Data.IO[_Scriptname].Offers);
+        local Length = table.getn(Interaction.Internal.Data.IO[_ScriptName].Offers);
         if Length < 4 then
-            Interaction.Internal.Data.IO[_Scriptname].Offers[Length+1] = {
+            Interaction.Internal.Data.IO[_ScriptName].Offers[Length+1] = {
                 Type = _Type,
                 Costs = CostsTable,
                 Amount = _Amount,
@@ -427,7 +423,7 @@ function NonPlayerMerchant.Internal:AddOffer(_Type, _Scriptname, _Costs, _Amount
     end
 end
 
-function NonPlayerMerchant.Internal:AddTroopOffer(_Scriptname, _Good, _Costs, _Amount, _Refresh)
+function NonPlayerMerchant.Internal:AddTroopOffer(_ScriptName, _Good, _Costs, _Amount, _Refresh)
     -- Get icon
     local Icon = "Buy_LeaderSword";
     if Logic.IsEntityTypeInCategory(_Good, EntityCategories.Bow) == 1 then
@@ -456,10 +452,10 @@ function NonPlayerMerchant.Internal:AddTroopOffer(_Scriptname, _Good, _Costs, _A
         Icon = "Buy_Scout";
     end
     -- Add offer
-    self:AddOffer(MerchantOfferTypes.Unit, _Scriptname, _Costs, 0, _Good, _Amount, Icon, _Refresh or -1);
+    self:AddOffer(MerchantOfferTypes.Unit, _ScriptName, _Costs, 0, _Good, _Amount, Icon, _Refresh or -1);
 end
 
-function NonPlayerMerchant.Internal:AddResourceOffer(_Scriptname, _Good, _Amount, _Costs, _Load, _Refresh)
+function NonPlayerMerchant.Internal:AddResourceOffer(_ScriptName, _Good, _Amount, _Costs, _Load, _Refresh)
     -- Get icon
     local Icon = "Statistics_SubResources_Money";
     if _Good == ResourceType.Clay or _Good == ResourceType.ClayRaw then
@@ -474,10 +470,10 @@ function NonPlayerMerchant.Internal:AddResourceOffer(_Scriptname, _Good, _Amount
         Icon = "Statistics_SubResources_Sulphur";
     end
     -- Add offer
-    self:AddOffer(MerchantOfferTypes.Resource, _Scriptname, _Costs, _Amount, _Good, _Load, Icon, _Refresh or -1);
+    self:AddOffer(MerchantOfferTypes.Resource, _ScriptName, _Costs, _Amount, _Good, _Load, Icon, _Refresh or -1);
 end
 
-function NonPlayerMerchant.Internal:AddTechnologyOffer(_Scriptname, _Good, _Costs)
+function NonPlayerMerchant.Internal:AddTechnologyOffer(_ScriptName, _Good, _Costs)
     -- Get icon
     local Icon;
     for k, v in pairs(Technologies) do
@@ -494,29 +490,29 @@ function NonPlayerMerchant.Internal:AddTechnologyOffer(_Scriptname, _Good, _Cost
         end
     end
     -- Add offer
-    self:AddOffer(MerchantOfferTypes.Technology, _Scriptname, _Costs, 0, _Good, 1, Icon, -1);
+    self:AddOffer(MerchantOfferTypes.Technology, _ScriptName, _Costs, 0, _Good, 1, Icon, -1);
 end
 
-function NonPlayerMerchant.Internal:AddCustomOffer(_Scriptname, _Action, _Amount, _Costs, _Icon, _Description, _Refresh)
-    self:AddOffer(MerchantOfferTypes.Custom, _Scriptname, _Costs, 0, _Action, _Amount, _Icon, _Refresh or -1, _Description);
+function NonPlayerMerchant.Internal:AddCustomOffer(_ScriptName, _Action, _Amount, _Costs, _Icon, _Description, _Refresh)
+    self:AddOffer(MerchantOfferTypes.Custom, _ScriptName, _Costs, 0, _Action, _Amount, _Icon, _Refresh or -1, _Description);
 end
 
-function NonPlayerMerchant.Internal:RemoveOffer(_Scriptname, _Index)
-    if Interaction.Internal.Data.IO[_Scriptname] then
-        if table.getn(Interaction.Internal.Data.IO[_Scriptname].Offers) >= _Index then
-            table.remove(Interaction.Internal.Data.IO[_Scriptname].Offers, _Index);
+function NonPlayerMerchant.Internal:RemoveOffer(_ScriptName, _Index)
+    if Interaction.Internal.Data.IO[_ScriptName] then
+        if table.getn(Interaction.Internal.Data.IO[_ScriptName].Offers) >= _Index then
+            table.remove(Interaction.Internal.Data.IO[_ScriptName].Offers, _Index);
         end
     end
 end
 
 -- Interaction --
 
-function NonPlayerMerchant.Internal:OnNpcInteraction(_NpcScriptname, _HeroScriptname)
-    local HeroID = GetID(_HeroScriptname);
-    local NpcID = GetID(_NpcScriptname);
+function NonPlayerMerchant.Internal:OnNpcInteraction(_NpcScriptName, _HeroScriptName)
+    local HeroID = GetID(_HeroScriptName);
+    local NpcID = GetID(_NpcScriptName);
 
-    gvLastInteractionHeroName = _HeroScriptname;
-    gvLastInteractionNpcName = _NpcScriptname;
+    gvLastInteractionHeroName = _HeroScriptName;
+    gvLastInteractionNpcName = _NpcScriptName;
 
     local CurrentPlayerID = GUI.GetPlayerID();
     local PlayerIDOfHero = Logic.EntityGetPlayer(HeroID);
@@ -528,12 +524,12 @@ function NonPlayerMerchant.Internal:OnNpcInteraction(_NpcScriptname, _HeroScript
         XGUIEng.ShowAllSubWidgets(gvGUI_WidgetID.SelectionBuilding, 0);
         XGUIEng.ShowWidget(gvGUI_WidgetID.SelectionBuilding, 1);
         XGUIEng.ShowWidget(gvGUI_WidgetID.TroopMerchant, 1);
-        self:UpdateOfferWidgets(_NpcScriptname);
+        self:UpdateOfferWidgets(_NpcScriptName);
     end
 end
 
-function NonPlayerMerchant.Internal:UpdateOfferWidgets(_NpcScriptname)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptname];
+function NonPlayerMerchant.Internal:UpdateOfferWidgets(_NpcScriptName)
+    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     XGUIEng.ShowAllSubWidgets("TroopMerchantOffersContainer", 0);
     for i= 1, 4, 1 do
         local Visible = (Data.Offers[i] ~= nil and 1) or 0;
@@ -543,8 +539,8 @@ function NonPlayerMerchant.Internal:UpdateOfferWidgets(_NpcScriptname)
     end
 end
 
-function NonPlayerMerchant.Internal:UpdateOffer(_NpcScriptname, _SlotIndex)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptname];
+function NonPlayerMerchant.Internal:UpdateOffer(_NpcScriptName, _SlotIndex)
+    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     local CurrentWidgetID = XGUIEng.GetCurrentWidgetID();
     local PlayerID = GUI.GetPlayerID();
     local EntityID = GUI.GetSelectedEntity();
@@ -579,8 +575,8 @@ function NonPlayerMerchant.Internal:UpdateOffer(_NpcScriptname, _SlotIndex)
     XGUIEng.SetText(gvGUI_WidgetID.TroopMerchantOfferAmount[_SlotIndex], "@center " ..Amount);
 end
 
-function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptname, _SlotIndex)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptname];
+function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
+    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     if Data.Offers[_SlotIndex].Load < 1 then
         return;
     end
@@ -608,7 +604,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptname, _SlotIndex)
             end
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyUnit,
-                _NpcScriptname,
+                _NpcScriptName,
                 PlayerID,
                 Data.Offers[_SlotIndex].Good,
                 Position.X,
@@ -620,7 +616,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptname, _SlotIndex)
         elseif Data.Offers[_SlotIndex].Type == MerchantOfferTypes.Resource then
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyRes,
-                _NpcScriptname,
+                _NpcScriptName,
                 PlayerID,
                 Data.Offers[_SlotIndex].Good +1,
                 Data.Offers[_SlotIndex].Amount,
@@ -634,7 +630,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptname, _SlotIndex)
             end
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyTech,
-                _NpcScriptname,
+                _NpcScriptName,
                 PlayerID,
                 Data.Offers[_SlotIndex].Good,
                 _SlotIndex
@@ -644,7 +640,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptname, _SlotIndex)
         else
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyFunc,
-                _NpcScriptname,
+                _NpcScriptName,
                 PlayerID,
                 _SlotIndex
             );
@@ -653,8 +649,8 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptname, _SlotIndex)
     end
 end
 
-function NonPlayerMerchant.Internal:SubResources(_NpcScriptname, _PlayerID, _SlotIndex)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptname];
+function NonPlayerMerchant.Internal:SubResources(_NpcScriptName, _PlayerID, _SlotIndex)
+    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     local Costs = CopyTable(Data.Offers[_SlotIndex].Costs);
     for k, v in pairs(Costs) do
         Costs[k] = math.ceil(v * Data.Offers[_SlotIndex].Inflation);
@@ -664,8 +660,8 @@ function NonPlayerMerchant.Internal:SubResources(_NpcScriptname, _PlayerID, _Slo
     end
 end
 
-function NonPlayerMerchant.Internal:UpdateValues(_NpcScriptname, _SlotIndex)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptname];
+function NonPlayerMerchant.Internal:UpdateValues(_NpcScriptName, _SlotIndex)
+    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     Data.Offers[_SlotIndex].Volume = Data.Offers[_SlotIndex].Volume +1;
     Data.Offers[_SlotIndex].Load = Data.Offers[_SlotIndex].Load -1;
     Data.Offers[_SlotIndex].Inflation = Data.Offers[_SlotIndex].Inflation + 0.05;
@@ -674,8 +670,8 @@ function NonPlayerMerchant.Internal:UpdateValues(_NpcScriptname, _SlotIndex)
     end
 end
 
-function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptname, _SlotIndex)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptname];
+function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptName, _SlotIndex)
+    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     local Costs = CopyTable(Data.Offers[_SlotIndex].Costs);
     for k, v in pairs(Costs) do
         Costs[k] = math.ceil(v * Data.Offers[_SlotIndex].Inflation);
