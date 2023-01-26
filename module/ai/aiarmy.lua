@@ -16,7 +16,7 @@ Lib.Register("module/ai/AiArmy");
 --- to not focus on a single target and makes use of max range attacks.
 ---
 --- @author totalwarANGEL
---- @version 1.0.0
+--- @version 0.0.1 BETA
 ---
 
 AiArmy = AiArmy or {
@@ -33,8 +33,6 @@ AiArmy = AiArmy or {
         REFILL = 5,
     },
 };
-
-
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -146,14 +144,39 @@ function AiArmy.GetArmyOfTroop(_ID)
     return 0;
 end
 
---- Returns the number of leader attached to the army.
---- @param _ID number                 ID of army
---- @param _WithReinforcments boolean Also check reinforcements
---- @return number Amount Leader count of army
-function AiArmy.GetNumberOfLeader(_ID, _WithReinforcments)
+--- Returns if the army is alive.
+--- 
+--- A Army is alive when it has troops. Add troops to a dead army and it will
+--- rise like Lazarus. ;)
+--- 
+--- @param _ID number ID of army
+--- @return boolean Army is alive
+function AiArmy.IsAlive(_ID)
     local Army = AiArmy.Get(_ID);
     if Army then
-        return Army:GetNumberOfLeader(_WithReinforcments);
+        return Army:IsAlive();
+    end
+    return false;
+end
+
+--- Returns the number of leader attached to the army.
+--- @param _ID number                 ID of army
+--- @return number Amount Leader count of army
+function AiArmy.GetNumberOfLeader(_ID)
+    local Army = AiArmy.Get(_ID);
+    if Army then
+        return Army:GetNumberOfLeader(true);
+    end
+    return 0;
+end
+
+--- Returns the max number of leader the army can have.
+--- @param _ID number                 ID of army
+--- @return number Amount Leader count of army
+function AiArmy.GetMaxNumberOfLeader(_ID)
+    local Army = AiArmy.Get(_ID);
+    if Army then
+        return Army.Strength;
     end
     return 0;
 end
@@ -164,7 +187,7 @@ end
 function AiArmy.HasFullStrength(_ID)
     local Army = AiArmy.Get(_ID);
     if Army then
-        return Army.Strength <= Army:GetCurrentStregth();
+        return Army.Strength <= Army:GetCurrentStregth(true);
     end
     return false;
 end
@@ -217,6 +240,9 @@ function AiArmy.Resume(_ID)
 end
 
 --- Pauses the army.
+--- 
+--- Use this if you want the army to be disabled without deleting it.
+--- 
 --- @param _ID number ID of army
 function AiArmy.Yield(_ID)
     local Army = AiArmy.Get(_ID);
@@ -309,7 +335,7 @@ function AiArmy.Internal:IsTroopAlive(_TroopID)
         return false;
     end
     local Task = Logic.GetCurrentTaskList(_TroopID);
-    if not Task or string.find(Task, "DIE") then
+    if Task and string.find(Task, "DIE") then
         return false;
     end
     return Logic.GetEntityHealth(_TroopID) > 0;
@@ -317,6 +343,14 @@ end
 
 function AiArmy.Internal:IsTroopFighting(_TroopID)
     return IsFighting(_TroopID);
+end
+
+function AiArmy.Internal:IsTroopTraining(_TroopID)
+    local Task = Logic.GetCurrentTaskList(_TroopID);
+    if Task and string.find(Task, "TRAIN") then
+        return true;
+    end
+    return false;
 end
 
 function AiArmy.Internal:IsTroopMoving(_TroopID)
@@ -328,7 +362,7 @@ function AiArmy.Internal:Controller()
 
     local QualifyingArmies = {};
     for k,v in pairs(AiArmyData_ArmyIdToArmyInstance) do
-        if v.Active and v:IsAlive() then
+        if v.Active then
             if math.mod(Turn, 10) == v.Tick and v.LastTick+19 < Turn then
                 table.insert(QualifyingArmies, v);
             end
@@ -454,7 +488,6 @@ end
 AiArmy.Internal.Army = AiArmy.Internal.Army or {
     ID              = 0,
     Active          = true,
-    InitiallyFilled = false,
     PlayerID        = 1,
     State           = 0;
     Strength        = 8,
@@ -475,10 +508,10 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     },
 };
 
-AiArmyData_TroopIdToArmyId = {};
-AiArmyData_ReinforcementIdToArmyId = {};
-AiArmyData_ArmyIdToArmyInstance = {};
-AiArmyData_IdSequence = 0;
+AiArmyData_TroopIdToArmyId = AiArmyData_TroopIdToArmyId  or {};
+AiArmyData_ReinforcementIdToArmyId = AiArmyData_ReinforcementIdToArmyId  or {};
+AiArmyData_ArmyIdToArmyInstance = AiArmyData_ArmyIdToArmyInstance  or {};
+AiArmyData_IdSequence = AiArmyData_IdSequence  or 0;
 
 function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
     AiArmyData_IdSequence = AiArmyData_IdSequence +1;
@@ -490,7 +523,6 @@ function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
     Army.Behavior = AiArmy.Behavior.WAITING;
     Army.Tick = math.mod(self.ID, 10);
     Army.HomePosition = _Position;
-    Army.Position = _Position;
     Army.RodeLength = _RodeLength;
     Army.Strength = _Strength;
     return Army;
@@ -706,7 +738,6 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
             return false;
         end
 
-        self.InitiallyFilled = true;
         if AiArmy.Internal:IsTroopAlive(_ID) then
             AI.Army_EnableLeaderAi(_ID, 0);
             self:ChoseFormation(_ID);
@@ -809,20 +840,16 @@ function AiArmy.Internal.Army:GetNumberOfLeader(_WithReinforcments)
     return Amount;
 end
 
+--- @return table
 function AiArmy.Internal.Army:GetArmyPosition()
-    if self:GetNumberOfLeader() > 0 then
+    if self:GetNumberOfLeader(false) > 0 then
         return GetGeometricCenter(unpack(self.Troops));
     end
-    return GetPosition(self.HomePosition);
+    return self.HomePosition;
 end
 
 function AiArmy.Internal.Army:IsAlive()
-    if self.InitiallyFilled then
-        if self:GetNumberOfLeader(true) < 1 or self:GetCurrentStregth(true) < self.DefeatThreshold then
-            return false;
-        end
-    end
-    return true;
+    return self:GetNumberOfLeader(true) > 0 and self:GetCurrentStregth(true) > self.DefeatThreshold;
 end
 
 function AiArmy.Internal.Army:GetCurrentStregth(_WithReinforcments)
