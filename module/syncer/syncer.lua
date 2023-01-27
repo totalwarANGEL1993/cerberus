@@ -22,6 +22,7 @@ Syncer = Syncer or {};
 -- API
 
 --- Installs the syncer.
+---
 --- (Must be called on game start!)
 --- @param _TributeIdSequence number (Optional) Starting value for tribute IDs
 function Syncer.Install(_TributeIdSequence)
@@ -29,6 +30,7 @@ function Syncer.Install(_TributeIdSequence)
 end
 
 --- Creates an script event and returns the event ID.
+---
 --- (The ID is used to call the event.)
 --- @param _Function any
 --- @return integer
@@ -56,6 +58,7 @@ function Syncer.GetHostPlayerID()
 end
 
 --- Returns the number of human players.
+---
 --- (In Singleplayer this will always be 1!)
 --- @return table PlayerList List of players
 function Syncer.GetActivePlayers()

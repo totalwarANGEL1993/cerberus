@@ -46,6 +46,7 @@ function NonPlayerCharacter.IsActive(_ScriptName)
 end
 
 --- Activates an existing inactive NPC.
+---
 --- (The TalkedTo value is reset.)
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerCharacter.Activate(_ScriptName)

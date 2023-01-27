@@ -1,7 +1,7 @@
 Lib.Require("comfort/Round");
 Lib.Require("comfort/StartInlineTrigger");
 Lib.Require("module/syncer/Syncer");
-Lib.Require("module/placeholder/Placeholder");
+Lib.Require("module/ui/Placeholder");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Register("module/cinematic/BriefingSystem");
 
