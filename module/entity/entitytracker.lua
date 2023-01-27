@@ -1,7 +1,7 @@
 Lib.Require("comfort/GetUpgradeCategoryByEntityType");
 Lib.Require("comfort/GetUpgradeLevelByEntityType");
 Lib.Require("module/syncer/Syncer");
-Lib.Register("module/entitytracker/EntityTracker");
+Lib.Register("module/entity/EntityTracker");
 
 ---
 --- Entity Limitaions
