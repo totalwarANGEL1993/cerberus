@@ -269,7 +269,7 @@ end
 function AiTroopSpawner.Internal:CreateTroop(_Index, _PlayerID, _Selected)
     local Position = GetPosition(AiTroopSpawner.Internal.Spawners[_Index].SpawnPoint);
     local TypeData = AiTroopSpawner.Internal.Spawners[_Index].AllowedTypes[_Selected];
-    local TroopID  = AI.Entity_CreateFormation(_PlayerID, TypeData[1], 0, 0, Position.X, Position.Y, 0, 0, TypeData[2], 0);
+    local TroopID  = AI.Entity_CreateFormation(_PlayerID, TypeData[1], 0, 0, Position.X, Position.Y, 0, 0, TypeData[2] or 0, 0);
     if TroopID ~= 0 then
         local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
         local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);

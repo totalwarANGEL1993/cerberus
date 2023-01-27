@@ -72,12 +72,12 @@ end
 --- Adds a new troop to the army.
 ---
 --- A troop can be added as reinforcement. In that case the army will not
---- search enemies near to it. The troop will walk to the current position
---- of the army using attack walk.
+--- search enemies near to this troop. The troop will walk to the current
+--- position of the army using attack walk.
 ---
 --- @param _ID number         ID of army
---- @param _TroopID number    Add as reinforcement
---- @param _Reinforce boolean ID of troop
+--- @param _TroopID number    ID of troop
+--- @param _Reinforce boolean Add as reinforcement
 --- @return boolean Added Was successfully added
 function AiArmy.AddTroop(_ID, _TroopID, _Reinforce)
     local Army = AiArmy.Get(_ID);
@@ -181,7 +181,8 @@ function AiArmy.GetMaxNumberOfLeader(_ID)
     return 0;
 end
 
---- Returns if the army has the max amount of leader.
+--- Returns if the army has the max amount of leaders and if the leader have
+--- a full regiment of soldiers.
 --- @param _ID number ID of army
 --- @return boolean FullStrength Army is full
 function AiArmy.HasFullStrength(_ID)
@@ -205,7 +206,8 @@ end
 
 --- Changes the target position of the army.
 ---
---- The army will automatically walk to the position if possible.
+--- The army will automatically walk to the position if possible. The army will
+--- automatically attack enemies. They do not need a command to do so.
 ---
 --- @param _ID number    ID of army
 --- @param _Position any Target position of army
@@ -221,6 +223,10 @@ function AiArmy.SetPosition(_ID, _Position)
 end
 
 --- Changes the radius of action of the army.
+--- 
+--- If the anchor for a battle is already set it will still use the old
+--- area of action until the battle has concluded.
+--- 
 --- @param _ID number   ID of army
 --- @param _Area number Area size
 function AiArmy.SetRodeLength(_ID, _Area)
@@ -241,7 +247,7 @@ end
 
 --- Pauses the army.
 --- 
---- Use this if you want the army to be disabled without deleting it.
+--- Use this if you want defunc the army without deleting it.
 --- 
 --- @param _ID number ID of army
 function AiArmy.Yield(_ID)
@@ -251,7 +257,8 @@ function AiArmy.Yield(_ID)
     end
 end
 
---- Commands an army to hold position.
+--- Commands an army to hold position. 
+--- (Use this inside a job.)
 --- @param _ID number    ID of army
 --- @param _Target table Position to defend
 function AiArmy:Defend(_ID, _Target)
@@ -261,7 +268,8 @@ function AiArmy:Defend(_ID, _Target)
     end
 end
 
---- Commands an army to advance to a position
+--- Commands an army to advance to a position. 
+--- (Use this inside a job.)
 --- @param _ID number    ID of army
 --- @param _Target table Position to attack
 function AiArmy:Advance(_ID, _Target)
@@ -273,7 +281,8 @@ function AiArmy:Advance(_ID, _Target)
     end
 end
 
---- Commands an army to retreat to the home position.
+--- Commands an army to retreat to the home position. 
+--- (Use this inside a job.)
 ---
 --- If enemies are encountered the army will hold the position and fight
 --- angainst them.
@@ -291,7 +300,8 @@ function AiArmy:Retreat(_ID)
     end
 end
 
---- Commands an army to haistly retreat to the home position.
+--- Commands an army to haistly retreat to the home position. 
+--- (Use this inside a job.)
 ---
 --- Enemies are ignored.
 ---
@@ -363,6 +373,7 @@ function AiArmy.Internal:Controller()
     local QualifyingArmies = {};
     for k,v in pairs(AiArmyData_ArmyIdToArmyInstance) do
         if v.Active then
+            ---@diagnostic disable-next-line: undefined-field
             if math.mod(Turn, 10) == v.Tick and v.LastTick+19 < Turn then
                 table.insert(QualifyingArmies, v);
             end
@@ -521,6 +532,7 @@ function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
     Army.ID = AiArmyData_IdSequence;
     Army.PlayerID = _PlayerID;
     Army.Behavior = AiArmy.Behavior.WAITING;
+    ---@diagnostic disable-next-line: undefined-field
     Army.Tick = math.mod(self.ID, 10);
     Army.HomePosition = _Position;
     Army.RodeLength = _RodeLength;
