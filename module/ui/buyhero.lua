@@ -2,7 +2,7 @@ Lib.Require("comfort/GetHeadquarters");
 Lib.Require("comfort/GetCirclePosition");
 Lib.Require("comfort/GetLanguage");
 Lib.Require("module/syncer/Syncer");
-Lib.Register("module/buyhero/BuyHero");
+Lib.Register("module/ui/BuyHero");
 
 ---
 --- Buy Hero
@@ -194,6 +194,7 @@ function BuyHero.Internal:PrepareBuyHeroWindowForLordSelection()
         XGUIEng.ShowWidget(WidgetID, 1);
         XGUIEng.SetWidgetPositionAndSize(WidgetID, PositionX, PositionY, ButtonW, ButtonH);
         PositionX = PositionX + 65;
+        ---@diagnostic disable-next-line: undefined-field
         if math.mod(i, 4) == 0 then
             PositionY = PositionY + 95;
             PositionX = 20;
@@ -239,6 +240,7 @@ function BuyHero.Internal:BuyHeroWindowUpdateDescription()
     local Text = "";
     for i= 1, table.getn(self.Config.TypesAllowedToChoose) do
         local Type = self.Config.TypesAllowedToChoose[i][1];
+        ---@diagnostic disable-next-line: undefined-field
         local ButtonStartX = (RowX + (ButtonW * (math.mod(i-1, 4))));
         local ButtonEndX = ButtonStartX + ButtonW;
         local ButtonStartY = RowY;
@@ -251,6 +253,7 @@ function BuyHero.Internal:BuyHeroWindowUpdateDescription()
             end
         end
 
+        ---@diagnostic disable-next-line: undefined-field
         if math.mod(i, 4) == 0 then
             RowY = RowY + 95;
             RowX = 122;

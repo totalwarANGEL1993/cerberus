@@ -1,5 +1,5 @@
 Lib.Require("comfort/GetLanguage");
-Lib.Register("module/placeholder/Placeholder");
+Lib.Register("module/ui/Placeholder");
 
 --- 
 --- Placeholder replacement script
@@ -23,7 +23,6 @@ Lib.Register("module/placeholder/Placeholder");
 --- * {black}   - Replaced with: @color:40,40,40
 --- * {white}   - Replaced with: @color:255,255,255
 --- * {grey}    - Replaced with: @color:180,180,180
---- * {trans}   - Replaced with: @color:0,0,0,0
 --- * {none}    - Replaced with: @color:0,0,0,0
 --- 
 --- @require GetLanguage
@@ -107,7 +106,6 @@ Placeholder.Internal = Placeholder.Internal or {
             ["{black}"]   = " @color:40,40,40 ",
             ["{white}"]   = " @color:255,255,255 ",
             ["{grey}"]    = " @color:180,180,180 ",
-            ["{trans}"]   = " @color:0,0,0,0 ",
             ["{none}"]    = " @color:0,0,0,0 ",
         }
     }
@@ -217,7 +215,6 @@ function Placeholder.Internal:RemoveFormattingPlaceholders(_Message)
         _Message = string.gsub(_Message, "{black}", "");
         _Message = string.gsub(_Message, "{white}", "");
         _Message = string.gsub(_Message, "{grey}", "");
-        _Message = string.gsub(_Message, "{trans}", "");
         _Message = string.gsub(_Message, "{none}", "");
 
         _Message = string.gsub(_Message, " @color:%d,%d,%d ", " ");

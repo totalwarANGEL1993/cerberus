@@ -1,6 +1,6 @@
 Lib.Require("comfort/KeyOf");
 Lib.Require("comfort/GetResourceName");
-Lib.Require("module/placeholder/Placeholder");
+Lib.Require("module/ui/Placeholder");
 Lib.Require("module/interaction/Interaction");
 Lib.Register("module/interaction/NonPlayerMerchant");
 
@@ -56,6 +56,7 @@ function NonPlayerMerchant.IsActive(_ScriptName)
 end
 
 --- Activates an existing inactive merchant NPC.
+---
 --- (The TalkedTo value is reset.)
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerMerchant.Activate(_ScriptName)

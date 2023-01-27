@@ -1,4 +1,4 @@
-Lib.Register("module/svlib/SVLib");
+Lib.Register("module/entity/SVLib");
 
 ---
 --- Scripting Values
