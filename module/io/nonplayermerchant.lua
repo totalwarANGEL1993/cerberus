@@ -1,8 +1,8 @@
 Lib.Require("comfort/KeyOf");
 Lib.Require("comfort/GetResourceName");
 Lib.Require("module/ui/Placeholder");
-Lib.Require("module/interaction/Interaction");
-Lib.Register("module/interaction/NonPlayerMerchant");
+Lib.Require("module/io/Interaction");
+Lib.Register("module/io/NonPlayerMerchant");
 
 --- 
 --- NPC merchant script

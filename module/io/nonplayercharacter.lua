@@ -1,5 +1,5 @@
-Lib.Require("module/interaction/Interaction");
-Lib.Register("module/interaction/NonPlayerCharacter");
+Lib.Require("module/io/Interaction");
+Lib.Register("module/io/NonPlayerCharacter");
 
 --- 
 --- NPC interaction script
@@ -21,6 +21,7 @@ NonPlayerCharacter = {}
 --- Possible fields for definition:
 --- * ScriptName     (Required) ScriptName of NPC
 --- * Callback       (Required) Callback for interaction
+--- * LookAt         (Optional) NPC looks at hero (Default: true)
 --- * Hero           (Optional) ScriptName of hero who can talk to NPC
 --- * WrongHeroMsg   (Optional) Wrong hero message
 --- * Player         (Optional) Player that can talk to NPC
@@ -98,6 +99,7 @@ function NonPlayerCharacter.Internal:CreateNpc(_Data)
 
     local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
     Data.IsCharacter = true;
+    Data.LookAt      = (_Data.LookAt == nil and true) or _Data.LookAt == true;
     Data.Follow      = _Data.Follow;
     Data.Target      = _Data.Target;
     Data.Waypoints   = _Data.Waypoints or {};
@@ -211,6 +213,9 @@ function NonPlayerCharacter.Internal:OnNpcRegularInteraction(_NpcScriptName, _Da
     _Data.TalkedTo = HeroID;
     Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
     Interaction.Internal:Deactivate(_NpcScriptName);
+    if _Data.LookAt then
+        LookAt(_NpcScriptName, _HeroScriptName);
+    end
     return _Data;
 end
 

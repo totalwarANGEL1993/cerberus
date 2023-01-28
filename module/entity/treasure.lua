@@ -52,7 +52,6 @@ end
 ---                  Only evaluated if Opener is set to ScriptName
 ---
 --- @param _Data table Treasure definition table
---- @return number ID ID of treasure
 function Treasure.CreateTreasure(_Data)
     local Data = CopyTable(_Data);
     Data.Type = Treasure.Type.Custom;
@@ -62,7 +61,7 @@ function Treasure.CreateTreasure(_Data)
     if type(Data.Opener) == "string" then
         Data.Opener = Treasure.Opener[Data.Opener];
     end
-    return Treasure.Internal:CreateTreasure(Data);
+    Treasure.Internal:CreateTreasure(Data);
 end
 
 --- Creates a chest with a specific amount of a resource.
@@ -72,9 +71,8 @@ end
 --- @param _ScriptName string Script name of treasure
 --- @param _Resource number   Type of resource
 --- @param _Amount number     Amount of resource
---- @return number ID ID of treasure
 function Treasure.CreateResourceTreasure(_ScriptName, _Resource, _Amount)
-    return Treasure.Internal:CreateTreasure {
+    Treasure.Internal:CreateTreasure {
         ScriptName = _ScriptName,
         BaseType = Entities.XD_ChestClose,
         SwapType = Entities.XD_ChestOpen,
@@ -93,9 +91,8 @@ end
 --- @param _ScriptName string Script name of treasure
 --- @param _Min number Minimum amount of resource
 --- @param _Max number Maximum amount of resource
---- @return number ID ID of treasure
 function Treasure.CreateRandomTreasure(_ScriptName, _Min, _Max)
-    return Treasure.Internal:CreateTreasure {
+    Treasure.Internal:CreateTreasure {
         ScriptName = _ScriptName,
         BaseType = Entities.XD_ChestClose,
         SwapType = Entities.XD_ChestOpen,
@@ -113,9 +110,8 @@ end
 ---
 --- @param _ScriptName string Script name of treasure
 --- @param _Technology any
---- @return number ID ID of treasure
 function Treasure.CreateTechnologyTreasure(_ScriptName, _Technology)
-    return Treasure.Internal:CreateTreasure {
+    Treasure.Internal:CreateTreasure {
         ScriptName = _ScriptName,
         BaseType = Entities.XD_ChestClose,
         SwapType = Entities.XD_ChestOpen,
@@ -126,12 +122,15 @@ function Treasure.CreateTechnologyTreasure(_ScriptName, _Technology)
     };
 end
 
+function Treasure.IsOpened(_ScriptName)
+    return Treasure.Internal:IsOpened(_ScriptName);
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
 Treasure.Internal = Treasure.Internal or {
     DefaultOpenerType = Treasure.Opener.Hero,
-    TreasureIdSequence = 0,
     Treasures = {},
 }
 
@@ -149,32 +148,25 @@ end
 
 function Treasure.Internal:CreateTreasure(_Data)
     self:Install();
-
-    self.TreasureIdSequence = self.TreasureIdSequence +1;
-    local ID = self.TreasureIdSequence;
-
     if _Data.BaseType then
         ReplaceEntity(_Data.ScriptName, _Data.BaseType);
     end
-
-    _Data.ID = ID;
     table.insert(self.Treasures, _Data);
-    return ID;
 end
 
-function Treasure.Internal:DestroyTreasure(_ID)
-    for i= table.getn(self.Treasures), 1, -1 do
-        if self.Treasures[i].ID == _ID then
-            table.remove(self.Treasures, i);
+function Treasure.Internal:DestroyTreasure(_ScriptName)
+    for k,v in pairs(self.Treasures) do
+        if v.ScriptName == _ScriptName then
+            self.Treasures[k] = nil;
             break;
         end
     end
 end
 
-function Treasure.Internal:IsOpened(_ID)
-    for i= table.getn(self.Treasures), 1, -1 do
-        if self.Treasures[i].ID == _ID then
-            return self.Treasures[i].Opened == true;
+function Treasure.Internal:IsOpened(_ScriptName)
+    for k,v in pairs(self.Treasures) do
+        if v.ScriptName == _ScriptName then
+            return self.Treasures[k].Opened == true;
         end
     end
     return false;

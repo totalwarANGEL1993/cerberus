@@ -254,15 +254,17 @@ function Cinematic.Internal:DisableCinematicMode()
     GUIAction_ToggleMenu("NetworkWindow", 0);
 end
 
-function Cinematic.Internal:SetPageStyle(_DisableMap, _MCAmount, _ForceVN)
-    if _MCAmount and _MCAmount > 2 or _ForceVN then
+function Cinematic.Internal:SetPageStyle(_DisableMap, _MCAmount, _PageStyle)
+    if _MCAmount and _MCAmount > 2 or _PageStyle == 2 then
         self:SetVisualNovelPageStyle(_DisableMap, _MCAmount);
+    elseif _PageStyle == 3 then
+        self:SetCutscenePageStyle();
     else
-        self:SetRegularPageStyle(_DisableMap, _MCAmount);
+        self:SetRegularPageStyle(_DisableMap);
     end
 end
 
-function Cinematic.Internal:SetRegularPageStyle(_DisableMap, _MCAmount)
+function Cinematic.Internal:SetRegularPageStyle(_DisableMap)
     local size = {GUI.GetScreenSize()};
     local titlePosY = 45;
     local textPosY = ((size[2]*(768/size[2])))-100;
@@ -347,5 +349,31 @@ function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
             GUI.AddStaticNote("Debug: Widget CinematicMC_Button" ..i.. " does not exist!");
         end
     end
+end
+
+function Cinematic.Internal:SetCutscenePageStyle()
+    local size = {GUI.GetScreenSize()};
+    local titlePosY = 45;
+    local textPosY = ((size[2]*(768/size[2])))-100;
+    local titleSize = (size[1]-200);
+
+    -- Set widget apperance
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Text",(200),textPosY,(680),100);
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Headline",100,titlePosY,titleSize,15);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar01",0,size[2],size[1],180);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar00",0,0,size[1],size[2]);
+    XGUIEng.SetMaterialTexture("CinematicBar02", 0, "data/graphics/textures/gui/cutscene_top.dds");
+    XGUIEng.SetMaterialColor("CinematicBar02", 0, 255, 255, 255, 255);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, size[1], 180);
+    -- Set widget visability
+    XGUIEng.ShowWidget("Cinematic_Text", 1);
+    XGUIEng.ShowWidget("Cinematic_Headline", 1);
+    XGUIEng.ShowWidget("CinematicMiniMapOverlay", 0);
+    XGUIEng.ShowWidget("CinematicMiniMap", 0);
+    XGUIEng.ShowWidget("CinematicFrameBG", 0);
+    XGUIEng.ShowWidget("CinematicFrame", 0);
+    XGUIEng.ShowWidget("CinematicBar02", 1);
+    XGUIEng.ShowWidget("CinematicBar01", 1);
+    XGUIEng.ShowWidget("CinematicBar00", 1);
 end
 

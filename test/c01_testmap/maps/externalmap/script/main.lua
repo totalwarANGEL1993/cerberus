@@ -8,6 +8,18 @@ function OnMapStart()
 
     Lib.Require("module/ai/AiArmy");
     Lib.Require("module/ai/AiTroopSpawner");
+    Lib.Require("module/mp/Syncer");
+    Lib.Require("module/io/NonPlayerMerchant");
+end
+
+function CreateTestMerchant()
+    NonPlayerMerchant.Create {
+        ScriptName      = "P7trader1",
+        Spawnpoint      = "P7trader1"
+    };
+    NonPlayerMerchant.AddTroopOffer("P7trader1", Entities.PU_LeaderPoleArm1, {Wood = 500}, 5, 60);
+    NonPlayerMerchant.AddTroopOffer("P7trader1", Entities.PU_LeaderBow1, {Wood = 500}, 5, 60);
+    NonPlayerMerchant.Activate("P7trader1");
 end
 
 function CreateTestArmyOne()

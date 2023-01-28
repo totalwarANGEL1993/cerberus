@@ -1,9 +1,18 @@
 Lib.Require("comfort/Round");
 Lib.Require("comfort/StartInlineTrigger");
-Lib.Require("module/syncer/Syncer");
+Lib.Require("module/mp/Syncer");
 Lib.Require("module/ui/Placeholder");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Register("module/cinematic/BriefingSystem");
+
+--- 
+--- Briefing System
+--- 
+--- Briefings can be used in multiplayer without any restraints!
+--- 
+--- @author totalwarANGEL
+--- @version 1.0.0
+--- 
 
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,
@@ -153,9 +162,9 @@ function BriefingSystem.Internal:Install()
 
     if not self.IsInstalled then
         self.IsInstalled = true;
-        for k, v in pairs(Syncer.GetActivePlayers()) do
-            self.Data.Book[k] = nil;
-            self.Data.Queue[v] = {};
+        for i= 1, table.getn(Score.Player) do
+            self.Data.Book[i] = nil;
+            self.Data.Queue[i] = {};
         end
         self:CreateScriptEvents();
         self:OverrideBriefingFunctions();
@@ -348,8 +357,8 @@ function BriefingSystem.Internal:IsBriefingActive(_PlayerID)
 end
 
 function BriefingSystem.Internal:IsBriefingActiveForAnyPlayer()
-    for k, v in pairs(Syncer.GetActivePlayers()) do
-        if self:IsBriefingActive(v) then
+    for i= 1, table.getn(Score.Player) do
+        if self:IsBriefingActive(i) then
             return true;
         end
     end
@@ -547,7 +556,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     Cinematic.Internal:SetPageStyle(
         Page.MiniMap ~= true,
         (Page.MC and table.getn(Page.MC)) or 0,
-        self.Data.Book[_PlayerID].VisualNovelStyle
+        self.Data.Book[_PlayerID].PageStyle or 1
     );
 
     local RenderFoW = 0;
@@ -644,29 +653,29 @@ function BriefingSystem.Internal:BriefingMCButtonSelected(_Selected)
 end
 
 function BriefingSystem.Internal:ControlBriefing()
-    for k, v in pairs(Syncer.GetActivePlayers()) do
-        if self.Data.Book[v] then
-            if self.Data.Book[v] then
+    for i= 1, table.getn(Score.Player) do
+        if self.Data.Book[i] then
+            if self.Data.Book[i] then
                 -- Check page exists
-                local PageID = self.Data.Book[v].Page;
-                if not self.Data.Book[v][PageID] then
+                local PageID = self.Data.Book[i].Page;
+                if not self.Data.Book[i][PageID] then
                     return false;
                 end
                 -- Stop briefing
-                if type(self.Data.Book[v][PageID]) == nil then
-                    self:EndBriefing(v);
+                if type(self.Data.Book[i][PageID]) == nil then
+                    self:EndBriefing(i);
                     return false;
                 end
                 -- Jump to page
-                if type(self.Data.Book[v][PageID]) ~= "table" then
-                    self.Data.Book[v].Page = self:GetPageID(self.Data.Book[v][PageID], v) -1;
-                    self:NextPage(v, self.Data.Book[v].Page > 0);
+                if type(self.Data.Book[i][PageID]) ~= "table" then
+                    self.Data.Book[i].Page = self:GetPageID(self.Data.Book[i][PageID], i) -1;
+                    self:NextPage(i, self.Data.Book[i].Page > 0);
                     return false;
                 end
                 -- Next page after duration is up
-                local TimePassed = (Logic.GetTime() * 10) - self.Data.Book[v][PageID].StartTime;
-                if not self.Data.Book[v][PageID].MC and TimePassed > self.Data.Book[v][PageID].Duration then
-                    self:NextPage(v, false);
+                local TimePassed = (Logic.GetTime() * 10) - self.Data.Book[i][PageID].StartTime;
+                if not self.Data.Book[i][PageID].MC and TimePassed > self.Data.Book[i][PageID].Duration then
+                    self:NextPage(i, false);
                 end
             end
         end

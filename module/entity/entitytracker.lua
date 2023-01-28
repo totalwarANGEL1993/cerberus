@@ -1,6 +1,6 @@
 Lib.Require("comfort/GetUpgradeCategoryByEntityType");
 Lib.Require("comfort/GetUpgradeLevelByEntityType");
-Lib.Require("module/syncer/Syncer");
+Lib.Require("module/mp/Syncer");
 Lib.Register("module/entity/EntityTracker");
 
 ---

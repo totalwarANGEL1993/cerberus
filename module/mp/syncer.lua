@@ -1,5 +1,5 @@
 Lib.Require("comfort/CopyTable");
-Lib.Register("module/syncer/Syncer");
+Lib.Register("module/mp/Syncer");
 
 --- 
 --- Synchronizer script

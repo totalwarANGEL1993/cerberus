@@ -1,4 +1,4 @@
-Lib.Register("module/interaction/Interaction");
+Lib.Register("module/io/Interaction");
 
 --- 
 --- Internal interaction controller
@@ -159,7 +159,6 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
                 if Data.WrongHeroInfo and PlayerID == GUI.GetPlayerID() then
                     local Msg = Data.WrongHeroInfo;
                     -- TODO: Localization
-                    -- TODO: Placeholder
                     Message(Data.WrongHeroInfo);
                 end
                 return false;
@@ -170,7 +169,6 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
                 if Data.WongPlayerInfo and PlayerID == GUI.GetPlayerID() then
                     local Msg = Data.WongPlayerInfo;
                     -- TODO: Localization
-                    -- TODO: Placeholder
                     Message(Msg);
                 end
                 return false;
