@@ -172,7 +172,7 @@ function Syncer.Internal:Call(_ID, ...)
         -- Use CNetwork on community server
         if CNetwork then
             local Name = self.Data[_ID].CNetwork;
-            CNetwork.SendCommand(Name, _ID, unpack(arg));
+            CNetwork.SendCommand(Name, _ID, GUI.GetPlayerID(), unpack(arg));
         -- Use EMS syncer if not CNetwork
         elseif not CNetwork and EMS then
             local Name = self.Data[_ID].EMSHandler;
