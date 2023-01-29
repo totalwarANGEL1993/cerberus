@@ -218,7 +218,7 @@ function BriefingSystem.Internal:OverrideBriefingFunctions()
         local PlayerID = GUI.GetPlayerID();
         if PlayerID ~= 17 then
             if BriefingSystem.Internal:IsBriefingActive(PlayerID) then
-                Syncer.InvokeEvent(BriefingSystem.Internal.Events.PostEscapePressed, PlayerID);
+                Syncer.InvokeEvent(BriefingSystem.Internal.Events.PostEscapePressed);
             else
                 BriefingSystem.Internal.Orig_GameCallback_Escape();
             end
@@ -645,7 +645,6 @@ function BriefingSystem.Internal:BriefingMCButtonSelected(_Selected)
     if PlayerID ~= 17 then
         Syncer.InvokeEvent(
             self.Events.PostOptionSelected,
-            PlayerID,
             self.Data.Book[PlayerID].Page,
             _Selected
         );

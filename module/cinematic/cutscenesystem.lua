@@ -109,17 +109,17 @@ function CutsceneSystem.Internal:NextCutscene(_PlayerID)
     Cutscene.CurrentPage = 0;
 
     _G["Cutscene_" ..Cutscene[1].. "_Start"] = _G["Cutscene_" ..Cutscene[1].. "_Start"] or function()
-        Syncer.InvokeEvent(CutsceneSystem.Internal.Events.CutsceneStarted, GUI.GetPlayerID());
+        Syncer.InvokeEvent(CutsceneSystem.Internal.Events.CutsceneStarted);
     end
     _G["Cutscene_" ..Cutscene[1].. "_Finished"] = _G["Cutscene_" ..Cutscene[1].. "_Finished"] or function()
-        Syncer.InvokeEvent(CutsceneSystem.Internal.Events.CutsceneFinished, GUI.GetPlayerID());
+        Syncer.InvokeEvent(CutsceneSystem.Internal.Events.CutsceneFinished);
     end
     _G["Cutscene_" ..Cutscene[1].. "_Cancel"] = _G["Cutscene_" ..Cutscene[1].. "_Cancel"] or function()
         _G["Cutscene_" ..Cutscene[1].. "_Finished"]();
     end
     for i= 1, table.getn(Cutscene[2]) do
         _G["Cutscene_" ..Cutscene[1].. "_" ..Cutscene[2][i].Flight] = _G["Cutscene_" ..Cutscene[1].. "_" ..Cutscene[2][i].Flight] or function()
-            Syncer.InvokeEvent(CutsceneSystem.Internal.Events.PageDisplayed, GUI.GetPlayerID());
+            Syncer.InvokeEvent(CutsceneSystem.Internal.Events.PageDisplayed);
         end
     end
 

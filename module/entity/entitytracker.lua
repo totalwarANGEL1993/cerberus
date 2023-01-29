@@ -317,7 +317,6 @@ function EntityTracker.Internal:OverrideUpgradeBuilding()
                     GUI.UpgradeSingleBuilding(EntityID);
                     Syncer.InvokeEvent(
                         EntityTracker.Internal.NetworkCall,
-                        PlayerID,
                         EntityTracker.Internal.SyncEvent.UpgradeStarted,
                         EntityID
                     );

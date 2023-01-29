@@ -191,7 +191,7 @@ function Syncer.Internal:Call(_ID, ...)
         end
         return;
     end
-    self.Data[_ID].Function(unpack(arg));
+    self.Data[_ID].Function(GUI.GetPlayerID(), unpack(arg));
 end
 
 function Syncer.Internal:IsMultiplayerGame()

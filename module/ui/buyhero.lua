@@ -280,7 +280,7 @@ function BuyHero.Internal:BuyHeroWindowClicked(_Type)
         end
     end
     -- Send event
-    Syncer.InvokeEvent(self.SyncEvent, PlayerID, _Type);
+    Syncer.InvokeEvent(self.SyncEvent, _Type);
     XGUIEng.ShowWidget("BuyHeroWindow", 0);
 end
 

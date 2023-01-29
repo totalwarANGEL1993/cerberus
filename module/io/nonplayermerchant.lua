@@ -355,7 +355,7 @@ end
 
 function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
     -- Buy Units
-    self.Event.BuyUnit = Syncer.CreateEvent(function(_ScriptName, _PlayerID, _EntityType, _X, _Y, _SlotIndex)
+    self.Event.BuyUnit = Syncer.CreateEvent(function(_PlayerID, _ScriptName, _EntityType, _X, _Y, _SlotIndex)
         local Data = Interaction.Internal.Data.IO[_ScriptName];
         if Data then
             local ID = AI.Entity_CreateFormation(_PlayerID, _EntityType, 0, 0, _X, _Y, 0, 0, 3, 0);
@@ -367,7 +367,7 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
         end
     end);
     -- Buy Resources
-    self.Event.BuyRes = Syncer.CreateEvent(function(_ScriptName, _PlayerID, _GoodType, _Amount, _SlotIndex)
+    self.Event.BuyRes = Syncer.CreateEvent(function(_PlayerID, _ScriptName, _GoodType, _Amount, _SlotIndex)
         local Data = Interaction.Internal.Data.IO[_ScriptName];
         if Data then
             Logic.AddToPlayersGlobalResource(_PlayerID, _GoodType, _Amount);
@@ -376,7 +376,7 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
         end
     end);
     -- Buy Technology
-    self.Event.BuyTech = Syncer.CreateEvent(function(_ScriptName, _PlayerID, _TechType, _SlotIndex)
+    self.Event.BuyTech = Syncer.CreateEvent(function(_PlayerID, _ScriptName, _TechType, _SlotIndex)
         local Data = Interaction.Internal.Data.IO[_ScriptName];
         if Data then
             ResearchTechnology(_TechType, _PlayerID);
@@ -385,7 +385,7 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
         end
     end);
     -- Buy Custom
-    self.Event.BuyFunc = Syncer.CreateEvent(function(_ScriptName, _PlayerID, _SlotIndex)
+    self.Event.BuyFunc = Syncer.CreateEvent(function(_PlayerID, _ScriptName, _SlotIndex)
         local Data = Interaction.Internal.Data.IO[_ScriptName];
         if Data then
             Data.Offers[_SlotIndex].Good(
@@ -606,7 +606,6 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyUnit,
                 _NpcScriptName,
-                PlayerID,
                 Data.Offers[_SlotIndex].Good,
                 Position.X,
                 Position.Y,
@@ -618,7 +617,6 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyRes,
                 _NpcScriptName,
-                PlayerID,
                 Data.Offers[_SlotIndex].Good +1,
                 Data.Offers[_SlotIndex].Amount,
                 _SlotIndex
@@ -632,7 +630,6 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyTech,
                 _NpcScriptName,
-                PlayerID,
                 Data.Offers[_SlotIndex].Good,
                 _SlotIndex
             );
@@ -642,7 +639,6 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyFunc,
                 _NpcScriptName,
-                PlayerID,
                 _SlotIndex
             );
         end
