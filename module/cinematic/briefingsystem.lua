@@ -1,8 +1,8 @@
 Lib.Require("comfort/Round");
-Lib.Require("comfort/StartInlineTrigger");
-Lib.Require("module/mp/Syncer");
-Lib.Require("module/ui/Placeholder");
 Lib.Require("module/cinematic/Cinematic");
+Lib.Require("module/ui/Placeholder");
+Lib.Require("module/mp/Syncer");
+Lib.Require("module/trigger/Job");
 Lib.Register("module/cinematic/BriefingSystem");
 
 --- 
@@ -169,7 +169,7 @@ function BriefingSystem.Internal:Install()
         self:CreateScriptEvents();
         self:OverrideBriefingFunctions();
 
-        self.Job = StartSimpleSecondsTrigger(function()
+        self.Job = Job.Second(function()
             BriefingSystem.Internal:ControlBriefing();
         end);
     end
@@ -829,7 +829,7 @@ function BriefingSystem.Internal:InitalizeFaderForBriefingPage(_PlayerID, _Page)
 end
 
 function BriefingSystem.Internal:StartFader(_PlayerID, _Duration, _FadeIn)
-    self.Data.Fader[_PlayerID].FadeInJob = StartSimpleTurnTrigger(
+    self.Data.Fader[_PlayerID].FadeInJob = Job.Turn(
         function(_PlayerID, _Duration, _StartTime, _FadeIn)
             return BriefingSystem.Internal:FaderVisibilityController(_PlayerID, _Duration, _StartTime, _FadeIn)
         end,
@@ -842,7 +842,7 @@ function BriefingSystem.Internal:StartFader(_PlayerID, _Duration, _FadeIn)
 end
 
 function BriefingSystem.Internal:StartFaderDelayed(_PlayerID, _Waittime, _Duration, _FadeIn)
-    self.Data.Fader[_PlayerID].FadeOutJob = StartSimpleTurnTrigger(
+    self.Data.Fader[_PlayerID].FadeOutJob = Job.Turn(
         function(_PlayerID, _Duration, _StartTime, _FadeIn)
             return BriefingSystem.Internal:FaderDelayController(_PlayerID, _Duration, _StartTime, _FadeIn)
         end,

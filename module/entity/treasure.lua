@@ -1,6 +1,6 @@
 Lib.Require("comfort/GetLanguage");
 Lib.Require("comfort/KeyOf");
-Lib.Require("comfort/StartInlineTrigger");
+Lib.Require("module/trigger/Job");
 Lib.Register("module/entity/Treasure");
 
 --- 
@@ -9,6 +9,7 @@ Lib.Register("module/entity/Treasure");
 --- Treasures can be placed on the map. The default chests can contain resources
 --- or technologies. But they can be configured to do more.
 --- 
+--- @require Job
 --- @author totalwarANGEL
 --- @version 1.0.0
 --- 
@@ -138,7 +139,7 @@ function Treasure.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        self.ControlerJobID = StartSimpleSecondsTrigger(function()
+        self.ControlerJobID = Job.Second(function()
             for k,v in pairs(self.Treasures) do
                 Treasure.Internal:Controller(k);
             end

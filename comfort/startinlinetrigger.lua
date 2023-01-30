@@ -10,6 +10,7 @@ JobQueueData = {
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
 ---
+--- @deprecated
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -27,6 +28,7 @@ end
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
 ---
+--- @deprecated
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -48,6 +50,7 @@ end
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
 ---
+--- @deprecated
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -68,6 +71,7 @@ end
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
 ---
+--- @deprecated
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -88,6 +92,7 @@ end
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
 ---
+--- @deprecated
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -108,6 +113,7 @@ end
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
 ---
+--- @deprecated
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -130,6 +136,7 @@ end
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
 ---
+--- @deprecated
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---

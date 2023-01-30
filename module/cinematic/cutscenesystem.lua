@@ -1,8 +1,8 @@
 Lib.Require("comfort/Round");
-Lib.Require("comfort/StartInlineTrigger");
-Lib.Require("module/mp/Syncer");
-Lib.Require("module/ui/Placeholder");
 Lib.Require("module/cinematic/Cinematic");
+Lib.Require("module/ui/Placeholder");
+Lib.Require("module/mp/Syncer");
+Lib.Require("module/trigger/Job");
 Lib.Register("module/cinematic/CutsceneSystem");
 
 --- 

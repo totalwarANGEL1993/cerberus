@@ -1,9 +1,9 @@
 Lib.Require("comfort/GetLanguage");
 Lib.Require("comfort/GetSeparatedTooltipText");
 Lib.Require("comfort/IsBuildingBeingUpgraded");
-Lib.Require("comfort/StartInlineTrigger");
 Lib.Require("module/lua/Overwrite");
 Lib.Require("module/mp/Syncer");
+Lib.Require("module/trigger/Job");
 Lib.Register("module/ui/Workplace");
 
 --- 
@@ -15,7 +15,7 @@ Lib.Register("module/ui/Workplace");
 --- @require GetLanguage
 --- @require GetSeparatedTooltipText
 --- @require IsBuildingBeingUpgraded
---- @require StartInlineTrigger
+--- @require Job
 --- @require Overwrite
 --- @require Syncer
 --- @author totalwarANGEL
@@ -220,7 +220,7 @@ function Workplace.Internal:OverrideInterfaceUpdate()
             Overwrite.CallOriginal();
             Workplace.Internal:UpdateDisplay();
             -- Delay is needed to readjust worker count
-            StartSimpleTurnTrigger(
+            Job.Turn(
                 function(_Turn, _ID, _State)
                     if Logic.GetCurrentTurn() >= _Turn+1 then
                         Workplace.Internal:SetWorkerAmountInBuilding(_ID, _State);
