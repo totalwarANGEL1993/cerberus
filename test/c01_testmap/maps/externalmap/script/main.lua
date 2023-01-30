@@ -6,10 +6,14 @@ function OnMapStart()
 
     Script.Load("maps\\user\\cerberus\\loader.lua");
 
-    Lib.Require("module/ai/AiArmy");
-    Lib.Require("module/ai/AiTroopSpawner");
-    Lib.Require("module/mp/Syncer");
-    Lib.Require("module/io/NonPlayerMerchant");
+    -- Lib.Require("module/ai/AiArmy");
+    -- Lib.Require("module/ai/AiTroopSpawner");
+    -- Lib.Require("module/mp/Syncer");
+    -- Lib.Require("module/io/NonPlayerMerchant");
+    Lib.Require("module/ui/Workplace");
+    Workplace.Install();
+
+    Tools.GiveResouces(1, 9999, 9999, 9999, 9999, 9999, 9999);
 end
 
 function CreateTestMerchant()

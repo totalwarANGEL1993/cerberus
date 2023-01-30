@@ -9,11 +9,11 @@ Lib.Register("comfort/GetSeparatedTooltipText");
 ---
 function GetSeparatedTooltipText(_Key)
     local Text = XGUIEng.GetStringTableText(_Key);
-    local LBHStard, LBHEnd = string.find(Text, "@cr");
-    if not LBHStard then
+    local LBHStart, LBHEnd = string.find(Text, "@cr");
+    if not LBHStart then
         return {"", ""};
     end
-    local TextHeader = string.sub(Text, 1, LBHStard-1);
+    local TextHeader = string.sub(Text, 1, LBHStart-1);
     local TextBody = string.sub(Text, LBHEnd+2);
     local LBTStart, LBTEnd = string.find(TextBody, "@cr");
     local TextParts = {TextHeader, TextBody};
