@@ -8,7 +8,8 @@
 -- #                                                                                                 #
 -- ###################################################################################################
 
-Script.Load("data\\maps\\externalmap\\script\\main.lua");
+-- Script.Load("data\\maps\\externalmap\\script\\main.lua");
+Script.Load("maps\\user\\cerberus\\test\\c02_testmap\\maps\\externalmap\\script\\main.lua");
 
 function GameCallback_OnGameStart()
 	Script.Load(Folders.MapTools.."Ai\\Support.lua");
@@ -19,7 +20,7 @@ function GameCallback_OnGameStart()
 
 	MultiplayerTools.InitCameraPositionsForPlayers();
 	MultiplayerTools.SetUpGameLogicOnMPGameConfig();
-	MultiplayerTools.GiveBuyableHerosToHumanPlayer(0);
+	MultiplayerTools.GiveBuyableHerosToHumanPlayer(1);
 
 	if XNetwork.Manager_DoesExist() == 0 then
 		for i=1,2,1 do

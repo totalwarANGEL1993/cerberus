@@ -239,14 +239,6 @@ function BriefingSystem.Internal:AddPages(_Briefing)
             _Page = -1;
         end
         if type(_Page) == "table" then
-            if _Page.Target then
-                if _Page.Target == "LAST_INTERACTION_HERO" then
-                    _Page.Target = gvLastInteractionHeroName;
-                end
-                if _Page.Target == "LAST_INTERACTION_NPC" then
-                    _Page.Target = gvLastInteractionNpcName;
-                end
-            end
             -- Add IDs automatically, if not provided
             if _Page.MC then
                 for i= 1, table.getn(_Page.MC) do
@@ -471,11 +463,11 @@ end
 
 function BriefingSystem.Internal:CanPageBeSkipped(_PlayerID)
     -- Can not skip what does not exist
-    if not self.Data.Book[_PlayerID] then
-        return false;
-    end
+    if not self.Data.Book[_PlayerID]
     -- Skipping is disabled for the briefing
-    if self.Data.Book[_PlayerID].DisableSkipping then
+    or self.Data.Book[_PlayerID].DisableSkipping
+    -- Only local player can skip
+    or GUI.GetPlayerID() ~= _PlayerID then
         return false;
     end
 

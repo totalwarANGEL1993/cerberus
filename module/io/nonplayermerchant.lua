@@ -197,7 +197,8 @@ end
 function NonPlayerMerchant.Internal:OverrideNpcMerchantGui()
     self.Orig_GUIUpdate_MerchantOffers = GUIUpdate_MerchantOffers;
     GUIUpdate_MerchantOffers = function(_WidgetTable)
-        local EntityID = GetID(gvLastInteractionNpcName);
+        local PlayerID = GUI.GetPlayerID();
+        local EntityID = GetID(Interaction.Npc(PlayerID));
         local MerchantID = Logic.GetMerchantBuildingId(EntityID);
         local ScriptName = Logic.GetEntityName(MerchantID);
         if MerchantID == 0 then
@@ -214,7 +215,8 @@ function NonPlayerMerchant.Internal:OverrideNpcMerchantGui()
 
     self.Orig_GUIUpdate_TroopOffer = GUIUpdate_TroopOffer;
     GUIUpdate_TroopOffer = function(_SlotIndex)
-        local EntityID = GetID(gvLastInteractionNpcName);
+        local PlayerID = GUI.GetPlayerID();
+        local EntityID = GetID(Interaction.Npc(PlayerID));
         local MerchantID = Logic.GetMerchantBuildingId(EntityID);
         local ScriptName = Logic.GetEntityName(MerchantID);
         if MerchantID == 0 then
@@ -233,7 +235,8 @@ function NonPlayerMerchant.Internal:OverrideNpcMerchantGui()
 
     self.Orig_GUIAction_BuyMerchantOffer = GUIAction_BuyMerchantOffer;
     GUIAction_BuyMerchantOffer = function(_SlotIndex)
-        local EntityID = GetID(gvLastInteractionNpcName);
+        local PlayerID = GUI.GetPlayerID();
+        local EntityID = GetID(Interaction.Npc(PlayerID));
         local MerchantID = Logic.GetMerchantBuildingId(EntityID);
         local ScriptName = Logic.GetEntityName(MerchantID);
         if MerchantID == 0 then
@@ -252,7 +255,8 @@ function NonPlayerMerchant.Internal:OverrideNpcMerchantGui()
 
     self.Orig_GUITooltip_TroopOffer = GUITooltip_TroopOffer;
     GUITooltip_TroopOffer = function(_SlotIndex)
-        local EntityID = GetID(gvLastInteractionNpcName);
+        local PlayerID = GUI.GetPlayerID();
+        local EntityID = GetID(Interaction.Npc(PlayerID));
         local MerchantID = Logic.GetMerchantBuildingId(EntityID);
         local ScriptName = Logic.GetEntityName(MerchantID);
         if MerchantID == 0 then
@@ -272,10 +276,10 @@ end
 
 function NonPlayerMerchant.Internal:OverrideNpcInteractionCallbacks()
     self.Orig_GameCallback_Logic_InteractWithMerchant = GameCallback_Logic_InteractWithMerchant;
-    GameCallback_Logic_InteractWithMerchant = function(_HeroID, _NpcID)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_InteractWithMerchant(_HeroID, _NpcID);
-        local HeroScriptName = Logic.GetEntityName(_HeroID);
-        local NpcScriptName = Logic.GetEntityName(_NpcID);
+    GameCallback_Logic_InteractWithMerchant = function(_PlayerID, _HeroID, _NpcID)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_InteractWithMerchant(_PlayerID, _HeroID, _NpcID);
+        local HeroScriptName = Interaction.Hero(_PlayerID);
+        local NpcScriptName = Interaction.Npc(_PlayerID);
         NonPlayerMerchant.Internal:OnNpcInteraction(NpcScriptName, HeroScriptName);
     end
 
@@ -510,10 +514,9 @@ end
 
 function NonPlayerMerchant.Internal:OnNpcInteraction(_NpcScriptName, _HeroScriptName)
     local HeroID = GetID(_HeroScriptName);
-    local NpcID = GetID(_NpcScriptName);
-
-    gvLastInteractionHeroName = _HeroScriptName;
-    gvLastInteractionNpcName = _NpcScriptName;
+    local PlayerID = Logic.EntityGetPlayer(HeroID);
+    NonPlayerCharacter.Internal.LastInteractionHero[PlayerID] = _HeroScriptName;
+    NonPlayerCharacter.Internal.LastInteractionNpc[PlayerID] = _NpcScriptName;
 
     local CurrentPlayerID = GUI.GetPlayerID();
     local PlayerIDOfHero = Logic.EntityGetPlayer(HeroID);

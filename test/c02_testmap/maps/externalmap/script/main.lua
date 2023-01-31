@@ -4,10 +4,12 @@ function OnMapStart()
 
     Lib.Require("module/ui/BuyHero");
     Lib.Require("module/cinematic/BriefingSystem");
+    Lib.Require("module/ui/Placeholder");
     Lib.Require("module/io/NonPlayerCharacter");
     Lib.Require("module/io/NonPlayerMerchant");
     Lib.Require("module/entity/Treasure");
 
+    Placeholder.Install();
     BuyHero.Install();
 
     CreateChestsForPlayers();
@@ -55,7 +57,7 @@ function CreateNormalNpcsForPlayers()
     NonPlayerCharacter.Create {
         ScriptName = "Npc1P1",
         Callback   = function()
-            Message("Player 1 talked to Npc1!");
+            Message("Spieler 1 hat den {scarlet}ERICH{white} richtig eingesetzt!");
         end
     };
     NonPlayerCharacter.Activate("Npc1P1");
@@ -63,7 +65,7 @@ function CreateNormalNpcsForPlayers()
     NonPlayerCharacter.Create {
         ScriptName = "Npc1P2",
         Callback   = function()
-            Message("Player 1 talked to Npc1!");
+            Message("Spieler 2 hat den {scarlet}ERICH{white} richtig eingesetzt!");
         end
     };
     NonPlayerCharacter.Activate("Npc1P2");
@@ -113,8 +115,9 @@ function TestBriefing(_PlayerID, _Name)
     local Briefing = {};
     local AP, ASP, AMC = BriefingSystem.AddPages(Briefing);
 
-    ASP(gvLastInteractionNpcName, "Page 1", "This is test page 1!", true);
-    ASP(gvLastInteractionNpcName, "Page 2", "This is test page 2!", true);
+    -- Long text to test escape
+    ASP(gvLastInteractionNpcName, "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(gvLastInteractionNpcName, "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
     BriefingSystem.Start(_PlayerID, _Name, Briefing)
 end
