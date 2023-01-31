@@ -8,7 +8,7 @@
 -- #                                                                                                 #
 -- ###################################################################################################
 
-Script.Load("maps\\user\\cerberus\\test\\c01_testmap\\maps\\externalmap\\script\\main.lua");
+Script.Load("maps\\user\\cerberus\\test\\c02_testmap\\maps\\externalmap\\script\\main.lua");
 
 function GameCallback_OnGameStart()
 	Script.Load(Folders.MapTools.."Ai\\Support.lua");
