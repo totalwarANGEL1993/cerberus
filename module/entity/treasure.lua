@@ -32,10 +32,6 @@ Treasure = Treasure or {
 -- -------------------------------------------------------------------------- --
 -- API
 
-function Treasure.Install()
-    Treasure.Internal:Install();
-end
-
 --- Creates a custom defined treasure.
 ---
 --- Possible fields for definition:

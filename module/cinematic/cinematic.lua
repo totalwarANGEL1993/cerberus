@@ -31,48 +31,49 @@ function Cinematic.Install()
     Cinematic.Internal:Install();
 end
 
---- Creates a new event with the name for the player.
---- @param _PlayerID number ID of player
+--- Defines a cinematic state for the player.
+--- @param _PlayerID integer ID of player
 --- @param _Name string     Name of event
 --- @return boolean EventCreated Event was created
-function Cinematic.CreateCinematicEvent(_PlayerID, _Name)
+function Cinematic.Define(_PlayerID, _Name)
     return Cinematic.Internal:CreateCinematicEvent(_PlayerID, _Name);
 end
 
+--- Propagates that the cinematic state is activated for a player.
+--- @param _PlayerID integer
+--- @param _Name string
+--- @return boolean
+function Cinematic.Begin(_PlayerID, _Name)
+    return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name, CinematicEventStatus.Active);
+end
+
+--- Propagates that the cinematic state has concluded for the player.
+--- @param _PlayerID integer
+--- @param _Name string
+--- @return boolean
+function Cinematic.Conclude(_PlayerID, _Name)
+    return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name, CinematicEventStatus.Over);
+end
+
 --- Checks if any cinematic event is currently active for the player.
---- @param _PlayerID number ID of player
+--- @param _PlayerID integer ID of player
 --- @return boolean AnyActive An event is active
-function Cinematic.IsAnyCinematicActive(_PlayerID)
+function Cinematic.IsActive(_PlayerID)
     return Cinematic.Internal:IsAnyCinematicEventActive(_PlayerID)
 end
 
---- Returns the state of the cinematic event.
---- @param _PlayerID number ID of player
---- @param _Name string     Name of event
---- @return number State State of cinematic event
-function Cinematic.GetCinematicEventState(_PlayerID, _Name)
-    return Cinematic.Internal:GetCinematicEventState(_PlayerID, _Name);
-end
-
---- Sets the state of the cinematic event.
---- @param _PlayerID number ID of player
---- @param _Name string     Name of event
---- @param _State number    New state for event
---- @return boolean StateChanged State was changed
-function Cinematic.SetCinematicEventState(_PlayerID, _Name, _State)
-    return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name, _State);
-end
-
 --- Activates the cinematic mode.
+--- @param _PlayerID integer      ID of player.
 --- @param _SaveCamera boolean    Save camera position
 --- @param _SaveSelection boolean Save selected entities
-function Cinematic.EnableCinematicMode(_SaveCamera, _SaveSelection)
-    Cinematic.Internal:EnableCinematicMode(_SaveCamera, _SaveSelection);
+function Cinematic.Show(_PlayerID, _SaveCamera, _SaveSelection)
+    Cinematic.Internal:EnableCinematicMode(_PlayerID, _SaveCamera, _SaveSelection);
 end
 
 --- Deactivates the cinematic mode.
-function Cinematic.DisableCinematicMode()
-    Cinematic.Internal:DisableCinematicMode();
+--- @param _PlayerID integer ID of player.
+function Cinematic.Hide(_PlayerID)
+    Cinematic.Internal:DisableCinematicMode(_PlayerID);
 end
 
 -- -------------------------------------------------------------------------- --
@@ -140,38 +141,41 @@ function Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name, _State)
     return false;
 end
 
-function Cinematic.Internal:EnableCinematicMode(_RestoreCamera, _RestoreSelection)
-    -- Only for receiving player
-    local PlayerID = GUI.GetPlayerID();
-    if PlayerID == 17 then
+function Cinematic.Internal:EnableCinematicMode(_PlayerID, _RestoreCamera, _RestoreSelection)
+    -- Global invulnerability only in singleplayer
+    if XNetwork.Manager_DoesExist() == 0 then
+        Logic.SetGlobalInvulnerability(1);
+    end
+
+    -- The following only for receiving player
+    local GuiPlayer = GUI.GetPlayerID();
+    if _PlayerID ~= GuiPlayer or GuiPlayer == 17 then
         return;
     end
-    -- Backup camera
     if _RestoreCamera then
         local x, y = Camera.ScrollGetLookAt();
         self.Local.RestorePosition = {X= x, Y= y};
     end
-    -- Backup selection
     if _RestoreSelection then
         local SelectedEntities = {GUI.GetSelectedEntities()};
         self.Local.SelectedEntities = SelectedEntities;
     end
 
-    GUI.ClearSelection();
     GUIAction_GoBackFromHawkViewInNormalView();
     Interface_SetCinematicMode(1);
+    LocalMusic.SongLength = 0;
+
     Camera.StopCameraFlight();
     Camera.ScrollUpdateZMode(0);
     Camera.RotSetAngle(-45);
     Display.SetRenderFogOfWar(0);
-    GUI.MiniMap_SetRenderFogOfWar(1);
     Display.SetRenderSky(1);
+    GUI.ClearSelection();
     GUI.EnableBattleSignals(false);
-    Sound.PlayFeedbackSound(0,0);
-    Input.CutsceneMode();
+    GUI.MiniMap_SetRenderFogOfWar(1);
     GUI.SetFeedbackSoundOutputState(0);
-    Logic.SetGlobalInvulnerability(1);
-    LocalMusic.SongLength = 0;
+    Input.CutsceneMode();
+    Sound.PlayFeedbackSound(0,0);
 
     XGUIEng.ShowWidget("Cinematic",1);
     XGUIEng.ShowWidget("Cinematic_Text",0);
@@ -184,37 +188,38 @@ function Cinematic.Internal:EnableCinematicMode(_RestoreCamera, _RestoreSelectio
     XGUIEng.ShowWidget("Normal",1);
     XGUIEng.ShowAllSubWidgets("Windows",0);
     XGUIEng.ShowWidget("Top",0);
-    XGUIEng.ShowWidget("MiniMapOverlay",0);
     XGUIEng.ShowWidget("ResourceView",0);
     XGUIEng.ShowWidget("SelectionView",0);
     XGUIEng.ShowWidget("TooltipBottom",0);
     XGUIEng.ShowWidget("ShortMessagesListWindow",0);
     XGUIEng.ShowWidget("ShortMessagesOutputWindow",0);
     XGUIEng.ShowWidget("BackGround_Top",0);
-    XGUIEng.ShowWidget("MapProgressStuff",0);
     XGUIEng.ShowWidget("MultiSelectionContainer",0);
+    XGUIEng.ShowWidget("MapProgressStuff",0);
+    XGUIEng.ShowWidget("MiniMap",0);
+    XGUIEng.ShowWidget("MiniMapOverlay",0);
     XGUIEng.ShowWidget("MinimapButtons",0);
     XGUIEng.ShowWidget("BackGroundBottomContainer",0);
     XGUIEng.ShowWidget("TutorialMessageBG",0);
-    XGUIEng.ShowWidget("MiniMap",0);
     XGUIEng.ShowWidget("VideoPreview",0);
     XGUIEng.ShowWidget("Movie",0);
-
-    GUIAction_ToggleMenu("NetworkWindow", 0);
 end
 
-function Cinematic.Internal:DisableCinematicMode()
-    -- Only for receiving player
-    local PlayerID = GUI.GetPlayerID();
-    if PlayerID == 17 then
+function Cinematic.Internal:DisableCinematicMode(_PlayerID)
+    -- Global invulnerability only in singleplayer
+    if XNetwork.Manager_DoesExist() == 0 then
+        Logic.SetGlobalInvulnerability(0);
+    end
+
+    -- The following only for receiving player
+    local GuiPlayer = GUI.GetPlayerID();
+    if _PlayerID ~= GuiPlayer or GuiPlayer == 17 then
         return;
     end
-    -- Restore camera
     if self.Local.RestorePosition then
         Camera.ScrollSetLookAt(self.Local.RestorePosition.X, self.Local.RestorePosition.Y);
         self.Local.RestorePosition = nil;
     end
-    -- Restore selection
     if self.Local.SelectedEntities then
         for i= 1, table.getn(self.Local.SelectedEntities), 1 do
             GUI.SelectEntity(self.Local.SelectedEntities[i]);
@@ -223,16 +228,16 @@ function Cinematic.Internal:DisableCinematicMode()
     end
 
     Interface_SetCinematicMode(0);
+    LocalMusic.SongLength = 0;
+
+    Camera.FollowEntity(0);
     Display.SetRenderFogOfWar(1);
     Display.SetRenderSky(0);
-    Camera.FollowEntity(0);
-    Logic.SetGlobalInvulnerability(0);
     GUI.EnableBattleSignals(true);
     GUI.ActivateSelectionState();
-    Input.GameMode();
     GUI.SetFeedbackSoundOutputState(1);
+    Input.GameMode();
     Stream.Stop();
-    LocalMusic.SongLength = 0;
 
     XGUIEng.ShowWidget("Normal",1);
     XGUIEng.ShowWidget("3dOnScreenDisplay",1);
@@ -241,17 +246,15 @@ function Cinematic.Internal:DisableCinematicMode()
 
     XGUIEng.ShowWidget("Windows",1);
     XGUIEng.ShowWidget("Top",1);
-    XGUIEng.ShowWidget("MiniMapOverlay",1);
     XGUIEng.ShowWidget("ResourceView",1);
     XGUIEng.ShowWidget("SelectionView",1);
-    XGUIEng.ShowWidget("ShortMessagesListWindow",1);
     XGUIEng.ShowWidget("BackGround_Top",1);
-    XGUIEng.ShowWidget("MapProgressStuff",1);
-    XGUIEng.ShowWidget("MinimapButtons",1);
     XGUIEng.ShowWidget("BackGroundBottomContainer",1);
+    XGUIEng.ShowWidget("ShortMessagesListWindow",1);
+    XGUIEng.ShowWidget("MapProgressStuff",1);
     XGUIEng.ShowWidget("MiniMap",1);
-
-    GUIAction_ToggleMenu("NetworkWindow", 0);
+    XGUIEng.ShowWidget("MiniMapOverlay",1);
+    XGUIEng.ShowWidget("MinimapButtons",1);
 end
 
 function Cinematic.Internal:SetPageStyle(_DisableMap, _MCAmount, _PageStyle)

@@ -47,7 +47,7 @@ BriefingSystem = BriefingSystem or {
 --- @param _PlayerID number     Player the briefing is started for
 --- @param _BriefingName string Name of Briefing (must be unique for player)
 --- @param _Briefing table      Definition of briefing
-function BriefingSystem.StartBriefing(_PlayerID, _BriefingName, _Briefing)
+function BriefingSystem.Start(_PlayerID, _BriefingName, _Briefing)
     BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
 end
 
@@ -84,7 +84,7 @@ end
 --- Checks if a briefing is active for the player.
 --- @param _PlayerID number ID of Player
 --- @return boolean Active Briefing is active
-function BriefingSystem.IsBriefingActive(_PlayerID)
+function BriefingSystem.IsActive(_PlayerID)
     return BriefingSystem.Internal:IsBriefingActive(_PlayerID);
 end
 
@@ -116,6 +116,7 @@ end
 --- @param _Data table Page definition
 --- @return table Page Page definition
 function AP(_Data)
+    assert(false, "Must be initalized with BriefingSystem.AddPages!");
     return {};
 end
 
@@ -126,6 +127,7 @@ end
 --- @param ... any List of parameter
 --- @return table Page Page definition
 function ASP(...)
+    assert(false, "Must be initalized with BriefingSystem.AddPages!");
     return {};
 end
 
@@ -137,6 +139,7 @@ end
 --- @param ... any List of parameter
 --- @return table Page Page definition
 function AMC(...)
+    assert(false, "Must be initalized with BriefingSystem.AddPages!");
     return {};
 end
 
@@ -178,7 +181,7 @@ end
 function BriefingSystem.Internal:CreateScriptEvents()
     -- Player pressed escape
     self.Events.PostEscapePressed = Syncer.CreateEvent(function(_PlayerID)
-        if not Syncer.IsMultiplayer() and BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
+        if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
             if BriefingSystem.Internal:CanPageBeSkipped(_PlayerID) then
                 BriefingSystem.Internal:NextPage(_PlayerID, false);
             end
@@ -227,19 +230,6 @@ function BriefingSystem.Internal:OverrideBriefingFunctions()
 
     BriefingMCButtonSelected = function(_Selected)
         BriefingSystem.Internal:BriefingMCButtonSelected(_Selected);
-    end
-
-    IsWaitingForMCSelection = function()
-        local PlayerID = GUI.GetPlayerID();
-        if PlayerID ~= 17 then
-            if BriefingSystem.Internal:IsBriefingActive(PlayerID) then
-                local Page = BriefingSystem.Internal.Data.Book[PlayerID].Page;
-                if BriefingSystem.Internal.Data.Book[PlayerID][Page].MC then
-                    return true;
-                end
-            end
-        end
-        return false;
     end
 end
 
@@ -368,13 +358,13 @@ end
 function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
     self:Install();
     -- Abort if event can not be created
-    if not Cinematic.CreateCinematicEvent(_PlayerID, _BriefingName) then
+    if not Cinematic.Define(_PlayerID, _BriefingName) then
         return;
     end
     -- Insert in Queue
     table.insert(self.Data.Queue[_PlayerID], {_BriefingName, CopyTable(_Briefing)});
     -- Start cutscene if possible
-    if Cinematic.IsAnyCinematicActive(_PlayerID) then
+    if Cinematic.IsActive(_PlayerID) then
         return;
     end
     self:NextBriefing(_PlayerID);
@@ -383,7 +373,7 @@ end
 
 function BriefingSystem.Internal:EndBriefing(_PlayerID)
     -- Disable cinematic mode
-    Cinematic.DisableCinematicMode();
+    Cinematic.Hide(_PlayerID);
     -- Destroy explorations
     for k, v in pairs(self.Data.Book[_PlayerID].Exploration) do
         DestroyEntity(v);
@@ -393,7 +383,7 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID)
         self.Data.Book[_PlayerID]:Finished();
     end
     -- Register briefing as finished
-    Cinematic.SetCinematicEventState(_PlayerID, self.Data.Book[_PlayerID].ID, CinematicEventStatus.Over);
+    Cinematic.Conclude(_PlayerID, self.Data.Book[_PlayerID].ID);
     -- Invalidate briefing
     self.Data.Book[_PlayerID] = nil;
     -- Dequeue next briefing
@@ -435,13 +425,13 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
         end
     end
 
-    Cinematic.EnableCinematicMode(self.Data.Book[_PlayerID].RestoreCamera, true);
+    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
     -- Call function on start
     if self.Data.Book[_PlayerID].Starting then
         self.Data.Book[_PlayerID]:Starting();
     end
     -- Register briefing as active
-    Cinematic.SetCinematicEventState(_PlayerID, self.Data.Book[_PlayerID].ID, CinematicEventStatus.Active);
+    Cinematic.Begin(_PlayerID, self.Data.Book[_PlayerID].ID);
     -- Show nex page
     self:NextPage(_PlayerID, true);
 end

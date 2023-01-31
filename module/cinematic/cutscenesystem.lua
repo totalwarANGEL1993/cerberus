@@ -29,7 +29,7 @@ CutsceneSystem = CutsceneSystem or {}
 -- @param[type=table]  _Cutscene Cutscene description
 -- @within Methods
 --
-function CutsceneSystem.StartCutscene(_PlayerID, _Name, _Cutscene)
+function CutsceneSystem.Start(_PlayerID, _Name, _Cutscene)
     CutsceneSystem.Internal:StartCutscene(_PlayerID, _Name, _Cutscene);
 end
 
@@ -41,7 +41,7 @@ end
 -- @return[type=boolean] Cutscene is active
 -- @within Methods
 --
-function CutsceneSystem.IsCutsceneActive(_PlayerID)
+function CutsceneSystem.IsActive(_PlayerID)
     return CutsceneSystem.Internal:IsCutsceneActive(_PlayerID);
 end
 
@@ -89,13 +89,13 @@ end
 
 function CutsceneSystem.Internal:StartCutscene(_PlayerID, _CutsceneName, _Data)
     -- Abort if event can not be created
-    if not Cinematic.CreateCinematicEvent(_PlayerID, _CutsceneName) then
+    if not Cinematic.Define(_PlayerID, _CutsceneName) then
         return;
     end
     -- Insert in m_Queue
     table.insert(self.Data.Queue[_PlayerID], {_CutsceneName, _Data});
     -- Start cutscene if possible
-    if Cinematic.IsAnyCinematicActive(_PlayerID) then
+    if Cinematic.IsActive(_PlayerID) then
         return;
     end
     self:NextCutscene(_PlayerID);
@@ -131,21 +131,21 @@ function CutsceneSystem.Internal:NextCutscene(_PlayerID)
 end
 
 function CutsceneSystem.Internal:CutsceneStarted(_PlayerID)
-    Cinematic.SetCinematicEventState(_PlayerID, self.m_Book[_PlayerID][1], CinematicEventStatus.Active);
+    Cinematic.Begin(_PlayerID, self.m_Book[_PlayerID][1]);
     if self.Data.Book[_PlayerID][2].Starting then
         self.Data.Book[_PlayerID][2]:Starting();
     end
     -- Disable cinematic mode
-    Cinematic.EnableCinematicMode(self.Data.Book[_PlayerID].RestoreCamera, true);
+    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
 end
 
 function CutsceneSystem.Internal:CutsceneFinished(_PlayerID)
-    Cinematic.SetCinematicEventState(_PlayerID, self.m_Book[_PlayerID][1], CinematicEventStatus.Over);
+    Cinematic.Conclude(_PlayerID, self.m_Book[_PlayerID][1]);
     if self.Data.Book[_PlayerID][2].Finished then
         self.Data.Book[_PlayerID][2]:Finished();
     end
     -- Disable cinematic mode
-    Cinematic.DisableCinematicMode();
+    Cinematic.Hide(_PlayerID);
 end
 
 function CutsceneSystem.Internal:NextPage(_PlayerID)
