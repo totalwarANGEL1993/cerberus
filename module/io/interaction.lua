@@ -66,6 +66,9 @@ end
 -- Internal
 
 Interaction.Internal = Interaction.Internal or {
+    LastInteractionHero = {},
+    LastInteractionNpc = {},
+
     Data = {
         IO = {}
     },
@@ -75,11 +78,9 @@ function Interaction.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        self.LastInteractionHero = {}
-        self.LastInteractionNpc = {}
         for i= 1, table.getn(Score.Player) do
-            self.LastInteractionHero[i] = nil;
-            self.LastInteractionNpc[i] = nil;
+            self.LastInteractionHero[i] = 0;
+            self.LastInteractionNpc[i] = 0;
         end
         self:OverrideNpcInteraction();
     end
@@ -215,8 +216,8 @@ function Interaction.Internal:OverrideNpcInteraction()
         local PlayerID = Logic.EntityGetPlayer(_HeroID);
         local HeroScriptName = CreateNameForEntity(_HeroID);
         local NpcScriptName = CreateNameForEntity(_NpcID);
-        NonPlayerCharacter.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
-        NonPlayerCharacter.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
+        Interaction.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
+        Interaction.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
 
         if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
             local NpcID = _NpcID;

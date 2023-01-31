@@ -514,10 +514,6 @@ end
 
 function NonPlayerMerchant.Internal:OnNpcInteraction(_NpcScriptName, _HeroScriptName)
     local HeroID = GetID(_HeroScriptName);
-    local PlayerID = Logic.EntityGetPlayer(HeroID);
-    NonPlayerCharacter.Internal.LastInteractionHero[PlayerID] = _HeroScriptName;
-    NonPlayerCharacter.Internal.LastInteractionNpc[PlayerID] = _NpcScriptName;
-
     local CurrentPlayerID = GUI.GetPlayerID();
     local PlayerIDOfHero = Logic.EntityGetPlayer(HeroID);
     if PlayerIDOfHero == CurrentPlayerID then

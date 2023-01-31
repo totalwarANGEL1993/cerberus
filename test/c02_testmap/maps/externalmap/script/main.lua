@@ -116,8 +116,8 @@ function TestBriefing(_PlayerID, _Name)
     local AP, ASP, AMC = BriefingSystem.AddPages(Briefing);
 
     -- Long text to test escape
-    ASP(gvLastInteractionNpcName, "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
-    ASP(gvLastInteractionNpcName, "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(Interaction.Npc(_PlayerID), "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(Interaction.Npc(_PlayerID), "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
     BriefingSystem.Start(_PlayerID, _Name, Briefing)
 end
