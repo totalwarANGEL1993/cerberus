@@ -225,7 +225,7 @@ function Treasure.Internal:OpenRandomResourceTreasure(_Index, _PlayerID)
         local Data = self.Treasures[_Index];
         local ResourceList = {"Gold", "Clay", "Wood", "Stone", "Iron", "Sulfur"};
         local Index = math.random(1, 6);
-        local Resource = ResourceType[Index];
+        local Resource = ResourceType[ResourceList[Index]];
         local Amount = math.random(Data.Minimum, Data.Maximum);
         if _PlayerID == GUI.GetPlayerID() then
             local Text = XGUIEng.GetStringTableText("Support/ChestGold2a");

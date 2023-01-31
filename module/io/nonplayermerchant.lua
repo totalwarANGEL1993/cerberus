@@ -30,7 +30,7 @@ MerchantOfferTypes = {
 ---
 --- Possible fields for definition:
 --- * ScriptName     (Required) ScriptName of NPC
---- * Spawnpoint     (Optional) Spawnpoint for mercenaries
+--- * SpawnPoint     (Optional) Spawnpoint for mercenaries
 --- * Hero           (Optional) ScriptName of hero who can talk to NPC
 --- * WrongHeroMsg   (Optional) Wrong hero message
 --- * Player         (Optional) Player that can talk to NPC
@@ -169,7 +169,7 @@ function NonPlayerMerchant.Internal:CreateNpc(_Data)
     Data.Waypoints  = _Data.Waypoints or {};
     Data.Wanderer   = _Data.StrayPoints or {};
     Data.Waittime   = _Data.Waittime or 0;
-    Data.Spawnpoint = _Data.Spawnpoint;
+    Data.SpawnPoint = _Data.SpawnPoint;
     Data.Offers     = {};
 
     Logic.AddMercenaryOffer(
@@ -598,8 +598,8 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
         -- Mercenary
         if Data.Offers[_SlotIndex].Type == MerchantOfferTypes.Unit then
             local Position
-            if Data.Spawnpoint then
-                Position = GetPosition(Data.Spawnpoint);
+            if Data.SpawnPoint then
+                Position = GetPosition(Data.SpawnPoint);
             else
                 Position = GetPosition(Data.ScriptName);
             end
@@ -704,7 +704,7 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptName, _SlotIndex)
     -- Technology
     elseif Data.Offers[_SlotIndex].Type == MerchantOfferTypes.Technology then
         local PlayerID = GUI.GetPlayerID();
-        local TechnologyKey = KeyOf(Technologies, Data.Offers[_SlotIndex].Good);
+        local TechnologyKey = KeyOf(Data.Offers[_SlotIndex].Good, Technologies);
         if TechnologyKey == nil then
             return;
         end
