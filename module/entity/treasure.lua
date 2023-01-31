@@ -49,7 +49,7 @@ Treasure = Treasure or {
 ---                  Only evaluated if Opener is set to ScriptName
 ---
 --- @param _Data table Treasure definition table
-function Treasure.CreateTreasure(_Data)
+function Treasure.Create(_Data)
     local Data = CopyTable(_Data);
     Data.Type = Treasure.Type.Custom;
     if not Data.Opener then
@@ -66,9 +66,9 @@ end
 --- The chest can be opened by any hero.
 ---
 --- @param _ScriptName string Script name of treasure
---- @param _Resource number   Type of resource
---- @param _Amount number     Amount of resource
-function Treasure.CreateResourceTreasure(_ScriptName, _Resource, _Amount)
+--- @param _Resource integer  Type of resource
+--- @param _Amount integer    Amount of resource
+function Treasure.ResourceChest(_ScriptName, _Resource, _Amount)
     Treasure.Internal:CreateTreasure {
         ScriptName = _ScriptName,
         BaseType = Entities.XD_ChestClose,
@@ -86,9 +86,9 @@ end
 --- The chest can be opened by any hero.
 ---
 --- @param _ScriptName string Script name of treasure
---- @param _Min number Minimum amount of resource
---- @param _Max number Maximum amount of resource
-function Treasure.CreateRandomTreasure(_ScriptName, _Min, _Max)
+--- @param _Min integer Minimum amount of resource
+--- @param _Max integer Maximum amount of resource
+function Treasure.RandomChest(_ScriptName, _Min, _Max)
     Treasure.Internal:CreateTreasure {
         ScriptName = _ScriptName,
         BaseType = Entities.XD_ChestClose,
@@ -105,9 +105,9 @@ end
 ---
 --- The chest can be opened by any hero.
 ---
---- @param _ScriptName string Script name of treasure
---- @param _Technology any
-function Treasure.CreateTechnologyTreasure(_ScriptName, _Technology)
+--- @param _ScriptName string  Script name of treasure
+--- @param _Technology integer ID of technology
+function Treasure.TechnologyChest(_ScriptName, _Technology)
     Treasure.Internal:CreateTreasure {
         ScriptName = _ScriptName,
         BaseType = Entities.XD_ChestClose,
@@ -119,6 +119,9 @@ function Treasure.CreateTechnologyTreasure(_ScriptName, _Technology)
     };
 end
 
+--- Returns if a treasure has already being found.
+--- @param _ScriptName string Script name of treasure
+--- @return boolean Opened Treasure was discovered
 function Treasure.IsOpened(_ScriptName)
     return Treasure.Internal:IsOpened(_ScriptName);
 end
