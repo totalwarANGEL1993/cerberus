@@ -145,10 +145,10 @@ end
 
 function NonPlayerCharacter.Internal:OverrideNpcInteractionCallbacks()
     self.Orig_GameCallback_Logic_InteractWithCharacter = GameCallback_Logic_InteractWithCharacter;
-    GameCallback_Logic_InteractWithCharacter = function(_HeroID, _NpcID)
-        NonPlayerCharacter.Internal.Orig_GameCallback_Logic_InteractWithCharacter(_HeroID, _NpcID);
-        local HeroScriptName = Logic.GetEntityName(_HeroID);
-        local NpcScriptName = Logic.GetEntityName(_NpcID);
+    GameCallback_Logic_InteractWithCharacter = function(_PlayerID, _HeroID, _NpcID)
+        NonPlayerCharacter.Internal.Orig_GameCallback_Logic_InteractWithCharacter(_PlayerID, _HeroID, _NpcID);
+        local HeroScriptName = Interaction.Hero(_PlayerID);
+        local NpcScriptName = Interaction.Npc(_PlayerID);
         NonPlayerCharacter.Internal:OnNpcInteraction(NpcScriptName, HeroScriptName);
     end
 
@@ -175,12 +175,7 @@ end
 
 function NonPlayerCharacter.Internal:OnNpcInteraction(_NpcScriptName, _HeroScriptName)
     GUIAction_MerchantReady();
-
-    gvLastInteractionHeroName = _HeroScriptName;
-    gvLastInteractionNpcName = _NpcScriptName;
-
     local HeroID = GetID(_HeroScriptName);
-    local NpcID = GetID(_NpcScriptName);
     if Interaction.Internal.Data.IO[_NpcScriptName] then
         local Data = Interaction.Internal.Data.IO[_NpcScriptName];
         if Data.Follow then

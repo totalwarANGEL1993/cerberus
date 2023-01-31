@@ -134,16 +134,6 @@ function Placeholder.Internal:ReplaceInString(_Message)
         end
 
     elseif type(_Message) == "string" then
-        -- Replace hero and npc names
-        if gvLastInteractionHeroName then
-            local HeroName = _G["Name_" ..gvLastInteractionHeroName] or "HERO_NAME_NOT_FOUND";
-            _Message = string.gsub(_Message, "{hero}", HeroName);
-        end
-        if gvLastInteractionHeroName then
-            local NpcName = _G["Name_" ..gvLastInteractionNpcName] or "NPC_NAME_NOT_FOUND";
-            _Message = string.gsub(_Message, "{npc}", NpcName);
-        end
-
         -- Replace valued placeholders
         _Message = self:ReplaceValuesInString(_Message);
 

@@ -1,28 +1,50 @@
+Lib.Require("comfort/CreateNameForEntity");
 Lib.Register("module/io/Interaction");
 
 --- 
 --- Internal interaction controller
 --- 
---- @require Syncer
+--- @require CreateNameForEntity
 --- @author totalwarANGEL
---- @version 1.0.0
+--- @version 1.0.1
 --- 
 
 Interaction = Interaction or {}
 
 -- -------------------------------------------------------------------------- --
+-- API
+
+--- Returns the script name of the last hero of the player that was 
+--- involved in an NPC interaction.
+--- @param _PlayerID integer ID of player
+--- @return string Npc ID of last Hero
+function Interaction.Hero(_PlayerID)
+    return Interaction.Internal.LastInteractionHero[_PlayerID];
+end
+
+--- Returns the script name of the last NPC one of the players hero 
+--- has interacted with.
+--- @param _PlayerID integer ID of player
+--- @return string Npc ID of last NPC
+function Interaction.Npc(_PlayerID)
+    return Interaction.Internal.LastInteractionNpc[_PlayerID];
+end
+
+-- -------------------------------------------------------------------------- --
 -- Callback
 
 --- Called when a hero is talking to a normal npc.
---- @param _HeroID number ID of hero
---- @param _NpcID number  ID of npc
-function GameCallback_Logic_InteractWithCharacter(_HeroID, _NpcID)
+--- @param _PlayerID integer ID of player
+--- @param _HeroID integer   ID of hero
+--- @param _NpcID integer    ID of npc
+function GameCallback_Logic_InteractWithCharacter(_PlayerID, _HeroID, _NpcID)
 end
 
 --- Called when a hero is talking to a merchant.
---- @param _HeroID number ID of hero
---- @param _NpcID number  ID of npc
-function GameCallback_Logic_InteractWithMerchant(_HeroID, _NpcID)
+--- @param _PlayerID integer ID of player
+--- @param _HeroID integer   ID of hero
+--- @param _NpcID integer    ID of npc
+function GameCallback_Logic_InteractWithMerchant(_PlayerID, _HeroID, _NpcID)
 end
 
 --- Called on each second for each npc.
@@ -53,6 +75,12 @@ function Interaction.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        self.LastInteractionHero = {}
+        self.LastInteractionNpc = {}
+        for i= 1, table.getn(Score.Player) do
+            self.LastInteractionHero[i] = nil;
+            self.LastInteractionNpc[i] = nil;
+        end
         self:OverrideNpcInteraction();
     end
 end
@@ -184,6 +212,12 @@ function Interaction.Internal:OverrideNpcInteraction()
     GameCallback_NPCInteraction = function(_HeroID, _NpcID)
         Interaction.Internal.Orig_GameCallback_NPCInteraction(_HeroID, _NpcID);
 
+        local PlayerID = Logic.EntityGetPlayer(_HeroID);
+        local HeroScriptName = CreateNameForEntity(_HeroID);
+        local NpcScriptName = CreateNameForEntity(_NpcID);
+        NonPlayerCharacter.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
+        NonPlayerCharacter.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
+
         if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
             local NpcID = _NpcID;
             local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
@@ -194,9 +228,9 @@ function Interaction.Internal:OverrideNpcInteraction()
             local Data = Interaction.Internal.Data.IO[ScriptName];
             if Data then
                 if Data.IsMerchant then
-                    GameCallback_Logic_InteractWithMerchant(_HeroID, NpcID);
+                    GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID);
                 else
-                    GameCallback_Logic_InteractWithCharacter(_HeroID, NpcID);
+                    GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID);
                 end
             end
         end
