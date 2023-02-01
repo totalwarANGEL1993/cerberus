@@ -685,7 +685,15 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptName, _SlotIndex)
         end
         local NameString = "names/" .. EntityTypeName
         Description = "{grey}" .. XGUIEng.GetStringTableText(NameString) .. "{nl}";
-        Description = Description .. XGUIEng.GetStringTableText("MenuMerchant/TroopOfferTooltipText");
+        local Text = XGUIEng.GetStringTableText("MenuMerchant/TroopOfferTooltipText");
+        if Data.Offers[_SlotIndex].Load == 0 then
+            CostString = "";
+            Text = "{white}Dieses Angebot ist ausverkauft!";
+            if Language ~= "de" then
+                Text = "{white}This offer is sold out.";
+            end
+        end
+        Description = Description .. Text;
 
     -- Resource
     elseif Data.Offers[_SlotIndex].Type == MerchantOfferTypes.Resource then
@@ -694,9 +702,18 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptName, _SlotIndex)
         if Language ~= "de" then
             Title = "Buy " ..GoodName;
         end
-        local Text = "Kauft " ..Data.Offers[_SlotIndex].Amount.. " Einheiten dieses Rohstoffes.";
-        if Language ~= "de" then
-            Title = "Buy " ..Data.Offers[_SlotIndex].Amount.. " of this resource.";
+        local Text;
+        if Data.Offers[_SlotIndex].Load == 0 then
+            CostString = "";
+            Text = "{white}Dieses Angebot ist ausverkauft!";
+            if Language ~= "de" then
+                Text = "{white}This offer is sold out.";
+            end
+        else
+            Text = "{white}Kauft " ..Data.Offers[_SlotIndex].Amount.. " Einheiten dieses Rohstoffes.";
+            if Language ~= "de" then
+                Title = "{white}Buy " ..Data.Offers[_SlotIndex].Amount.. " of this resource.";
+            end
         end
         Description = "{grey}" .. Title .. "{nl}{white}" ..Text;
 
@@ -708,14 +725,15 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptName, _SlotIndex)
             return;
         end
         local Title = XGUIEng.GetStringTableText("names/" ..TechnologyKey);
-        local Text = "Eignet Euch das Wissen über diese Technologie an.";
+        local Text = "{white}Eignet Euch das Wissen über diese Technologie an.";
         if Language ~= "de" then
-            Title = "Get the knowledge about this technology.";
+            Title = "{white}Get the knowledge about this technology.";
         end
         if Logic.IsTechnologyResearched(PlayerID, Data.Offers[_SlotIndex].Good) == 1 then
-            Text = "Ihr habt diese Technologie bereits erforscht, Milord!";
+            CostString = "";
+            Text = "{white}Ihr habt diese Technologie bereits erforscht, Milord!";
             if Language ~= "de" then
-                Title = "You have already researched this technology, your majesty!";
+                Title = "{white}You have already researched this technology, your majesty!";
             end
         end
         Description = "{grey}" .. Title .. "{nl}{white}" ..Text;
@@ -729,6 +747,13 @@ function NonPlayerMerchant.Internal:TooltipOffer(_NpcScriptName, _SlotIndex)
         local Text  = Data.Offers[_SlotIndex].Description.Text;
         if type(Text) == "table" then
             Text = Text[Language];
+        end
+        if Data.Offers[_SlotIndex].Load == 0 then
+            CostString = "";
+            Text = "{white}Dieses Angebot ist ausverkauft!";
+            if Language ~= "de" then
+                Text = "{white}This offer is sold out.";
+            end
         end
         Description = "{grey}" .. Title .. "{nl}{white}" ..Text;
     end

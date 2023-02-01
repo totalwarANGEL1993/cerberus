@@ -95,7 +95,7 @@ function CutsceneSystem.Internal:StartCutscene(_PlayerID, _CutsceneName, _Data)
     -- Insert in m_Queue
     table.insert(self.Data.Queue[_PlayerID], {_CutsceneName, _Data});
     -- Start cutscene if possible
-    if Cinematic.IsActive(_PlayerID) then
+    if Cinematic.IsAnyActive(_PlayerID) then
         return;
     end
     self:NextCutscene(_PlayerID);
@@ -131,7 +131,7 @@ function CutsceneSystem.Internal:NextCutscene(_PlayerID)
 end
 
 function CutsceneSystem.Internal:CutsceneStarted(_PlayerID)
-    Cinematic.Begin(_PlayerID, self.m_Book[_PlayerID][1]);
+    Cinematic.Activate(_PlayerID, self.m_Book[_PlayerID][1]);
     if self.Data.Book[_PlayerID][2].Starting then
         self.Data.Book[_PlayerID][2]:Starting();
     end

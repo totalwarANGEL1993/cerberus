@@ -5,6 +5,10 @@ Allgemein
 - Doppelladen gefixt
 - Ladereihenfolge umgekehrt (einfacheres Testen)
 
+Briefing System
+- Funktionsnamen eingekürzt
+- Escape wirkt sich nicht mehr auf andere Spieler aus.
+
 Interaction
 - Funktionsnamen eingekürzt
 - Der letzte NPC und der letzte Held werden für jeden Spieler gespeichert. Die
@@ -14,4 +18,5 @@ Interaction
   Spielers zurück, der einen NPC angesprochen hat.
 - Interaction.Npc(_PlayerID) - gibt den Skriptnamen des letzten NPC zurück,
   der durch einen Helden des Spielers angesprochen wurde.
+- Ausverkauft- und erforschttexte für den Händler
 

@@ -355,8 +355,8 @@ function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefi
     end
     -- Insert in Queue
     table.insert(self.Data.Queue[_PlayerID], {_BriefingName, CopyTable(_Briefing)});
-    -- Start cutscene if possible
-    if Cinematic.IsActive(_PlayerID) then
+    -- Start briefing if possible
+    if Cinematic.IsAnyActive(_PlayerID) then
         return;
     end
     self:NextBriefing(_PlayerID);
@@ -423,7 +423,7 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
         self.Data.Book[_PlayerID]:Starting();
     end
     -- Register briefing as active
-    Cinematic.Begin(_PlayerID, self.Data.Book[_PlayerID].ID);
+    Cinematic.Activate(_PlayerID, self.Data.Book[_PlayerID].ID);
     -- Show nex page
     self:NextPage(_PlayerID, true);
 end

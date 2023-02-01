@@ -43,7 +43,7 @@ end
 --- @param _PlayerID integer
 --- @param _Name string
 --- @return boolean
-function Cinematic.Begin(_PlayerID, _Name)
+function Cinematic.Activate(_PlayerID, _Name)
     return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name, CinematicEventStatus.Active);
 end
 
@@ -55,10 +55,26 @@ function Cinematic.Conclude(_PlayerID, _Name)
     return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name, CinematicEventStatus.Over);
 end
 
+--- Checks if the cinematic is currently active for the player.
+--- @param _PlayerID integer ID of player
+--- @param _Name string
+--- @return boolean Active The event is active
+function Cinematic.IsActive(_PlayerID, _Name)
+    return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Active;
+end
+
+--- Checks if the cinematic is already finished for the player.
+--- @param _PlayerID integer ID of player
+--- @param _Name string
+--- @return boolean Over The event is over
+function Cinematic.IsConcluded(_PlayerID, _Name)
+    return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Over;
+end
+
 --- Checks if any cinematic event is currently active for the player.
 --- @param _PlayerID integer ID of player
 --- @return boolean AnyActive An event is active
-function Cinematic.IsActive(_PlayerID)
+function Cinematic.IsAnyActive(_PlayerID)
     return Cinematic.Internal:IsAnyCinematicEventActive(_PlayerID)
 end
 
