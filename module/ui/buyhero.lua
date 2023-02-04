@@ -40,6 +40,10 @@ function BuyHero.GetNumberOfBuyableHeroes(_PlayerID)
 end
 
 --- Sets the amount of heroes the player can select.
+---
+--- The amount is set to 0 by default and the buy hero button is hidden.
+--- If set to 1 or greater the button will appear.
+---
 --- @param _PlayerID number ID of player
 --- @param _Amount number   Amount of heroes
 function BuyHero.SetNumberOfBuyableHeroes(_PlayerID, _Amount)
@@ -113,7 +117,7 @@ end
 BuyHero.Internal = BuyHero.Internal or {
     Data = {},
     Config = {
-        MaxHeroAmount = 1,
+        MaxHeroAmount = 0,
 
         TypesAllowedToChoose = {
             {Entities.PU_Hero1c,             true},
@@ -159,7 +163,7 @@ function BuyHero.Internal:Install()
             };
         end
         self:OverrideBuyHeroWindow();
-        self:PrepareBuyHeroWindowForLordSelection();
+        self:PrepareBuyHeroWindow();
     end
 end
 
@@ -175,9 +179,44 @@ function BuyHero.Internal:OverrideBuyHeroWindow()
     BuyHeroWindow_UpdateInfoLine = function()
         BuyHero.Internal:BuyHeroWindowUpdateDescription();
     end
+
+    XGUIEng.ShowWidget("Buy_Hero", 1);
+    GUIUpdate_BuyHeroButton = function()
+        BuyHero.Internal:ShowBuyHeroWindowButton();
+    end
+
+    self.Orig_GUIAction_ToggleMenu = GUIAction_ToggleMenu;
+    GUIAction_ToggleMenu = function(_WidgetID, _Flag)
+        if gvGUI_WidgetID.BuyHeroWindow == _WidgetID then
+            XGUIEng.ShowWidget(gvGUI_WidgetID.BuyHeroWindow, 1);
+            return;
+        end
+        BuyHero.Internal.Orig_GUIAction_ToggleMenu(_WidgetID, _Flag);
+    end
+
+    self.Orig_GameCallback_GUI_SelectionChanged = GameCallback_GUI_SelectionChanged;
+    GameCallback_GUI_SelectionChanged = function()
+        BuyHero.Internal.Orig_GameCallback_GUI_SelectionChanged();
+        BuyHero.Internal:ShowBuyHeroWindowButton();
+    end
+
+    Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end
+	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
+	Mission_OnSaveGameLoaded = function()
+		BuyHero.Internal.Orig_Mission_OnSaveGameLoaded();
+        self:PrepareBuyHeroWindow();
+	end
 end
 
-function BuyHero.Internal:PrepareBuyHeroWindowForLordSelection()
+function BuyHero.Internal:ShowBuyHeroWindowButton()
+    local PlayerID = GUI.GetPlayerID();
+    if BuyHero.Internal.Data[PlayerID] then
+        local Visible = (BuyHero.Internal.Data[PlayerID].MaxHeroAmount > 0 and 1) or 0;
+        XGUIEng.ShowWidget("Buy_Hero", Visible);
+    end
+end
+
+function BuyHero.Internal:PrepareBuyHeroWindow()
     XGUIEng.SetText("BuyHeroWindowHeadline", "");
     XGUIEng.SetText("BuyHeroWindowInfoLine", "");
     XGUIEng.SetWidgetPositionAndSize("BuyHeroWindowInfoLine", 340, 60, 480, 50);
@@ -291,17 +330,20 @@ function BuyHero.Internal:BuyHeroWindowUpdateButton(_Type)
     local GuiPlayer = GUI.GetPlayerID();
     local PlayerID = (SelectedPlayer ~= 0 and SelectedPlayer) or GuiPlayer;
 
-    -- Update button
+    -- Get heroes
     local Button = self.Config.TypeToBuyHeroButton[_Type];
     local HeroCount = self:CountHeroes(PlayerID);
     local PickedHeroes = {};
     for k,v in pairs(self:GetHeroes(PlayerID)) do
         PickedHeroes[Logic.GetEntityType(v)] = true;
     end
+
+    -- Update buttons
     local IsDisabled = 0;
-    if  self:GetNumberOfBuyableHeroes(PlayerID) - HeroCount < 1
-    and not PickedHeroes[_Type] then
-        IsDisabled = 1;
+    if self:GetNumberOfBuyableHeroes(PlayerID) - HeroCount < 1 then
+        IsDisabled = (PickedHeroes[_Type] and 0) or 1;
+    else
+        IsDisabled = (PickedHeroes[_Type] and 1) or 0;
     end
     XGUIEng.DisableButton(Button, IsDisabled);
 end

@@ -20,7 +20,7 @@ function GameCallback_OnGameStart()
 
 	MultiplayerTools.InitCameraPositionsForPlayers();
 	MultiplayerTools.SetUpGameLogicOnMPGameConfig();
-	MultiplayerTools.GiveBuyableHerosToHumanPlayer(1);
+	MultiplayerTools.GiveBuyableHerosToHumanPlayer(0);
 
 	if XNetwork.Manager_DoesExist() == 0 then
 		for i=1,2,1 do

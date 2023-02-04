@@ -24,7 +24,14 @@ Syncer = Syncer or {};
 --- Installs the syncer.
 ---
 --- (Must be called on game start!)
---- @param _TributeIdSequence number (Optional) Starting value for tribute IDs
+---
+--- The tribute parameter can be ignored if the game runs on the
+--- community server. It sets the starting amount of tributes for
+--- synchronization. A high value is recommended to not interfere
+--- with quest tributes. Default is set to 999 so that the first
+--- tribute starts of at 1000.
+---
+--- @param _TributeIdSequence? number (Optional) Starting value for tribute IDs
 function Syncer.Install(_TributeIdSequence)
     Syncer.Internal:Install(_TributeIdSequence);
 end

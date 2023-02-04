@@ -173,6 +173,7 @@ function Archive.Internal:InitRestoreAfterLoad()
     Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end
 	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
 	Mission_OnSaveGameLoaded = function()
+		Archive.Internal.Mission_OnSaveGameLoaded();
 		Archive.Internal:OnSavegameLoaded();
 	end
 end
