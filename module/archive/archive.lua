@@ -22,7 +22,8 @@ Archive = Archive or {}
 -- API
 
 --- Installs the archive loader.
---- (Must be called on game start!)
+---
+--- Must be called on game start AND NO WHERE ELSE!
 function Archive.Install()
     Archive.Internal:Install();
 end
@@ -35,7 +36,7 @@ function Archive.ChangeString(_Key, _Text)
     if Archive.Internal.Data.HookType == 1 then
         CUtil.SetStringTableText(_Key, _Text);
     elseif Archive.Internal.Data.HookType == 2 then
-        Archive.ChangeString(_Key, _Text);
+        S5Hook.ChangeString(_Key, _Text);
     end
 end
 
@@ -49,7 +50,7 @@ function Archive.ChangeName(_Entity, _Text)
     elseif Archive.Internal.Data.HookType == 2 then
         Archive.Internal.Data.Names = Archive.Internal.Data.Names or {};
         Archive.Internal.Data.Names[_Entity] = _Text;
-        Archive.SetCustomNames(Archive.Internal.Data.Names);
+        S5Hook.SetCustomNames(Archive.Internal.Data.Names);
     end
 end
 
@@ -60,7 +61,7 @@ function Archive.ReloadGUI(_Path)
     if Archive.Internal.Data.HookType == 1 then
         CUtil.LoadGUI(_Path);
     elseif Archive.Internal.Data.HookType == 2 then
-        Archive.LoadGUI(_Path);
+        S5Hook.LoadGUI(_Path);
     end
 end
 
@@ -72,7 +73,7 @@ function Archive.GetWidgetPosition(_Name)
     if Archive.Internal.Data.HookType == 1 then
         return CWidget.GetPosition(XGUIEng.GetWidgetID(_Name));
     elseif Archive.Internal.Data.HookType == 2 then
-        return Archive.GetWidgetPosition(_Name);
+        return S5Hook.GetWidgetPosition(_Name);
     end
     return 0, 0;
 end
@@ -85,7 +86,7 @@ function Archive.GetWidgetSize(_Name)
     if Archive.Internal.Data.HookType == 1 then
         return CWidget.GetSize(XGUIEng.GetWidgetID(_Name));
     elseif Archive.Internal.Data.HookType == 2 then
-        return Archive.GetWidgetSize(_Name);
+        return S5Hook.GetWidgetSize(_Name);
     end
     return 0, 0;
 end
@@ -96,7 +97,7 @@ function Archive.ReloadEntities()
     if Archive.Internal.Data.HookType == 1 then
         CEntity.ReloadEntities();
     elseif Archive.Internal.Data.HookType == 2 then
-        Archive.ReloadEntities();
+        S5Hook.ReloadEntities();
     end
 end
 
@@ -108,7 +109,7 @@ function Archive.SetSettlerMotivation(_Entity, _Motivation)
     if Archive.Internal.Data.HookType == 1 then
         CEntity.SetMotivation(GetID(_Entity), _Motivation);
     elseif Archive.Internal.Data.HookType == 2 then
-        Archive.SetSettlerMotivation(GetID(_Entity), _Motivation);
+        S5Hook.SetSettlerMotivation(GetID(_Entity), _Motivation);
     end
 end
 
@@ -127,7 +128,7 @@ function Archive.CreateProjectile(_Effect, _X1, _Y1, _X2, _Y2, _Dmg, _AoE, _Targ
         local PlayerID = Logic.EntityGetPlayer(_Attacker);
         CUtil.CreateProjectile(_Effect, _X1, _Y1, _X2, _Y2, _Dmg, _AoE, _Target, _Attacker, PlayerID);
     elseif Archive.Internal.Data.HookType == 1 then
-        Archive.CreateProjectile(_Effect, _X1, _Y1, _X2, _Y2, _Dmg, _AoE, _Target, _Attacker);
+        S5Hook.CreateProjectile(_Effect, _X1, _Y1, _X2, _Y2, _Dmg, _AoE, _Target, _Attacker);
     end
 end
 
@@ -162,7 +163,7 @@ function Archive.Internal:Install()
         self:OverrideFrameworkRestartMap();
         self:DetectHookType();
         if self.Data.HookType == -1 then
-            Message("Installing Hook failed. You propably run an incompatible game version!");
+            Message("Installing Hook failed. You run an incompatible game version!");
             return;
         end
         self:LoadHook();
@@ -170,10 +171,9 @@ function Archive.Internal:Install()
 end
 
 function Archive.Internal:InitRestoreAfterLoad()
-    Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end
 	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
 	Mission_OnSaveGameLoaded = function()
-		Archive.Internal.Mission_OnSaveGameLoaded();
+		Archive.Internal.Orig_Mission_OnSaveGameLoaded();
 		Archive.Internal:OnSavegameLoaded();
 	end
 end

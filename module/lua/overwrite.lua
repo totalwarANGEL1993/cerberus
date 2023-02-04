@@ -53,7 +53,7 @@ function Overwrite.Internal:Install()
 end
 
 function Overwrite.Internal:OverwriteOnSaveGameLoaded()
-    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end;
+    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
     Mission_OnSaveGameLoaded = function()
         Overwrite.Internal.Orig_Mission_OnSaveGameLoaded();
         for k, v in pairs(Overwrite.Internal.Overwrites) do

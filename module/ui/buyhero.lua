@@ -200,7 +200,6 @@ function BuyHero.Internal:OverrideBuyHeroWindow()
         BuyHero.Internal:ShowBuyHeroWindowButton();
     end
 
-    Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end
 	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
 	Mission_OnSaveGameLoaded = function()
 		BuyHero.Internal.Orig_Mission_OnSaveGameLoaded();

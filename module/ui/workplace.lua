@@ -58,7 +58,7 @@ function Workplace.Internal:Install()
 end
 
 function Workplace.Internal:OverwriteOnSaveGameLoaded()
-    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end;
+    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
     Mission_OnSaveGameLoaded = function()
         Workplace.Internal.Orig_Mission_OnSaveGameLoaded();
         Workplace.Internal:InitDisplay();

@@ -1,6 +1,5 @@
 Script library for THE SETTLERS - Heritage of Kings.
 
-My slogan is simple:
 <img src="https://stylesrebelradio.files.wordpress.com/2020/09/my-post-13.jpg?w=450"
      alt="It just work's!"
      style="float: left; margin-right: 10px;" />
@@ -12,7 +11,8 @@ My slogan is simple:
 To load a file from the library use the function `Lib.Require`. Paths use the
 `/` instead of `\\` to not forcefully break your fingers.
 
-Example:\\
+Example:
+
 `Lib.Require("comfort/GetEnemiesInArea");`
 
 ## File Locations

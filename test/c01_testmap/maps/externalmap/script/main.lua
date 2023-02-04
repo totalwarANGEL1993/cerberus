@@ -8,9 +8,14 @@ function OnMapStart()
 
     -- Lib.Require("module/ai/AiArmy");
     -- Lib.Require("module/ai/AiTroopSpawner");
-    -- Lib.Require("module/mp/Syncer");
-    -- Lib.Require("module/io/NonPlayerMerchant");
+    Lib.Require("module/archive/Archive");
+    Lib.Require("module/lua/Overwrite");
+    Lib.Require("module/mp/Syncer");
+    Lib.Require("module/io/NonPlayerMerchant");
     Lib.Require("module/ui/Workplace");
+
+    Archive.Install();
+    Syncer.Install();
     Workplace.Install();
 
     Tools.GiveResouces(1, 9999, 9999, 9999, 9999, 9999, 9999);

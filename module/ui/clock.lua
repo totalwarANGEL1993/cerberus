@@ -123,7 +123,7 @@ function Clock.Internal:OverwriteOnlineHelp()
         Clock.Internal:IncrementSpeed();
     end
 
-    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end;
+    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
     Mission_OnSaveGameLoaded = function()
         Clock.Internal.Orig_Mission_OnSaveGameLoaded();
         Clock.Internal:OnSaveGameLoaded();

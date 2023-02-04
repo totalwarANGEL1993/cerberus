@@ -8,6 +8,10 @@
 -- #                                                                                                 #
 -- ###################################################################################################
 
+-- MUST be defined first or otherwise overwritten in the FMA!
+function Mission_OnSaveGameLoaded()
+end
+
 Script.Load("maps\\user\\cerberus\\test\\c01_testmap\\maps\\externalmap\\script\\main.lua");
 
 function GameCallback_OnGameStart()

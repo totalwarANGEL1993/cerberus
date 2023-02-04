@@ -11,6 +11,10 @@ Lib = {
 };
 
 function Lib.Require(_Path)
+    -- Define it if it is not defined in the script.
+    Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function()
+    end
+
     local Key = string.gsub(_Path, "/", "_");
     local Path = string.gsub(_Path, "/", "\\");
     for i= 1, table.getn(Lib.Paths) do
