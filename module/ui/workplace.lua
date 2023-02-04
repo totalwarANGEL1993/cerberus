@@ -48,6 +48,8 @@ function Workplace.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        Overwrite.Install();
+
         self:CreateScriptEvent();
         self:OverwriteOnSaveGameLoaded();
         self:OverrideInterfaceAction();
@@ -122,8 +124,7 @@ end
 
 function Workplace.Internal:OverrideInterfaceTooltip()
     Overwrite.CreateOverwrite(
-        "GUITooltip_NormalButton",
-        function(_Key)
+        "GUITooltip_NormalButton", function(_Key)
             Overwrite.CallOriginal();
             local lang = GetLanguage();
             if _Key == "MenuBuildingGeneric/setworkerfew" then
@@ -143,8 +144,7 @@ function Workplace.Internal:OverrideInterfaceTooltip()
     );
 
     Overwrite.CreateOverwrite(
-        "GUITooltip_ResearchTechnologies",
-        function(_Technology, _TextKey, _ShortCut)
+        "GUITooltip_ResearchTechnologies", function(_Technology, _TextKey, _ShortCut)
             local PlayerID = GUI.GetPlayerID();
             local TechState = Logic.GetTechnologyState(PlayerID, _Technology);
             local TooltipText =  "MenuGeneric/TechnologyNotAvailable";
@@ -175,48 +175,42 @@ end
 
 function Workplace.Internal:OverrideInterfaceUpdate()
     Overwrite.CreateOverwrite(
-        "GameCallback_GUI_SelectionChanged",
-        function()
+        "GameCallback_GUI_SelectionChanged", function()
             Overwrite.CallOriginal();
             Workplace.Internal:UpdateDisplay();
         end
     );
 
     Overwrite.CreateOverwrite(
-        "GameCallback_OnTechnologyResearched",
-        function(_EntityIDOld, _EntityIDNew)
+        "GameCallback_OnTechnologyResearched", function(_EntityIDOld, _EntityIDNew)
             Overwrite.CallOriginal();
             Workplace.Internal:UpdateDisplay();
         end
     );
 
     Overwrite.CreateOverwrite(
-        "GameCallback_OnCannonConstructionComplete",
-        function(_BuildingID, _null)
+        "GameCallback_OnCannonConstructionComplete", function(_BuildingID, _null)
             Overwrite.CallOriginal();
             Workplace.Internal:UpdateDisplay();
         end
     );
 
     Overwrite.CreateOverwrite(
-        "GameCallback_OnTransactionComplete",
-        function(_BuildingID, _null)
+        "GameCallback_OnTransactionComplete", function(_BuildingID, _null)
             Overwrite.CallOriginal();
             Workplace.Internal:UpdateDisplay();
         end
     );
 
     Overwrite.CreateOverwrite(
-        "GameCallback_OnBuildingConstructionComplete",
-        function(_EntityID, _PlayerID)
+        "GameCallback_OnBuildingConstructionComplete", function(_EntityID, _PlayerID)
             Overwrite.CallOriginal();
             Workplace.Internal:UpdateDisplay();
         end
     );
 
     Overwrite.CreateOverwrite(
-        "GameCallback_OnBuildingUpgradeComplete",
-        function(_OldID, _NewID)
+        "GameCallback_OnBuildingUpgradeComplete", function(_OldID, _NewID)
             Overwrite.CallOriginal();
             Workplace.Internal:UpdateDisplay();
             -- Delay is needed to readjust worker count

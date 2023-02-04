@@ -1,6 +1,7 @@
 Lib.Require("comfort/GetHeadquarters");
 Lib.Require("comfort/GetCirclePosition");
 Lib.Require("comfort/GetLanguage");
+Lib.Require("module/lua/Overwrite");
 Lib.Require("module/mp/Syncer");
 Lib.Register("module/ui/BuyHero");
 
@@ -154,6 +155,7 @@ function BuyHero.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        Overwrite.Install();
         self.SyncEvent = Syncer.CreateEvent(function(_PlayerID, _Type)
             BuyHero.Internal:BuyHeroCallback(_PlayerID, _Type);
         end);
@@ -185,25 +187,27 @@ function BuyHero.Internal:OverrideBuyHeroWindow()
         BuyHero.Internal:ShowBuyHeroWindowButton();
     end
 
-    self.Orig_GUIAction_ToggleMenu = GUIAction_ToggleMenu;
-    GUIAction_ToggleMenu = function(_WidgetID, _Flag)
-        if gvGUI_WidgetID.BuyHeroWindow == _WidgetID then
-            XGUIEng.ShowWidget(gvGUI_WidgetID.BuyHeroWindow, 1);
-            return;
+    Overwrite.CreateOverwrite(
+        "GUIAction_ToggleMenu", function(_WidgetID, _Flag)
+            if gvGUI_WidgetID.BuyHeroWindow == _WidgetID then
+                XGUIEng.ShowWidget(gvGUI_WidgetID.BuyHeroWindow, 1);
+                return;
+            end
+            Overwrite.CallOriginal();
         end
-        BuyHero.Internal.Orig_GUIAction_ToggleMenu(_WidgetID, _Flag);
-    end
+    );
 
-    self.Orig_GameCallback_GUI_SelectionChanged = GameCallback_GUI_SelectionChanged;
-    GameCallback_GUI_SelectionChanged = function()
-        BuyHero.Internal.Orig_GameCallback_GUI_SelectionChanged();
-        BuyHero.Internal:ShowBuyHeroWindowButton();
-    end
+    Overwrite.CreateOverwrite(
+        "GameCallback_GUI_SelectionChanged", function()
+            Overwrite.CallOriginal();
+            BuyHero.Internal:ShowBuyHeroWindowButton();
+        end
+    );
 
 	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
 	Mission_OnSaveGameLoaded = function()
 		BuyHero.Internal.Orig_Mission_OnSaveGameLoaded();
-        self:PrepareBuyHeroWindow();
+        BuyHero.Internal:PrepareBuyHeroWindow();
 	end
 end
 

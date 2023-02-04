@@ -12,8 +12,9 @@ To load a file from the library use the function `Lib.Require`. Paths use the
 `/` instead of `\\` to not forcefully break your fingers.
 
 Example:
-
-`Lib.Require("comfort/GetEnemiesInArea");`
+```lua
+Lib.Require("comfort/GetEnemiesInArea");
+```
 
 ## File Locations
 
@@ -35,7 +36,18 @@ When searching for files the library will check in the following order:
 * `maps\\externalmap\\cerberus`.
 
 ## Save Games
+
 The function `Mission_OnSaveGameLoaded` is automatically defined by the first
 call of `Lib.Require`. If you plan on using this function to reatore the game
 state than ensure that it is defined before the first call of `Lib.Require` or
 later overwritten in the first map action!
+
+To correctly overwrite the function do the following:
+```lua
+Mission_OnSaveGameLoaded_Original = Mission_OnSaveGameLoaded;
+Mission_OnSaveGameLoaded = function()
+    Mission_OnSaveGameLoaded_Original();
+    -- Call your stuff here
+end
+```
+Do NOT use the overwrite module for this function!

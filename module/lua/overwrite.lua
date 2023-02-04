@@ -14,6 +14,12 @@ Overwrite = Overwrite or {};
 -- -------------------------------------------------------------------------- --
 -- API
 
+--- Installs the overwrite system.
+--- (Usually called by code.)
+function Overwrite.Install()
+    Overwrite.Internal:Install();
+end
+
 --- Declares an new overwrite frame to the function.
 --- @param _Name string       Name of function
 --- @param _Function function Function to call instead
