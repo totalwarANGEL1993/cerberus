@@ -132,6 +132,25 @@ function Archive.CreateProjectile(_Effect, _X1, _Y1, _X2, _Y2, _Dmg, _AoE, _Targ
     end
 end
 
+--- Pushes an s5x archive to the top of stack.
+--- @param _Name string Name of archive
+function Archive.Push(_Name)
+    if Archive.Internal.Data.HookType == 1 then
+        CMod.PushArchive(_Name);
+    elseif Archive.Internal.Data.HookType == 1 then
+        Archive.AddArchive(_Name);
+    end
+end
+
+--- Removes the archive on top of the stack.
+function Archive.Pop()
+    if Archive.Internal.Data.HookType == 1 then
+        CMod.PopArchive();
+    elseif Archive.Internal.Data.HookType == 1 then
+        S5Hook.RemoveArchive()
+    end
+end
+
 -- -------------------------------------------------------------------------- --
 -- Game Callback
 
