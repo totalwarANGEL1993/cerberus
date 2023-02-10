@@ -346,7 +346,9 @@ function BuyHero.Internal:BuyHeroWindowUpdateButton(_Type)
     if self:GetNumberOfBuyableHeroes(PlayerID) - HeroCount < 1 then
         IsDisabled = (PickedHeroes[_Type] and 0) or 1;
     else
-        IsDisabled = (PickedHeroes[_Type] and 1) or 0;
+        if not BuyHero.Internal:IsHeroAllowed(_Type) or PickedHeroes[_Type] then
+            IsDisabled = 1;
+        end
     end
     XGUIEng.DisableButton(Button, IsDisabled);
 end
@@ -357,6 +359,15 @@ function BuyHero.Internal:AllowHero(_Type, _Allowed)
             self.Config.TypesAllowedToChoose[i][2] = _Allowed == true;
         end
     end
+end
+
+function BuyHero.Internal:IsHeroAllowed(_Type)
+    for i= 1, table.getn(self.Config.TypesAllowedToChoose) do
+        if self.Config.TypesAllowedToChoose[i][1] == _Type then
+            return self.Config.TypesAllowedToChoose[i][2];
+        end
+    end
+    return false;
 end
 
 function BuyHero.Internal:SetNumberOfBuyableHeroes(_PlayerID, _Amount)
