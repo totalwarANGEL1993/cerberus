@@ -354,7 +354,6 @@ function EntityTracker.Internal:StartTriggers()
 
         Syncer.InvokeEvent(
             EntityTracker.Internal.NetworkCall,
-            PlayerID,
             EntityTracker.Internal.SyncEvent.UpgradeCanceled,
             EntityID
         );
