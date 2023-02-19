@@ -6,6 +6,7 @@ function OnMapStart()
 
     Script.Load("maps\\user\\cerberus\\loader.lua");
 
+    Lib.Require("comfort/IsDeadWrapper");
     -- Lib.Require("module/ai/AiArmy");
     -- Lib.Require("module/ai/AiTroopSpawner");
     Lib.Require("module/archive/Archive");

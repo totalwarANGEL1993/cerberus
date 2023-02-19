@@ -34,10 +34,10 @@ Then the path is `cerberus`.
 ### Load Order
 
 When searching for files the library will check in the following order:
-* `maps\\user\\cerberus`.
-* `maps\\user\\name_of_map\\cerberus`.
-* `maps\\externalmap\\cerberus`.
-* `cerberus`.
+* `maps\\user\\cerberus`
+* `maps\\user\\name_of_map\\cerberus`
+* `maps\\externalmap\\cerberus`
+* `cerberus`
 
 ## Save Games
 

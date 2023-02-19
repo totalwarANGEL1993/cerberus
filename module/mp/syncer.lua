@@ -347,17 +347,22 @@ function Syncer.Internal:TransactionSplitMessage(_Msg)
 end
 
 function Syncer.Internal:CreateTribute(_PlayerID, _ID, ...)
-    self.Transaction.TributeIdSequence = self.Transaction.TributeIdSequence +1;
+    local TributeID = self:NextTributeID();
     Logic.AddTribute(_PlayerID, self.Transaction.TributeIdSequence, 0, 0, "", {[ResourceType.Gold] = 0});
-    self.Transaction.TransactionParameter[self.Transaction.TributeIdSequence] = {
+    self.Transaction.TransactionParameter[TributeID] = {
         Action    = _ID,
         Parameter = CopyTable(arg),
     };
-    return self.Transaction.TributeIdSequence;
+    return TributeID;
 end
 
 function Syncer.Internal:PayTribute(_PlayerID, _TributeID)
     GUI.PayTribute(_PlayerID, _TributeID);
+end
+
+function Syncer.Internal:NextTributeID()
+    self.Transaction.TributeIdSequence = self.Transaction.TributeIdSequence +1;
+    return self.Transaction.TributeIdSequence;
 end
 
 function Syncer.Internal:OverrideMessageReceived()
