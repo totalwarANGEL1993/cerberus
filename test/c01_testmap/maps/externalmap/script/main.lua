@@ -16,6 +16,7 @@ function OnMapStart()
     Lib.Require("module/ui/BuyHero");
     Lib.Require("module/ui/Clock");
     Lib.Require("module/ui/Workplace");
+    Lib.Require("module/weather/WeatherMaker");
 
     Archive.Install();
     Syncer.Install();
