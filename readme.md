@@ -28,12 +28,16 @@ is `maps\\user\\name_of_map\\cerberus`.
 The library can also be placed directly in the usermaps folder.
 Then the path is `maps\\user\\cerberus`.
 
+The library is packed directly in the root folder of the file system.
+Then the path is `cerberus`.
+
 ### Load Order
 
 When searching for files the library will check in the following order:
 * `maps\\user\\cerberus`.
 * `maps\\user\\name_of_map\\cerberus`.
 * `maps\\externalmap\\cerberus`.
+* `cerberus`.
 
 ## Save Games
 
@@ -50,4 +54,5 @@ Mission_OnSaveGameLoaded = function()
     -- Call your stuff here
 end
 ```
-Do NOT use the overwrite module for this function!
+Do NOT use the overwrite module for this function! Overwriting 
+`Mission_OnSaveGameLoaded` does break the overwrite!
