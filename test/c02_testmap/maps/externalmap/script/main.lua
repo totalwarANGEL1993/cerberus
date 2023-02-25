@@ -1,5 +1,6 @@
 function OnMapStart()
-    Script.Load("data\\maps\\externalmap\\cerberus\\loader.lua");
+    -- Script.Load("data\\maps\\externalmap\\cerberus\\loader.lua");
+    Script.Load("data\\maps\\cerberus\\loader.lua");
     assert(Lib ~= nil, "Cerberus was not found!");
 
     Lib.Require("module/ui/BuyHero");
