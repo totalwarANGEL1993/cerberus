@@ -14,7 +14,9 @@ Lib.Register("module/io/NonPlayerMerchant");
 --- @version 1.0.0
 --- 
 
-NonPlayerMerchant = {}
+NonPlayerMerchant = NonPlayerMerchant or {
+    MaxSoldiers = 16,
+}
 
 MerchantOfferTypes = {
     Unit       = 1,
@@ -143,10 +145,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-NonPlayerMerchant.Internal = {
-    Config = {
-        MaxSoldiers = 16,
-    },
+NonPlayerMerchant.Internal = NonPlayerMerchant.Internal or {
     Data = {},
     Event = {},
 };
@@ -371,7 +370,7 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
         if Data then
             local ID = AI.Entity_CreateFormation(_PlayerID, _EntityType, 0, 0, _X, _Y, 0, 0, 3, 0);
             if Logic.IsLeader(ID) == 1 then
-                Tools.CreateSoldiersForLeader(ID, NonPlayerMerchant.Internal.Config.MaxSoldiers);
+                Tools.CreateSoldiersForLeader(ID, NonPlayerMerchant.MaxSoldiers);
             end
             NonPlayerMerchant.Internal:SubResources(_ScriptName, _PlayerID, _SlotIndex);
             NonPlayerMerchant.Internal:UpdateValues(_ScriptName, _SlotIndex);

@@ -11,7 +11,7 @@ Lib.Register("module/io/NonPlayerCharacter");
 --- @version 1.0.0
 --- 
 
-NonPlayerCharacter = {}
+NonPlayerCharacter = NonPlayerCharacter or {}
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -79,7 +79,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-NonPlayerCharacter.Internal = {
+NonPlayerCharacter.Internal = NonPlayerCharacter.Internal or {
     Data = {},
 };
 
