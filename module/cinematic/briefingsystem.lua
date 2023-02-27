@@ -160,11 +160,13 @@ BriefingSystem.Internal = BriefingSystem.Internal or {
 }
 
 function BriefingSystem.Internal:Install()
+    Syncer.Install();
     Placeholder.Install();
     Cinematic.Install();
 
     if not self.IsInstalled then
         self.IsInstalled = true;
+
         for i= 1, table.getn(Score.Player) do
             self.Data.Book[i] = nil;
             self.Data.Queue[i] = {};

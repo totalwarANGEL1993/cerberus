@@ -151,6 +151,7 @@ NonPlayerMerchant.Internal = NonPlayerMerchant.Internal or {
 };
 
 function NonPlayerMerchant.Internal:Install()
+    Syncer.Install();
     Placeholder.Install();
     Interaction.Internal:Install();
 

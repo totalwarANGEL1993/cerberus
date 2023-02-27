@@ -152,6 +152,8 @@ BuyHero.Internal = BuyHero.Internal or {
 };
 
 function BuyHero.Internal:Install()
+    Syncer.Install();
+
     if not self.IsInstalled then
         self.IsInstalled = true;
 

@@ -17,14 +17,16 @@ function OnMapStart()
     Lib.Require("module/ui/Clock");
     Lib.Require("module/ui/Workplace");
     Lib.Require("module/weather/WeatherMaker");
+    Lib.Require("module/mp/Random");
 
     Archive.Install();
-    Syncer.Install();
     Workplace.Install();
     BuyHero.Install();
     Clock.Install();
 
     Tools.GiveResouces(1, 9999, 9999, 9999, 9999, 9999, 9999);
+
+    Script.Load("C:/Users/marti/Downloads/alliedrefill.lua");
 end
 
 function CreateTestMerchant()

@@ -23,17 +23,10 @@ Syncer = Syncer or {};
 
 --- Installs the syncer.
 ---
---- (Must be called on game start!)
+--- (Usually called by code.)
 ---
---- The tribute parameter can be ignored if the game runs on the
---- community server. It sets the starting amount of tributes for
---- synchronization. A high value is recommended to not interfere
---- with quest tributes. Default is set to 999 so that the first
---- tribute starts of at 1000.
----
---- @param _TributeIdSequence? number (Optional) Starting value for tribute IDs
-function Syncer.Install(_TributeIdSequence)
-    Syncer.Internal:Install(_TributeIdSequence);
+function Syncer.Install()
+    Syncer.Internal:Install();
 end
 
 --- Creates an script event and returns the event ID.
@@ -122,9 +115,9 @@ Syncer.Internal = Syncer.Internal or {
     },
 };
 
-function Syncer.Internal:Install(_TributeIdSequence)
+function Syncer.Internal:Install()
     if not self.IsInstalled then
-        self.Transaction.TributeIdSequence = _TributeIdSequence or 999;
+        self.Transaction.TributeIdSequence = 9999;
         self.IsInstalled = true;
 
         if XNetwork.Manager_DoesExist() == 1 and not CNetwork then

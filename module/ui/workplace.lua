@@ -45,10 +45,11 @@ Workplace.Internal = Workplace.Internal or {
 };
 
 function Workplace.Internal:Install()
+    Syncer.Install();
+    Overwrite.Install();
+
     if not self.IsInstalled then
         self.IsInstalled = true;
-
-        Overwrite.Install();
 
         self:CreateScriptEvent();
         self:OverwriteOnSaveGameLoaded();

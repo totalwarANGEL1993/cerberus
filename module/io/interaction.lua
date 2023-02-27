@@ -79,8 +79,8 @@ function Interaction.Internal:Install()
         self.IsInstalled = true;
 
         for i= 1, table.getn(Score.Player) do
-            self.LastInteractionHero[i] = 0;
-            self.LastInteractionNpc[i] = 0;
+            self.LastInteractionHero[i] = nil;
+            self.LastInteractionNpc[i] = nil;
         end
         self:OverrideNpcInteraction();
     end

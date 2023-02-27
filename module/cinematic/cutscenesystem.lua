@@ -61,6 +61,7 @@ CutsceneSystem.Internal = CutsceneSystem.Internal or {
 }
 
 function CutsceneSystem.Internal:Install()
+    Syncer.Install();
     Placeholder.Install();
     Cinematic.Install();
 

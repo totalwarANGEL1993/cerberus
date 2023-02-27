@@ -72,6 +72,8 @@ EntityTracker.Internal = EntityTracker.Internal or {
 };
 
 function EntityTracker.Internal:Install()
+    Syncer.Install();
+
     if not self.IsInstalled then
         self.IsInstalled = true;
 
