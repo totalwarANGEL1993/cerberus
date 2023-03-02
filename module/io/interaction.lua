@@ -185,18 +185,18 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
     if Data then
         if Data.Hero then
             if _HeroID ~= GetID(Data.Hero) then
-                if Data.WrongHeroInfo and PlayerID == GUI.GetPlayerID() then
-                    local Msg = Data.WrongHeroInfo;
+                if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
+                    local Msg = Data.HeroInfo;
                     -- TODO: Localization
-                    Message(Data.WrongHeroInfo);
+                    Message(Data.HeroInfo);
                 end
                 return false;
             end
         end
         if Data.Hero then
             if PlayerID ~= GetID(Data.Player) then
-                if Data.WongPlayerInfo and PlayerID == GUI.GetPlayerID() then
-                    local Msg = Data.WongPlayerInfo;
+                if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
+                    local Msg = Data.PlayerInfo;
                     -- TODO: Localization
                     Message(Msg);
                 end

@@ -1,6 +1,7 @@
 function OnMapStart()
     -- Script.Load("data\\maps\\externalmap\\cerberus\\loader.lua");
-    Script.Load("data\\maps\\cerberus\\loader.lua");
+    -- Script.Load("data\\maps\\cerberus\\loader.lua");
+    Script.Load("data\\maps\\user\\cerberus\\loader.lua");
     assert(Lib ~= nil, "Cerberus was not found!");
 
     Lib.Require("module/ui/BuyHero");
@@ -57,6 +58,8 @@ end
 function CreateNormalNpcsForPlayers()
     NonPlayerCharacter.Create {
         ScriptName = "Npc1P1",
+        Hero = "kerberos",
+        WrongHeroMsg = "Mit euch rede ich nicht!",
         Callback   = function()
             Message("Spieler 1 hat den {scarlet}ERICH{white} richtig eingesetzt!");
         end

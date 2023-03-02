@@ -151,7 +151,7 @@ function Treasure.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        self.ControlerJobID = Job.Second(function()
+        self.ControllerJobID = Job.Second(function()
             for k,v in pairs(self.Treasures) do
                 Treasure.Internal:Controller(k);
             end
@@ -238,7 +238,7 @@ function Treasure.Internal:OpenRandomResourceTreasure(_Index, _PlayerID)
         local Data = self.Treasures[_Index];
 
         -- Select the resource
-        -- (@Napo: I hope it's now not so supid anymore...)
+        -- (@Napo: I hope it's not so supid anymore...)
         local Poolsize = 0;
         for k,v in pairs(Treasure.Random.Resources) do
             Poolsize = Poolsize + v[2];
