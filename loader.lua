@@ -3,12 +3,12 @@ Lib = {
     -- The paths listed below will be checked for the components from first
     -- to last entry.
     Paths = {
-        -- Search in map directory
-        "maps/user/",
         -- Search in folder map
         "maps/user/" ..Framework.GetCurrentMapName().. "/",
         -- Search in map archive
         "maps/externalmap/",
+        -- Search in map directory
+        "maps/user/",
         -- Search in Root
         ""
     },

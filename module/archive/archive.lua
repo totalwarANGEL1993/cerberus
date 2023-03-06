@@ -275,11 +275,12 @@ end
 
 function Archive.Internal:CommunityServerLoadArchive()
     if self.Data.HookType == 1 then
-        local MapName = Framework.GetCurrentMapName() .. ".s5x";
-        local TopArchive = CMod.GetAllArchives();
-        if not TopArchive or not string.find(TopArchive, "s5x") then
-            CMod.PushArchive(MapName);
-        end
+        -- Automatically loaded by server
+        -- local MapName = Framework.GetCurrentMapName() .. ".s5x";
+        -- local TopArchive = CMod.GetAllArchives();
+        -- if not TopArchive or not string.find(TopArchive, "s5x") then
+        --     CMod.PushArchive(MapName);
+        -- end
         GameCallback_Logic_AfterMapLoaded();
     end
 end
@@ -287,10 +288,11 @@ end
 function Archive.Internal:CommunityServerUnloadArchive()
     if self.Data.HookType == 1 then
         GameCallback_Logic_BeforeMapUnloaded();
-        local TopArchive = CMod.GetAllArchives();
-        if TopArchive and string.find(TopArchive, "s5x") then
-            CMod.PopArchive();
-        end
+        -- Automatically unloaded by server
+        -- local TopArchive = CMod.GetAllArchives();
+        -- if TopArchive and string.find(TopArchive, "s5x") then
+        --     CMod.PopArchive();
+        -- end
     end
 end
 
