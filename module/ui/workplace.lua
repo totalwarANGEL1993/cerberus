@@ -213,18 +213,18 @@ function Workplace.Internal:OverrideInterfaceUpdate()
     Overwrite.CreateOverwrite(
         "GameCallback_OnBuildingUpgradeComplete", function(_OldID, _NewID)
             Overwrite.CallOriginal();
-            Workplace.Internal:UpdateDisplay();
             -- Delay is needed to readjust worker count
             Job.Turn(
                 function(_Turn, _ID, _State)
-                    if Logic.GetCurrentTurn() >= _Turn+1 then
+                    if Logic.GetCurrentTurn() > _Turn+1 then
                         Workplace.Internal:SetWorkerAmountInBuilding(_ID, _State);
+                        Workplace.Internal:UpdateDisplay();
                         return true;
                     end
                 end,
                 Logic.GetCurrentTurn(),
                 _NewID,
-                Workplace.Internal.Data.WorkplaceStates[_OldID]
+                Workplace.Internal.Data.WorkplaceStates[_OldID] or "full"
             );
         end
     );
