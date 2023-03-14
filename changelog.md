@@ -1,3 +1,20 @@
+Version 1.1.5
+
+- Load Order angepasst: Es wird zuerst in der Map gesucht
+- IsDeadWrapper wurde hinzugefügt
+- Klick Spam beim NPC-Händler wird nun nicht mehr möglich
+- Wenn ein NPC vom falschen Helden/Spieler angesprochen wird, erscheint
+  nun die Hinweismeldung
+- Bei aktivem Workplace Modul sind nach Ausbau die Gebäude nicht mehr leer
+- Zufallsalgorythmus für Schatztruhen wurde angepasst
+- Schatztruhen können nun auch leer sein
+- Syncer installiert sich nun automatisch selbst
+
+Version 1.1.3
+
+- Bei der Heldenwahl werden bereits gewählte Helden ausgegraut
+- Funktion zum Pushen von Archiven hinzugefügt
+
 Version 1.1.0
 
 Allgemein
