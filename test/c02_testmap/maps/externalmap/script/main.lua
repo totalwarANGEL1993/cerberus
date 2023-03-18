@@ -86,6 +86,8 @@ function CreateExclusiveBriefingNpcsForPlayers()
 
     NonPlayerCharacter.Create {
         ScriptName = "Npc2P2",
+        Hero = "HansWurst",
+        WrongHeroMsg = "It work's but I am not talking to you!",
         Callback   = function()
             TestBriefing(2, "ExclusiveBriefing");
         end
