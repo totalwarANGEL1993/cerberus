@@ -193,8 +193,8 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
                 return false;
             end
         end
-        if Data.Hero then
-            if PlayerID ~= GetID(Data.Player) then
+        if Data.Player then
+            if PlayerID ~= Data.Player then
                 if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
                     local Msg = Data.PlayerInfo;
                     -- TODO: Localization

@@ -58,7 +58,7 @@ end
 function CreateNormalNpcsForPlayers()
     NonPlayerCharacter.Create {
         ScriptName = "Npc1P1",
-        Hero = "kerberos",
+        Hero = "P1Hero1",
         WrongHeroMsg = "Mit euch rede ich nicht!",
         Callback   = function()
             Message("Spieler 1 hat den {scarlet}ERICH{white} richtig eingesetzt!");
