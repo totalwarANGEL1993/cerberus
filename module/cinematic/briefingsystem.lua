@@ -716,7 +716,7 @@ function BriefingSystem.Internal:AdjustBriefingPageCamHeight(_Page)
     return _Page;
 end
 
-function BriefingSystem.Internal:PrintHeadline(_Text)
+function BriefingSystem.Internal:GetTextLocalized(_Text)
     -- Create local copy of text
     local Text = _Text;
     if type(Text) == "table" then
@@ -727,36 +727,32 @@ function BriefingSystem.Internal:PrintHeadline(_Text)
     if type(Text) == "table" then
         Text = Text[Language];
     end
+    -- String table text or replace placeholders
+    if string.find(Text, "^%w/%w$") then
+        Text = XGUIEng.GetStringTableText(Text);
+    end
+    return Text;
+end
+
+function BriefingSystem.Internal:PrintHeadline(_Text)
+    -- Create local copy of text
+    local Text = self:GetTextLocalized(_Text);
     -- Add title format
     if not string.find(string.sub(Text, 1, 2), "@") then
         Text = "@center " ..Text;
     end
-    -- String table text or replace placeholders
-    if string.find(Text, "^%w/%w$") then
-        Text = XGUIEng.GetStringTableText(Text);
-    else
-        Text = Placeholder.Replace(Text);
-    end
+    -- Replace placeholders
+    Text = Placeholder.Replace(Text);
+
     XGUIEng.SetText("CinematicMC_Headline", Text or "");
 end
 
 function BriefingSystem.Internal:PrintText(_Text)
     -- Create local copy of text
-    local Text = _Text;
-    if type(Text) == "table" then
-        Text = CopyTable(Text);
-    end
-    -- Localize text
-    local Language = GetLanguage();
-    if type(Text) == "table" then
-        Text = Text[Language];
-    end
-    -- String table text or replace placeholders
-    if string.find(Text, "^%w/%w$") then
-        Text = XGUIEng.GetStringTableText(Text);
-    else
-        Text = Placeholder.Replace(Text);
-    end
+    local Text = self:GetTextLocalized(_Text);
+    -- Replace placeholders
+    Text = Placeholder.Replace(Text);
+
     XGUIEng.SetText("CinematicMC_Text", Text or "");
 end
 

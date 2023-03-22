@@ -7,10 +7,10 @@ Lib.Register("module/cinematic/CutsceneSystem");
 
 --- 
 --- Cutscene System
+---
+--- THIS IS EXPERIMENTAL!
 --- 
 --- Implements a system to display cutscenes.
----
---- FIXME: This has not beed tested! 
 --- 
 --- @author totalwarANGEL
 --- @version 1.0.0
@@ -136,7 +136,7 @@ function CutsceneSystem.Internal:CutsceneStarted(_PlayerID)
     if self.Data.Book[_PlayerID][2].Starting then
         self.Data.Book[_PlayerID][2]:Starting();
     end
-    -- Disable cinematic mode
+    -- Enable cinematic mode
     Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
 end
 
