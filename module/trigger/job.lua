@@ -115,6 +115,18 @@ Job.Internal = Job.Internal or {
 function Job.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
+
+        self:InitRestoreAfterLoad();
+    end
+end
+
+function Job.Internal:InitRestoreAfterLoad()
+	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
+    Mission_OnSaveGameLoaded = function()
+        for k,v in pairs(Job.Internal.Data.Function) do
+            Job.Internal:CreateExecutor(k);
+        end
+        Job.Internal.Orig_Mission_OnSaveGameLoaded();
     end
 end
 
@@ -136,14 +148,7 @@ function Job.Internal:StartJob(_EventType, _Function, ...)
 
     -- Create job runner
     -- (Must be a variable in _G because triggers are stupid pussies!)
-    _G["InlineJob_Executor_" ..Sequence] = function(i)
-        if Job.Internal.Data.Function[i](unpack(Job.Internal.Data.Parameter[i])) then
-            _G["InlineJob_Executor_" ..Sequence] = nil;
-            Job.Internal.Data.Function[i] = nil;
-            Job.Internal.Data.Parameter[i] = nil;
-            return true;
-        end
-    end
+    self:CreateExecutor(Sequence);
 
     -- Request the trigger
     return Trigger.RequestTrigger(
@@ -154,5 +159,16 @@ function Job.Internal:StartJob(_EventType, _Function, ...)
         {},
         {Sequence}
     );
+end
+
+function Job.Internal:CreateExecutor(_Index)
+    _G["InlineJob_Executor_" .._Index] = function(i)
+        if Job.Internal.Data.Function[i](unpack(Job.Internal.Data.Parameter[i])) then
+            _G["InlineJob_Executor_" .._Index] = nil;
+            Job.Internal.Data.Function[i] = nil;
+            Job.Internal.Data.Parameter[i] = nil;
+            return true;
+        end
+    end
 end
 
