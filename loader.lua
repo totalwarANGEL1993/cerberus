@@ -7,13 +7,15 @@ Lib = {
         "maps/user/" ..Framework.GetCurrentMapName().. "/",
         -- Search in map archive
         "maps/externalmap/",
+        -- Search in script directory
+        "script/",
         -- Search in map directory
         "maps/user/",
         -- Search in Root
         ""
     },
 
-    Version = "1.1.8",
+    Version = "1.1.9",
     Sources = {},
     Loaded = {},
 };
