@@ -9,6 +9,13 @@ Lib.Register("module/cinematic/BriefingSystem");
 --- Briefing System
 --- 
 --- Briefings can be used in multiplayer without any restraints!
+---
+--- Defines the following callbacks:
+--- - GameCallback_Logic_BriefingStarted(_PlayerID, _Briefing)
+---   A briefing started for the player.
+---
+--- - GameCallback_Logic_BriefingFinished(_PlayerID, _Briefing)
+---   A briefing finished for the player.
 --- 
 --- @author totalwarANGEL
 --- @version 1.0.0
@@ -141,6 +148,15 @@ end
 function AMC(...)
     assert(false, "Must be initalized with BriefingSystem.AddPages!");
     return {};
+end
+
+-- -------------------------------------------------------------------------- --
+-- Callbacks
+
+function GameCallback_Logic_BriefingStarted(_PlayerID, _Briefing)
+end
+
+function GameCallback_Logic_BriefingFinished(_PlayerID, _Briefing)
 end
 
 -- -------------------------------------------------------------------------- --
@@ -378,6 +394,8 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID)
     end
     -- Register briefing as finished
     Cinematic.Conclude(_PlayerID, self.Data.Book[_PlayerID].ID);
+    -- Call game callback
+    GameCallback_Logic_BriefingFinished(_PlayerID, self.Data.Book[_PlayerID]);
     -- Invalidate briefing
     self.Data.Book[_PlayerID] = nil;
     -- Dequeue next briefing
@@ -419,13 +437,16 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
         end
     end
 
-    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
     -- Call function on start
     if self.Data.Book[_PlayerID].Starting then
         self.Data.Book[_PlayerID]:Starting();
     end
     -- Register briefing as active
     Cinematic.Activate(_PlayerID, self.Data.Book[_PlayerID].ID);
+    -- Call game callback
+    GameCallback_Logic_BriefingStarted(_PlayerID, self.Data.Book[_PlayerID]);
+    -- Show cinematic
+    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
     -- Show nex page
     self:NextPage(_PlayerID, true);
 end
