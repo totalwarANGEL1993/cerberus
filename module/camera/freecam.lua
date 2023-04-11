@@ -215,15 +215,21 @@ function FreeCam.Internal:ToggleFreeCamera()
     if self.Data.IsActive then
         gvCamera.DefaultFlag = 0;
         self:ResetCamera();
+        XGUIEng.ShowWidget("Normal", 0);
+        XGUIEng.ShowWidget("3dOnScreenDisplay", 0);
+        XGUIEng.ShowWidget("3dWorldView", 0);
         Display.SetRenderFogOfWar(0);
         Display.SetRenderSky(1);
-        Game.GUIActivate(0);
+        -- Game.GUIActivate(0);
     else
         gvCamera.DefaultFlag = 1;
         self:ResetCamera();
+        XGUIEng.ShowWidget("Normal", 1);
+        XGUIEng.ShowWidget("3dOnScreenDisplay", 1);
+        XGUIEng.ShowWidget("3dWorldView", 1);
         Display.SetRenderFogOfWar(1);
         Display.SetRenderSky(0);
-        Game.GUIActivate(1);
+        -- Game.GUIActivate(1);
     end
 end
 
