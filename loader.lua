@@ -15,7 +15,7 @@ Lib = {
         ""
     },
 
-    Version = "1.1.10",
+    Version = "1.2.0",
     Sources = {},
     Loaded = {},
 };
