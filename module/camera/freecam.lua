@@ -1,7 +1,7 @@
 Lib.Require("module/cinematic/BriefingSystem");
 Lib.Require("module/cinematic/CutsceneSystem");
 Lib.Require("module/mp/Syncer");
-Lib.Register("module/mp/FreeCam");
+Lib.Register("module/camera/FreeCam");
 
 --- 
 --- Allows to use the free camera.
