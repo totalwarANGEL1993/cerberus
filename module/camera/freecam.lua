@@ -7,17 +7,16 @@ Lib.Register("module/camera/FreeCam");
 --- Allows to use the free camera.
 ---
 --- Controls:
---- * CTRL + ALT + Num9 Toggle camera
---- * CTRL + Space      Activate/Deactivate free camera
---- * CTRL + R          Reset camera
---- * CTRL + E          Increase angle
---- * CTRL + Q          Decrease angle
---- * CTRL + S          Zoom out
---- * CTRL + W          Zoom in
---- * CTRL + A          Rotate left
---- * CTRL + D          Rotate right
---- * CTRL + Y          Decrease FOV
---- * CTRL + C          Increase FOV
+--- * CTRL + ALT + Space  Activate/Deactivate free camera
+--- * CTRL + R            Reset camera
+--- * CTRL + Q            Increase angle
+--- * CTRL + E            Decrease angle
+--- * CTRL + W            Zoom out
+--- * CTRL + S            Zoom in
+--- * CTRL + A            Rotate left
+--- * CTRL + D            Rotate right
+--- * CTRL + Y            Decrease FOV
+--- * CTRL + C            Increase FOV
 ---
 --- @author totalwarANGEL
 --- @version 1.0.0
@@ -60,8 +59,8 @@ FreeCam.Internal = FreeCam.Internal or {
         IsActive = false,
 
         Angle = 48,
-        Rotation = -45,
         Distance = 9000,
+        Rotation = -45,
         FOV = 42,
     },
 }
@@ -108,7 +107,7 @@ function FreeCam.Internal:OverwriteFunctions()
     ---
 
 	Camera_ToggleDefault = function()
-        if FreeCam.IsToggleable() or FreeCam.IsActive() then
+        if FreeCam.IsToggleable() then
             if not Cinematic.IsAnyActive(GUI.GetPlayerID()) then
                 FreeCam.Internal:ToggleFreeCamera();
             end
@@ -179,7 +178,6 @@ function FreeCam.Internal:OverwriteFunctions()
 end
 
 function FreeCam.Internal:OnSavegameLoaded()
-    Input.KeyBindDown(Keys.ModifierControl + Keys.ModifierAlt + Keys.NumPad9, "Camera_ToggleDefault");
     Camera.RotSetFlipBack((self.Data.IsActive and 0) or 1);
     self:SetShortcuts();
 end
@@ -198,12 +196,13 @@ end
 
 function FreeCam.Internal:ResetCamera()
     self.Data.Rotation = -45;
-    Camera.RotSetAngle(self.Data.Rotation);
     self.Data.Angle = 49;
-    Camera.ZoomSetAngle(self.Data.Angle);
     self.Data.FOV = 42;
-    Camera.ZoomSetFOV(self.Data.FOV);
     self.Data.Distance = 9000;
+
+    Camera.RotSetAngle(self.Data.Rotation);
+    Camera.ZoomSetAngle(self.Data.Angle);
+    Camera.ZoomSetFOV(self.Data.FOV);
     Camera.ZoomSetDistance(self.Data.Distance);
 end
 
@@ -217,27 +216,23 @@ function FreeCam.Internal:ToggleFreeCamera()
         self:ResetCamera();
         XGUIEng.ShowWidget("Normal", 0);
         XGUIEng.ShowWidget("3dOnScreenDisplay", 0);
-        XGUIEng.ShowWidget("3dWorldView", 0);
         Display.SetRenderFogOfWar(0);
         Display.SetRenderSky(1);
-        -- Game.GUIActivate(0);
     else
         gvCamera.DefaultFlag = 1;
         self:ResetCamera();
         XGUIEng.ShowWidget("Normal", 1);
         XGUIEng.ShowWidget("3dOnScreenDisplay", 1);
-        XGUIEng.ShowWidget("3dWorldView", 1);
         Display.SetRenderFogOfWar(1);
         Display.SetRenderSky(0);
-        -- Game.GUIActivate(1);
     end
 end
 
 function FreeCam.Internal:SetShortcuts()
-    Input.KeyBindDown(Keys.ModifierControl + Keys.Space, "Camera_ToggleDefault()", 2);
+    Input.KeyBindDown(Keys.ModifierControl + Keys.ModifierAlt + Keys.Space, "Camera_ToggleDefault()", 2);
     Input.KeyBindDown(Keys.ModifierControl + Keys.R, "Camera_Reset()", 2);
-    Input.KeyBindDown(Keys.ModifierControl + Keys.E, "Camera_IncreaseAngle()", 2);
-    Input.KeyBindDown(Keys.ModifierControl + Keys.Q, "Camera_DecreaseAngle()", 2);
+    Input.KeyBindDown(Keys.ModifierControl + Keys.Q, "Camera_IncreaseAngle()", 2);
+    Input.KeyBindDown(Keys.ModifierControl + Keys.E, "Camera_DecreaseAngle()", 2);
     Input.KeyBindDown(Keys.ModifierControl + Keys.S, "Camera_IncreaseZoom()", 2);
     Input.KeyBindDown(Keys.ModifierControl + Keys.W, "Camera_DecreaseZoom()", 2);
     Input.KeyBindDown(Keys.ModifierControl + Keys.Y, "Camera_DecreaseFOV()", 2);
