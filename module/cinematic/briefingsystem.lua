@@ -5,6 +5,8 @@ Lib.Require("module/mp/Syncer");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/cinematic/BriefingSystem");
 
+---@diagnostic disable: duplicate-set-field
+
 --- 
 --- Briefing System
 --- 
@@ -18,7 +20,7 @@ Lib.Register("module/cinematic/BriefingSystem");
 ---   A briefing finished for the player.
 --- 
 --- @author totalwarANGEL
---- @version 1.0.0
+--- @version 1.1.0
 --- 
 
 BriefingSystem = BriefingSystem or {
@@ -248,13 +250,6 @@ function BriefingSystem.Internal:OverrideBriefingFunctions()
 end
 
 function BriefingSystem.Internal:AddPages(_Briefing)
-    local AP = self:GetAddPage(_Briefing);
-    local ASP = self:GetAddShortPage(_Briefing);
-    local AMC = self:GetAddShortChoice(_Briefing);
-    return AP, ASP, AMC;
-end
-
-function BriefingSystem.Internal:GetAddPage(_Briefing)
     local AP = function(_Page)
         if _Page == nil then
             _Page = -1;
@@ -270,10 +265,7 @@ function BriefingSystem.Internal:GetAddPage(_Briefing)
         table.insert(_Briefing, _Page);
         return _Page;
     end
-    return AP;
-end
 
-function BriefingSystem.Internal:GetAddShortPage(_Briefing)
     -- Creates a simple dialog page.
     --
     -- Parameter order: [name, ] position, title, text, dialogCamera, action
@@ -287,7 +279,7 @@ function BriefingSystem.Internal:GetAddShortPage(_Briefing)
         end
         -- Add default action
         if arg[6] == nil then
-            ---@diagnostic disable-next-line: assign-type-mismatch
+            ---@diagnostic disable-next-line: assign-type-mismatch, duplicate-set-field
             arg[6] = function() end;
         elseif type(arg[6]) ~= "function" then
             table.insert(arg, 6, function() end);
@@ -308,10 +300,7 @@ function BriefingSystem.Internal:GetAddShortPage(_Briefing)
         Page.Signal    = false;
         return Page;
     end
-    return ASP;
-end
 
-function BriefingSystem.Internal:GetAddShortChoice(_Briefing)
     -- Creates a simple multiple choice page.
     --
     -- Parameter order: [name, ] position, title, text, dialogCamera, action,
@@ -326,7 +315,7 @@ function BriefingSystem.Internal:GetAddShortChoice(_Briefing)
         end
         -- Add default action
         if arg[6] == nil then
-            ---@diagnostic disable-next-line: assign-type-mismatch
+            ---@diagnostic disable-next-line: assign-type-mismatch, duplicate-set-field
             arg[6] = function() end;
         elseif type(arg[6]) ~= "function" then
             table.insert(arg, 6, function() end);
@@ -353,7 +342,7 @@ function BriefingSystem.Internal:GetAddShortChoice(_Briefing)
         end
         return Page;
     end
-    return AMC;
+    return AP, ASP, AMC;
 end
 
 function BriefingSystem.Internal:IsBriefingActive(_PlayerID)
@@ -371,6 +360,7 @@ function BriefingSystem.Internal:IsBriefingActiveForAnyPlayer()
 end
 
 function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
+    -- Just to be sure...
     self:Install();
     -- Abort if event can not be created
     if not Cinematic.Define(_PlayerID, _BriefingName) then
@@ -637,7 +627,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     self:PrintText(Text);
 
     if Page.MC then
-        self:PrintOptions(Page);
+        self:PrintOptions(self.Data.Book[_PlayerID], Page);
     else
         for i= 1, BriefingSystem.MCButtonAmount, 1 do
             XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
@@ -645,6 +635,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     end
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function BriefingSystem.Internal:GetPageHeadline(_PlayerID, _PageID)
     if self:IsBriefingActive(_PlayerID) then
         local Page = self.Data.Book[_PlayerID][_PageID];
@@ -655,6 +646,7 @@ function BriefingSystem.Internal:GetPageHeadline(_PlayerID, _PageID)
     return "";
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function BriefingSystem.Internal:GetPageText(_PlayerID, _PageID)
     if self:IsBriefingActive(_PlayerID) then
         local Page = self.Data.Book[_PlayerID][_PageID];
@@ -797,12 +789,12 @@ function BriefingSystem.Internal:PrintText(_Text)
     XGUIEng.SetText("CinematicMC_Text", Text or "");
 end
 
-function BriefingSystem.Internal:PrintOptions(_Page)
+function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
     local Language = GetLanguage();
     if _Page.MC then
         -- Add the option to hide choices so that a player is stuck on the
         -- choice page until external intervention
-        if _Page.MC.HideChoices then
+        if _Briefing.IsReadOnly then
             for i= 1, table.getn(_Page.MC), 1 do
                 if BriefingSystem.MCButtonAmount >= i then
                     XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
