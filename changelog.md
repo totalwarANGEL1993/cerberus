@@ -1,3 +1,11 @@
+Version 1.3.0
+
+- Spectatable Briefings hinzugefügt
+  (Briefings können an weitere Spieler gestreamt werden. Diese haben allerdings
+  nur lesenden Zugriff.)
+- Buy Hero wurde in das "mp" Modul verschoben
+  (Load Path hat sich geändert!)
+
 Version 1.1.5
 
 - Load Order angepasst: Es wird zuerst in der Map gesucht
