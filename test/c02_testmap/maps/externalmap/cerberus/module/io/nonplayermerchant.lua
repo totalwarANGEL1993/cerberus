@@ -14,7 +14,9 @@ Lib.Register("module/io/NonPlayerMerchant");
 --- @version 1.0.0
 --- 
 
-NonPlayerMerchant = {}
+NonPlayerMerchant = NonPlayerMerchant or {
+    MaxSoldiers = 16,
+}
 
 MerchantOfferTypes = {
     Unit       = 1,
@@ -143,17 +145,22 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-NonPlayerMerchant.Internal = {
+NonPlayerMerchant.Internal = NonPlayerMerchant.Internal or {
+    Data = {},
     Event = {},
 };
 
 function NonPlayerMerchant.Internal:Install()
+    Syncer.Install();
     Placeholder.Install();
     Interaction.Internal:Install();
 
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        for i= 1, table.getn(Score.Player) do
+            self.Data[i] = {};
+        end
         self:OverrideNpcInteractionCallbacks();
         self:OverrideNpcMerchantGui();
         self:CreateNpcMerchantSyncEvents();
@@ -246,7 +253,7 @@ function NonPlayerMerchant.Internal:OverrideNpcMerchantGui()
         local Data = Interaction.Internal.Data.IO[ScriptName];
         if Data then
             if Data.Active then
-                NonPlayerMerchant.Internal:BuyOffer(ScriptName, _SlotIndex);
+                NonPlayerMerchant.Internal:BuyOffer(PlayerID, ScriptName, _SlotIndex);
             end
         else
             NonPlayerMerchant.Internal.Orig_GUIAction_BuyMerchantOffer(_SlotIndex);
@@ -364,10 +371,11 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
         if Data then
             local ID = AI.Entity_CreateFormation(_PlayerID, _EntityType, 0, 0, _X, _Y, 0, 0, 3, 0);
             if Logic.IsLeader(ID) == 1 then
-                Tools.CreateSoldiersForLeader(ID, 16);
+                Tools.CreateSoldiersForLeader(ID, NonPlayerMerchant.MaxSoldiers);
             end
             NonPlayerMerchant.Internal:SubResources(_ScriptName, _PlayerID, _SlotIndex);
             NonPlayerMerchant.Internal:UpdateValues(_ScriptName, _SlotIndex);
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = false;
         end
     end);
     -- Buy Resources
@@ -377,6 +385,7 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
             Logic.AddToPlayersGlobalResource(_PlayerID, _GoodType, _Amount);
             NonPlayerMerchant.Internal:SubResources(_ScriptName, _PlayerID, _SlotIndex);
             NonPlayerMerchant.Internal:UpdateValues(_ScriptName, _SlotIndex);
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = false;
         end
     end);
     -- Buy Technology
@@ -386,6 +395,7 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
             ResearchTechnology(_TechType, _PlayerID);
             NonPlayerMerchant.Internal:SubResources(_ScriptName, _PlayerID, _SlotIndex);
             NonPlayerMerchant.Internal:UpdateValues(_ScriptName, _SlotIndex);
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = false;
         end
     end);
     -- Buy Custom
@@ -399,6 +409,7 @@ function NonPlayerMerchant.Internal:CreateNpcMerchantSyncEvents()
             );
             NonPlayerMerchant.Internal:SubResources(_ScriptName, _PlayerID, _SlotIndex);
             NonPlayerMerchant.Internal:UpdateValues(_ScriptName, _SlotIndex);
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = false;
         end
     end);
 end
@@ -575,7 +586,7 @@ function NonPlayerMerchant.Internal:UpdateOffer(_NpcScriptName, _SlotIndex)
     XGUIEng.SetText(gvGUI_WidgetID.TroopMerchantOfferAmount[_SlotIndex], "@center " ..Amount);
 end
 
-function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
+function NonPlayerMerchant.Internal:BuyOffer(_PlayerID, _NpcScriptName, _SlotIndex)
     local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     if Data.Offers[_SlotIndex].Load < 1 then
         return;
@@ -593,6 +604,9 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
                 return;
             end
         end
+        if NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock then
+            return;
+        end
 
         -- Mercenary
         if Data.Offers[_SlotIndex].Type == MerchantOfferTypes.Unit then
@@ -602,6 +616,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
             else
                 Position = GetPosition(Data.ScriptName);
             end
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = true;
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyUnit,
                 _NpcScriptName,
@@ -613,6 +628,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
 
         -- Resource
         elseif Data.Offers[_SlotIndex].Type == MerchantOfferTypes.Resource then
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = true;
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyRes,
                 _NpcScriptName,
@@ -626,6 +642,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
             if Logic.IsTechnologyResearched(PlayerID, Data.Offers[_SlotIndex].Good) == 1 then
                 return;
             end
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = true;
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyTech,
                 _NpcScriptName,
@@ -635,6 +652,7 @@ function NonPlayerMerchant.Internal:BuyOffer(_NpcScriptName, _SlotIndex)
 
         -- Custom
         else
+            NonPlayerMerchant.Internal.Data[_PlayerID].BuyLock = true;
             Syncer.InvokeEvent(
                 NonPlayerMerchant.Internal.Event.BuyFunc,
                 _NpcScriptName,

@@ -11,7 +11,7 @@ Lib.Register("module/entity/Treasure");
 --- 
 --- @require Job
 --- @author totalwarANGEL
---- @version 1.0.0
+--- @version 1.1.0
 --- 
 
 Treasure = Treasure or {
@@ -26,6 +26,19 @@ Treasure = Treasure or {
         RandomResource = 2,
         Technology = 3,
         Custom = 4,
+    },
+    Random = {
+        -- The resource types that can be in a chest.
+        -- {Resource, Weight} (should sum up to 100)
+        Resources = {
+            {"Gold", 10},
+            {"Clay", 14},
+            {"Wood", 17},
+            {"Stone", 14},
+            {"Iron", 10},
+            {"Sulfur", 10},
+            {nil, 25}
+        },
     }
 };
 
@@ -138,7 +151,7 @@ function Treasure.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        self.ControlerJobID = Job.Second(function()
+        self.ControllerJobID = Job.Second(function()
             for k,v in pairs(self.Treasures) do
                 Treasure.Internal:Controller(k);
             end
@@ -223,17 +236,41 @@ end
 function Treasure.Internal:OpenRandomResourceTreasure(_Index, _PlayerID)
     if self.Treasures[_Index] then
         local Data = self.Treasures[_Index];
-        local ResourceList = {"Gold", "Clay", "Wood", "Stone", "Iron", "Sulfur"};
-        local Index = math.random(1, 6);
-        local Resource = ResourceType[ResourceList[Index]];
-        local Amount = math.random(Data.Minimum, Data.Maximum);
-        if _PlayerID == GUI.GetPlayerID() then
-            local Text = XGUIEng.GetStringTableText("Support/ChestGold2a");
-            local Name = XGUIEng.GetStringTableText("WindowStatistics/Info" ..ResourceList[Index]);
-            Sound.PlayGUISound(Sounds.VoicesMentor_CHEST_FoundTreasureChest_rnd_01, 70);
-            Message(Text .. Amount .. " " .. Name);
+
+        -- Select the resource
+        -- (@Napo: I hope it's not so supid anymore...)
+        local Poolsize = 0;
+        for k,v in pairs(Treasure.Random.Resources) do
+            Poolsize = Poolsize + v[2];
         end
-        Logic.AddToPlayersGlobalResource(_PlayerID, Resource, Amount);
+        local SelectedResource;
+        local Random = math.random(1, Poolsize);
+        for k,v in pairs(Treasure.Random.Resources) do
+            Random = Random - v[2];
+            if Random <= 0 then
+                SelectedResource = v[1];
+                break;
+            end
+        end
+
+        -- Check if a resource was selected or if the chest is empty.
+        if SelectedResource ~= nil then
+            local Resource = ResourceType[SelectedResource];
+            local Amount = math.random(Data.Minimum, Data.Maximum);
+            if _PlayerID == GUI.GetPlayerID() then
+                local Text = XGUIEng.GetStringTableText("Support/ChestGold2a");
+                local Name = XGUIEng.GetStringTableText("WindowStatistics/Info" ..SelectedResource);
+                Sound.PlayGUISound(Sounds.VoicesMentor_CHEST_FoundTreasureChest_rnd_01, 70);
+                Message(Text .. Amount .. " " .. Name);
+            end
+            Logic.AddToPlayersGlobalResource(_PlayerID, Resource, Amount);
+        else
+            if _PlayerID == GUI.GetPlayerID() then
+                local Text = XGUIEng.GetStringTableText("Support/ChestRandomEmpty");
+                Sound.PlayGUISound(Sounds.OnKlick_Select_mary_de_mortfichet, 35);
+                Message(Text);
+            end
+        end
     end
 end
 

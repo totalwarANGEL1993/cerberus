@@ -1,11 +1,11 @@
 function OnMapStart()
     -- Script.Load("data\\maps\\externalmap\\cerberus\\loader.lua");
     -- Script.Load("data\\maps\\cerberus\\loader.lua");
-    Script.Load("data\\maps\\user\\cerberus\\loader.lua");
+    Script.Load("E:\\Repositories\\cerberus\\loader.lua");
     assert(Lib ~= nil, "Cerberus was not found!");
 
-    Lib.Require("module/ui/BuyHero");
-    Lib.Require("module/cinematic/BriefingSystem");
+    Lib.Require("module/mp/BuyHero");
+    Lib.Require("module/cinematic/SpectatableBriefing");
     Lib.Require("module/ui/Placeholder");
     Lib.Require("module/io/NonPlayerCharacter");
     Lib.Require("module/io/NonPlayerMerchant");
@@ -98,18 +98,16 @@ end
 function CreateSharedBriefingNpcsForPlayers()
     NonPlayerCharacter.Create {
         ScriptName = "Npc3P1",
-        Callback   = function()
-            TestBriefing(1, "SharedBriefing");
-            TestBriefing(2, "SharedBriefing");
+        Callback   = function(_Data)
+            TestBriefing2(_Data.ScriptName, 1, "SharedBriefing");
         end
     };
     NonPlayerCharacter.Activate("Npc3P1");
 
     NonPlayerCharacter.Create {
         ScriptName = "Npc3P2",
-        Callback   = function()
-            TestBriefing(2, "SharedBriefing");
-            TestBriefing(1, "SharedBriefing");
+        Callback   = function(_Data)
+            TestBriefing2(_Data.ScriptName, 2, "SharedBriefing");
         end
     };
     NonPlayerCharacter.Activate("Npc3P2");
@@ -125,6 +123,17 @@ function TestBriefing(_PlayerID, _Name)
     ASP(Interaction.Npc(_PlayerID), "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
     ASP(Interaction.Npc(_PlayerID), "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
-    BriefingSystem.Start(_PlayerID, _Name, Briefing)
+    BriefingSystem.Start(_PlayerID, _Name, Briefing);
+end
+
+function TestBriefing2(_ScriptName, _PlayerID, _Name)
+    local Briefing = {};
+    local AP, ASP, AMC = BriefingSystem.AddPages(Briefing);
+
+    -- Long text to test escape
+    ASP(_ScriptName, "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(_ScriptName, "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+
+    SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
 end
 

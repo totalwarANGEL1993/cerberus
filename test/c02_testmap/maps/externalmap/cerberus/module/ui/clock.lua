@@ -1,4 +1,5 @@
 Lib.Require("comfort/GetLanguage");
+Lib.Require("module/lua/Overwrite");
 Lib.Register("module/ui/Clock");
 
 --- 
@@ -58,6 +59,7 @@ function Clock.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        Overwrite.Install();
         self:SetSpeedUpAllowed(XNetwork.Manager_DoesExist() == 0);
         XGUIEng.TransferMaterials("StatisticsWindowTimeScaleButton", "OnlineHelpButton");
         XGUIEng.SetWidgetPositionAndSize("OnlineHelpButton",200,2,35,35);
@@ -123,27 +125,27 @@ function Clock.Internal:OverwriteOnlineHelp()
         Clock.Internal:IncrementSpeed();
     end
 
-    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end;
+    GameCallback_GameSpeedChanged = function(_Speed)
+        Clock.Internal:OnGameSpeedChanged(_Speed);
+    end
+
+    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
     Mission_OnSaveGameLoaded = function()
         Clock.Internal.Orig_Mission_OnSaveGameLoaded();
         Clock.Internal:OnSaveGameLoaded();
     end
 
-    GameCallback_GameSpeedChanged = function(_Speed)
-        Clock.Internal:OnGameSpeedChanged(_Speed);
-    end
-
-    GUITooltip_Generic_Orig_GameSpeed = GUITooltip_Generic;
-    GUITooltip_Generic = function(_Key)
-        if _Key == "MenuMap/OnlineHelp" then
-            local Tooltip = Clock.Internal:GetTooltipText();
-            XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomText, Tooltip);
-            XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomCosts, "");
-            XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomShortCut, "");
-        else
-            GUITooltip_Generic_Orig_GameSpeed(_Key);
+    Overwrite.CreateOverwrite(
+        "GUITooltip_Generic", function(_Key)
+            Overwrite.CallOriginal();
+            if _Key == "MenuMap/OnlineHelp" then
+                local Tooltip = Clock.Internal:GetTooltipText();
+                XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomText, Tooltip);
+                XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomCosts, "");
+                XGUIEng.SetText(gvGUI_WidgetID.TooltipBottomShortCut, "");
+            end
         end
-    end
+    );
 end
 
 function Clock.Internal:GetTooltipText()

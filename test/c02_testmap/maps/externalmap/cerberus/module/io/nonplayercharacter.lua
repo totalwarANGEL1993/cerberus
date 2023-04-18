@@ -11,7 +11,7 @@ Lib.Register("module/io/NonPlayerCharacter");
 --- @version 1.0.0
 --- 
 
-NonPlayerCharacter = {}
+NonPlayerCharacter = NonPlayerCharacter or {}
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -79,7 +79,7 @@ end
 -- -------------------------------------------------------------------------- --
 -- Internal
 
-NonPlayerCharacter.Internal = {
+NonPlayerCharacter.Internal = NonPlayerCharacter.Internal or {
     Data = {},
 };
 
@@ -196,14 +196,6 @@ end
 function NonPlayerCharacter.Internal:OnNpcRegularInteraction(_NpcScriptName, _Data, _HeroScriptName)
     local HeroID = GetID(_HeroScriptName);
     local NpcID = GetID(_NpcScriptName);
-    if _Data.Hero then
-        if HeroID ~= GetID(_Data.Hero) then
-            if _Data.WrongHeroMsg then
-                Message(_Data.WrongHeroMsg);
-            end
-            return;
-        end
-    end
     _Data:Callback(HeroID);
     _Data.TalkedTo = HeroID;
     Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);

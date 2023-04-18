@@ -72,6 +72,8 @@ EntityTracker.Internal = EntityTracker.Internal or {
 };
 
 function EntityTracker.Internal:Install()
+    Syncer.Install();
+
     if not self.IsInstalled then
         self.IsInstalled = true;
 
@@ -233,7 +235,33 @@ function EntityTracker.Internal:UpdateSelectionSerfConstrucButtons(_PlayerID)
                     GUIUpdate_UpgradeButtons("Build_Beautification" ..Num, Technologies["B_Beautification" ..Num]);
                 end
             else
-                GameCallback_GUI_SelectionChanged();
+                GUIUpdate_BuildingButtons("Build_Residence", Technologies.B_Residence);
+                GUIUpdate_BuildingButtons("Build_Farm", Technologies.B_Farm);
+                GUIUpdate_BuildingButtons("Build_Mine", Technologies.B_Claymine);
+                GUIUpdate_BuildingButtons("Build_Village", Technologies.B_Village);
+                GUIUpdate_BuildingButtons("Build_Monastery", Technologies.B_Monastery);
+                GUIUpdate_BuildingButtons("Build_University", Technologies.B_University);
+                GUIUpdate_BuildingButtons("Build_Market", Technologies.B_Market);
+
+                GUIUpdate_BuildingButtons("Build_Blacksmith", Technologies.B_Blacksmith);
+                GUIUpdate_BuildingButtons("Build_Stonemason", Technologies.B_StoneMason);
+                GUIUpdate_BuildingButtons("Build_Alchemist", Technologies.B_Alchemist);
+                GUIUpdate_BuildingButtons("Build_Bank", Technologies.B_Bank);
+                GUIUpdate_BuildingButtons("Build_Brickworks", Technologies.B_Brickworks);
+                GUIUpdate_BuildingButtons("Build_Sawmill", Technologies.B_Sawmill);
+                GUIUpdate_BuildingButtons("Build_GunsmithWorkshop", Technologies.B_GunsmithWorkshop);
+
+                GUIUpdate_BuildingButtons("Build_Barracks", Technologies.B_Barracks);
+                GUIUpdate_BuildingButtons("Build_Archery", Technologies.B_Archery);
+                GUIUpdate_BuildingButtons("Build_Stables", Technologies.B_Stables);
+                GUIUpdate_BuildingButtons("Build_Foundry", Technologies.B_Foundry);
+                GUIUpdate_BuildingButtons("Build_Tower", Technologies.B_Tower);
+
+                GUIUpdate_BuildingButtons("Build_Weathermachine", Technologies.B_Weathermachine);
+                GUIUpdate_BuildingButtons("Build_PowerPlant", Technologies.B_PowerPlant);
+                GUIUpdate_BuildingButtons("Build_Tavern", Technologies.B_Tavern);
+                GUIUpdate_BuildingButtons("Build_MasterBuilderWorkshop", Technologies.B_MasterBuilderWorkshop);
+                GUIUpdate_BuildingButtons("Build_Bridge", Technologies.B_Bridge);
             end
         end
     end

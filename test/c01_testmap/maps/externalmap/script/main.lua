@@ -11,9 +11,9 @@ function OnMapStart()
     -- Lib.Require("module/ai/AiTroopSpawner");
     Lib.Require("module/archive/Archive");
     Lib.Require("module/lua/Overwrite");
+    Lib.Require("module/mp/BuyHero");
     Lib.Require("module/mp/Syncer");
     Lib.Require("module/io/NonPlayerMerchant");
-    Lib.Require("module/ui/BuyHero");
     Lib.Require("module/ui/Clock");
     Lib.Require("module/ui/Workplace");
     Lib.Require("module/weather/WeatherMaker");

@@ -5,13 +5,22 @@ Lib.Require("module/mp/Syncer");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/cinematic/BriefingSystem");
 
+---@diagnostic disable: duplicate-set-field
+
 --- 
 --- Briefing System
 --- 
 --- Briefings can be used in multiplayer without any restraints!
+---
+--- Defines the following callbacks:
+--- - GameCallback_Logic_BriefingStarted(_PlayerID, _Briefing)
+---   A briefing started for the player.
+---
+--- - GameCallback_Logic_BriefingFinished(_PlayerID, _Briefing)
+---   A briefing finished for the player.
 --- 
 --- @author totalwarANGEL
---- @version 1.0.0
+--- @version 1.1.0
 --- 
 
 BriefingSystem = BriefingSystem or {
@@ -65,7 +74,7 @@ function BriefingSystem.AddPages(_Briefing)
 end
 
 --- Changes the amount of multiple choice buttons.
---- (Do not use this unless you know what you are doing!)
+--- (More than 2 buttons must be created inside the GUI XML!)
 --- @param _Amount number Amount of buttons
 function BriefingSystem.SetMCButtonCount(_Amount)
     BriefingSystem.Internal.MCButtonAmount = _Amount;
@@ -144,6 +153,15 @@ function AMC(...)
 end
 
 -- -------------------------------------------------------------------------- --
+-- Callbacks
+
+function GameCallback_Logic_BriefingStarted(_PlayerID, _Briefing)
+end
+
+function GameCallback_Logic_BriefingFinished(_PlayerID, _Briefing)
+end
+
+-- -------------------------------------------------------------------------- --
 -- Internal
 
 BriefingSystem.Internal = BriefingSystem.Internal or {
@@ -155,16 +173,17 @@ BriefingSystem.Internal = BriefingSystem.Internal or {
         Fader = {},
         Book = {},
         Queue = {},
-        SelectedChoices = {},
     },
 }
 
 function BriefingSystem.Internal:Install()
+    Syncer.Install();
     Placeholder.Install();
     Cinematic.Install();
 
     if not self.IsInstalled then
         self.IsInstalled = true;
+
         for i= 1, table.getn(Score.Player) do
             self.Data.Book[i] = nil;
             self.Data.Queue[i] = {};
@@ -193,7 +212,6 @@ function BriefingSystem.Internal:CreateScriptEvents()
         if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
             local Page = BriefingSystem.Internal.Data.Book[_PlayerID][_PageID];
             if Page then
-                assert(Page.Name ~= nil, "Multiple Choice Pages must have an name!");
                 if Page.MC then
                     for k, v in pairs(Page.MC) do
                         if v and v.ID == _OptionID then
@@ -203,8 +221,6 @@ function BriefingSystem.Internal:CreateScriptEvents()
                                 BriefingSystem.Internal.Data.Book[_PlayerID].Page = BriefingSystem.Internal:GetPageID(v[2], _PlayerID) -1;
                             end
                             BriefingSystem.Internal.Data.Book[_PlayerID][_PageID].MC.Selected = _OptionID;
-                            BriefingSystem.Internal.Data.SelectedChoices[_PlayerID] = BriefingSystem.Internal.Data.SelectedChoices[_PlayerID] or {};
-                            BriefingSystem.Internal.Data.SelectedChoices[_PlayerID][Page.Name] = _OptionID;
                             BriefingSystem.Internal:NextPage(_PlayerID, false);
                             return;
                         end
@@ -250,14 +266,12 @@ function BriefingSystem.Internal:AddPages(_Briefing)
         return _Page;
     end
 
-    ---
     -- Creates a simple dialog page.
     --
     -- Parameter order: [name, ] position, title, text, dialogCamera, action
     --
     -- @param ... Page arguments
     -- @return[type=table] Created page
-    --
     local ASP = function(...)
         -- Add invalid page name
         if type(arg[5]) ~= "boolean" then
@@ -265,7 +279,7 @@ function BriefingSystem.Internal:AddPages(_Briefing)
         end
         -- Add default action
         if arg[6] == nil then
-            ---@diagnostic disable-next-line: assign-type-mismatch
+            ---@diagnostic disable-next-line: assign-type-mismatch, duplicate-set-field
             arg[6] = function() end;
         elseif type(arg[6]) ~= "function" then
             table.insert(arg, 6, function() end);
@@ -287,7 +301,6 @@ function BriefingSystem.Internal:AddPages(_Briefing)
         return Page;
     end
 
-    ---
     -- Creates a simple multiple choice page.
     --
     -- Parameter order: [name, ] position, title, text, dialogCamera, action,
@@ -295,7 +308,6 @@ function BriefingSystem.Internal:AddPages(_Briefing)
     --
     -- @param ... Page arguments
     -- @return[type=table] Created page
-    --
     local AMC = function(...)
         -- Add invalid page name
         if type(arg[5]) ~= "boolean" then
@@ -303,7 +315,7 @@ function BriefingSystem.Internal:AddPages(_Briefing)
         end
         -- Add default action
         if arg[6] == nil then
-            ---@diagnostic disable-next-line: assign-type-mismatch
+            ---@diagnostic disable-next-line: assign-type-mismatch, duplicate-set-field
             arg[6] = function() end;
         elseif type(arg[6]) ~= "function" then
             table.insert(arg, 6, function() end);
@@ -348,6 +360,7 @@ function BriefingSystem.Internal:IsBriefingActiveForAnyPlayer()
 end
 
 function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
+    -- Just to be sure...
     self:Install();
     -- Abort if event can not be created
     if not Cinematic.Define(_PlayerID, _BriefingName) then
@@ -376,6 +389,8 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID)
     end
     -- Register briefing as finished
     Cinematic.Conclude(_PlayerID, self.Data.Book[_PlayerID].ID);
+    -- Call game callback
+    GameCallback_Logic_BriefingFinished(_PlayerID, self.Data.Book[_PlayerID]);
     -- Invalidate briefing
     self.Data.Book[_PlayerID] = nil;
     -- Dequeue next briefing
@@ -417,13 +432,16 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
         end
     end
 
-    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
     -- Call function on start
     if self.Data.Book[_PlayerID].Starting then
         self.Data.Book[_PlayerID]:Starting();
     end
     -- Register briefing as active
     Cinematic.Activate(_PlayerID, self.Data.Book[_PlayerID].ID);
+    -- Call game callback
+    GameCallback_Logic_BriefingStarted(_PlayerID, self.Data.Book[_PlayerID]);
+    -- Show cinematic
+    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
     -- Show nex page
     self:NextPage(_PlayerID, true);
 end
@@ -538,7 +556,9 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     Cinematic.Internal:SetPageStyle(
         Page.MiniMap ~= true,
         (Page.MC and table.getn(Page.MC)) or 0,
-        self.Data.Book[_PlayerID].PageStyle or 1
+        (BriefingSystem.MCButtonAmount > 2 and 2)
+            or self.Data.Book[_PlayerID].PageStyle
+            or 1
     );
 
     local RenderFoW = 0;
@@ -600,26 +620,41 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
         end
     end
 
-    if Page.Title then
-        self:PrintHeadline(Page.Title);
-    else
-        self:PrintHeadline("");
-    end
+    local Title = self:GetPageHeadline(_PlayerID, self.Data.Book[_PlayerID].Page);
+    self:PrintHeadline(Title);
 
-    if Page.Text then
-        self:PrintText(Page.Text);
-        -- TODO: Start speech
-    else
-        self:PrintText("");
-    end
+    local Text = self:GetPageText(_PlayerID, self.Data.Book[_PlayerID].Page);
+    self:PrintText(Text);
 
     if Page.MC then
-        self:PrintOptions(Page);
+        self:PrintOptions(self.Data.Book[_PlayerID], Page);
     else
         for i= 1, BriefingSystem.MCButtonAmount, 1 do
             XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
         end
     end
+end
+
+---@diagnostic disable-next-line: duplicate-set-field
+function BriefingSystem.Internal:GetPageHeadline(_PlayerID, _PageID)
+    if self:IsBriefingActive(_PlayerID) then
+        local Page = self.Data.Book[_PlayerID][_PageID];
+        if Page.Title then
+            return Page.Title;
+        end
+    end
+    return "";
+end
+
+---@diagnostic disable-next-line: duplicate-set-field
+function BriefingSystem.Internal:GetPageText(_PlayerID, _PageID)
+    if self:IsBriefingActive(_PlayerID) then
+        local Page = self.Data.Book[_PlayerID][_PageID];
+        if Page.Text then
+            return Page.Text;
+        end
+    end
+    return "";
 end
 
 function BriefingSystem.Internal:BriefingMCButtonSelected(_Selected)
@@ -714,7 +749,7 @@ function BriefingSystem.Internal:AdjustBriefingPageCamHeight(_Page)
     return _Page;
 end
 
-function BriefingSystem.Internal:PrintHeadline(_Text)
+function BriefingSystem.Internal:GetTextLocalized(_Text)
     -- Create local copy of text
     local Text = _Text;
     if type(Text) == "table" then
@@ -725,63 +760,69 @@ function BriefingSystem.Internal:PrintHeadline(_Text)
     if type(Text) == "table" then
         Text = Text[Language];
     end
+    -- String table text or replace placeholders
+    if string.find(Text, "^%w/%w$") then
+        Text = XGUIEng.GetStringTableText(Text);
+    end
+    return Text;
+end
+
+function BriefingSystem.Internal:PrintHeadline(_Text)
+    -- Create local copy of text
+    local Text = self:GetTextLocalized(_Text);
     -- Add title format
     if not string.find(string.sub(Text, 1, 2), "@") then
         Text = "@center " ..Text;
     end
-    -- String table text or replace placeholders
-    if string.find(Text, "^%w/%w$") then
-        Text = XGUIEng.GetStringTableText(Text);
-    else
-        Text = Placeholder.Replace(Text);
-    end
+    -- Replace placeholders
+    Text = Placeholder.Replace(Text);
+
     XGUIEng.SetText("CinematicMC_Headline", Text or "");
 end
 
 function BriefingSystem.Internal:PrintText(_Text)
     -- Create local copy of text
-    local Text = _Text;
-    if type(Text) == "table" then
-        Text = CopyTable(Text);
-    end
-    -- Localize text
-    local Language = GetLanguage();
-    if type(Text) == "table" then
-        Text = Text[Language];
-    end
-    -- String table text or replace placeholders
-    if string.find(Text, "^%w/%w$") then
-        Text = XGUIEng.GetStringTableText(Text);
-    else
-        Text = Placeholder.Replace(Text);
-    end
+    local Text = self:GetTextLocalized(_Text);
+    -- Replace placeholders
+    Text = Placeholder.Replace(Text);
+
     XGUIEng.SetText("CinematicMC_Text", Text or "");
 end
 
-function BriefingSystem.Internal:PrintOptions(_Page)
+function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
     local Language = GetLanguage();
     if _Page.MC then
-        Mouse.CursorShow();
-        for i= 1, table.getn(_Page.MC), 1 do
-            if BriefingSystem.MCButtonAmount >= i then
-                -- Button highlight fix
-                XGUIEng.DisableButton("CinematicMC_Button" ..i, 1);
-                XGUIEng.DisableButton("CinematicMC_Button" ..i, 0);
-                -- Localize text
-                local Text = _Page.MC[i][1];
-                if type(Text) == "table" then
-                    Text = Text[Language];
+        -- Add the option to hide choices so that a player is stuck on the
+        -- choice page until external intervention
+        if _Briefing.IsReadOnly then
+            for i= 1, table.getn(_Page.MC), 1 do
+                if BriefingSystem.MCButtonAmount >= i then
+                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
                 end
-                -- String table text or replace placeholders
-                if string.find(Text, "^%w/%w$") then
-                    Text = XGUIEng.GetStringTableText(Text);
-                else
-                    Text = Placeholder.Replace(Text);
+            end
+        -- Display choices normally
+        else
+            Mouse.CursorShow();
+            for i= 1, table.getn(_Page.MC), 1 do
+                if BriefingSystem.MCButtonAmount >= i then
+                    -- Button highlight fix
+                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 1);
+                    XGUIEng.DisableButton("CinematicMC_Button" ..i, 1);
+                    XGUIEng.DisableButton("CinematicMC_Button" ..i, 0);
+                    -- Localize text
+                    local Text = _Page.MC[i][1];
+                    if type(Text) == "table" then
+                        Text = Text[Language];
+                    end
+                    -- String table text or replace placeholders
+                    if string.find(Text, "^%w/%w$") then
+                        Text = XGUIEng.GetStringTableText(Text);
+                    else
+                        Text = Placeholder.Replace(Text);
+                    end
+                    -- Set text
+                    XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
                 end
-                -- Set text
-                XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
-                -- Set text for HE
-                XGUIEng.SetText("NetworkWindowPlayer" ..i.. "Name", Text or "");
             end
         end
     end

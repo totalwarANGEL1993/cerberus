@@ -14,6 +14,12 @@ Overwrite = Overwrite or {};
 -- -------------------------------------------------------------------------- --
 -- API
 
+--- Installs the overwrite system.
+--- (Usually called by code.)
+function Overwrite.Install()
+    Overwrite.Internal:Install();
+end
+
 --- Declares an new overwrite frame to the function.
 --- @param _Name string       Name of function
 --- @param _Function function Function to call instead
@@ -53,7 +59,7 @@ function Overwrite.Internal:Install()
 end
 
 function Overwrite.Internal:OverwriteOnSaveGameLoaded()
-    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded or function() end;
+    self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
     Mission_OnSaveGameLoaded = function()
         Overwrite.Internal.Orig_Mission_OnSaveGameLoaded();
         for k, v in pairs(Overwrite.Internal.Overwrites) do

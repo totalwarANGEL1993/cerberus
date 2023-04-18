@@ -7,10 +7,17 @@ Lib.Register("module/cinematic/CutsceneSystem");
 
 --- 
 --- Cutscene System
+---
+--- THIS IS EXPERIMENTAL!
 --- 
 --- Implements a system to display cutscenes.
 ---
---- FIXME: This has not beed tested! 
+--- Defines the following callbacks:
+--- - GameCallback_Logic_CutsceneStarted(_PlayerID, _Cutscene)
+---   A cutscene started for the player.
+---
+--- - GameCallback_Logic_CutsceneFinished(_PlayerID, _Cutscene)
+---   A cutscene finished for the player.
 --- 
 --- @author totalwarANGEL
 --- @version 1.0.0
@@ -46,6 +53,15 @@ function CutsceneSystem.IsActive(_PlayerID)
 end
 
 -- -------------------------------------------------------------------------- --
+-- Callbacks
+
+function GameCallback_Logic_CutsceneStarted(_PlayerID, _Cutscene)
+end
+
+function GameCallback_Logic_CutsceneFinished(_PlayerID, _Cutscene)
+end
+
+-- -------------------------------------------------------------------------- --
 -- Internal
 
 CutsceneSystem.Internal = CutsceneSystem.Internal or {
@@ -61,6 +77,7 @@ CutsceneSystem.Internal = CutsceneSystem.Internal or {
 }
 
 function CutsceneSystem.Internal:Install()
+    Syncer.Install();
     Placeholder.Install();
     Cinematic.Install();
 
@@ -132,18 +149,24 @@ end
 
 function CutsceneSystem.Internal:CutsceneStarted(_PlayerID)
     Cinematic.Activate(_PlayerID, self.m_Book[_PlayerID][1]);
+    -- Action
     if self.Data.Book[_PlayerID][2].Starting then
         self.Data.Book[_PlayerID][2]:Starting();
     end
-    -- Disable cinematic mode
+    -- Game Callback
+    GameCallback_Logic_CutsceneStarted(_PlayerID, self.Data.Book[_PlayerID][2]);
+    -- Enable cinematic mode
     Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
 end
 
 function CutsceneSystem.Internal:CutsceneFinished(_PlayerID)
     Cinematic.Conclude(_PlayerID, self.m_Book[_PlayerID][1]);
+    -- Action
     if self.Data.Book[_PlayerID][2].Finished then
         self.Data.Book[_PlayerID][2]:Finished();
     end
+    -- Game Callback
+    GameCallback_Logic_CutsceneFinished(_PlayerID, self.Data.Book[_PlayerID][2]);
     -- Disable cinematic mode
     Cinematic.Hide(_PlayerID);
 end

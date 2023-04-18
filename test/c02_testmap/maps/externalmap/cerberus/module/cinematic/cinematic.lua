@@ -66,7 +66,7 @@ end
 --- Checks if the cinematic is already finished for the player.
 --- @param _PlayerID integer ID of player
 --- @param _Name string
---- @return boolean Active The event is active
+--- @return boolean Over The event is over
 function Cinematic.IsConcluded(_PlayerID, _Name)
     return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Over;
 end

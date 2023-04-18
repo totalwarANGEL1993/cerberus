@@ -79,8 +79,8 @@ function Interaction.Internal:Install()
         self.IsInstalled = true;
 
         for i= 1, table.getn(Score.Player) do
-            self.LastInteractionHero[i] = 0;
-            self.LastInteractionNpc[i] = 0;
+            self.LastInteractionHero[i] = nil;
+            self.LastInteractionNpc[i] = nil;
         end
         self:OverrideNpcInteraction();
     end
@@ -183,29 +183,34 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
 
     local Data = self.Data.IO[ScriptName];
     if Data then
-        if Data.Hero then
-            if _HeroID ~= GetID(Data.Hero) then
-                if Data.WrongHeroInfo and PlayerID == GUI.GetPlayerID() then
-                    local Msg = Data.WrongHeroInfo;
-                    -- TODO: Localization
-                    Message(Data.WrongHeroInfo);
-                end
-                return false;
+        if Data.Hero and _HeroID ~= GetID(Data.Hero) then
+            if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
+                Message(self:GetLocalizedMessage(Data.HeroInfo));
             end
+            return false;
         end
-        if Data.Hero then
-            if PlayerID ~= GetID(Data.Player) then
-                if Data.WongPlayerInfo and PlayerID == GUI.GetPlayerID() then
-                    local Msg = Data.WongPlayerInfo;
-                    -- TODO: Localization
-                    Message(Msg);
-                end
-                return false;
+        if Data.Player and PlayerID ~= Data.Player then
+            if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
+                Message(self:GetLocalizedMessage(Data.PlayerInfo));
             end
+            return false;
         end
         return true;
     end
     return false;
+end
+
+function Interaction.Internal:GetLocalizedMessage(_Msg)
+    local Language = GetLanguage();
+    local Msg = _Msg;
+
+    if type(Msg) == "table" then
+        Msg = Msg[Language];
+    end
+    if string.find(Msg, "^%w/%w$") then
+        Msg = XGUIEng.GetStringTableText(Msg);
+    end
+    return Msg;
 end
 
 function Interaction.Internal:OverrideNpcInteraction()

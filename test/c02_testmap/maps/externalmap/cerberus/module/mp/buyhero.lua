@@ -1,8 +1,9 @@
 Lib.Require("comfort/GetHeadquarters");
 Lib.Require("comfort/GetCirclePosition");
 Lib.Require("comfort/GetLanguage");
+Lib.Require("module/lua/Overwrite");
 Lib.Require("module/mp/Syncer");
-Lib.Register("module/ui/BuyHero");
+Lib.Register("module/mp/BuyHero");
 
 ---
 --- Buy Hero
@@ -40,6 +41,10 @@ function BuyHero.GetNumberOfBuyableHeroes(_PlayerID)
 end
 
 --- Sets the amount of heroes the player can select.
+---
+--- The amount is set to 0 by default and the buy hero button is hidden.
+--- If set to 1 or greater the button will appear.
+---
 --- @param _PlayerID number ID of player
 --- @param _Amount number   Amount of heroes
 function BuyHero.SetNumberOfBuyableHeroes(_PlayerID, _Amount)
@@ -113,7 +118,7 @@ end
 BuyHero.Internal = BuyHero.Internal or {
     Data = {},
     Config = {
-        MaxHeroAmount = 1,
+        MaxHeroAmount = 0,
 
         TypesAllowedToChoose = {
             {Entities.PU_Hero1c,             true},
@@ -147,9 +152,12 @@ BuyHero.Internal = BuyHero.Internal or {
 };
 
 function BuyHero.Internal:Install()
+    Syncer.Install();
+
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        Overwrite.Install();
         self.SyncEvent = Syncer.CreateEvent(function(_PlayerID, _Type)
             BuyHero.Internal:BuyHeroCallback(_PlayerID, _Type);
         end);
@@ -159,7 +167,7 @@ function BuyHero.Internal:Install()
             };
         end
         self:OverrideBuyHeroWindow();
-        self:PrepareBuyHeroWindowForLordSelection();
+        self:PrepareBuyHeroWindow();
     end
 end
 
@@ -175,9 +183,45 @@ function BuyHero.Internal:OverrideBuyHeroWindow()
     BuyHeroWindow_UpdateInfoLine = function()
         BuyHero.Internal:BuyHeroWindowUpdateDescription();
     end
+
+    XGUIEng.ShowWidget("Buy_Hero", 1);
+    GUIUpdate_BuyHeroButton = function()
+        BuyHero.Internal:ShowBuyHeroWindowButton();
+    end
+
+    Overwrite.CreateOverwrite(
+        "GUIAction_ToggleMenu", function(_WidgetID, _Flag)
+            if gvGUI_WidgetID.BuyHeroWindow == _WidgetID then
+                XGUIEng.ShowWidget(gvGUI_WidgetID.BuyHeroWindow, 1);
+                return;
+            end
+            Overwrite.CallOriginal();
+        end
+    );
+
+    Overwrite.CreateOverwrite(
+        "GameCallback_GUI_SelectionChanged", function()
+            Overwrite.CallOriginal();
+            BuyHero.Internal:ShowBuyHeroWindowButton();
+        end
+    );
+
+	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
+	Mission_OnSaveGameLoaded = function()
+		BuyHero.Internal.Orig_Mission_OnSaveGameLoaded();
+        BuyHero.Internal:PrepareBuyHeroWindow();
+	end
 end
 
-function BuyHero.Internal:PrepareBuyHeroWindowForLordSelection()
+function BuyHero.Internal:ShowBuyHeroWindowButton()
+    local PlayerID = GUI.GetPlayerID();
+    if BuyHero.Internal.Data[PlayerID] then
+        local Visible = (BuyHero.Internal.Data[PlayerID].MaxHeroAmount > 0 and 1) or 0;
+        XGUIEng.ShowWidget("Buy_Hero", Visible);
+    end
+end
+
+function BuyHero.Internal:PrepareBuyHeroWindow()
     XGUIEng.SetText("BuyHeroWindowHeadline", "");
     XGUIEng.SetText("BuyHeroWindowInfoLine", "");
     XGUIEng.SetWidgetPositionAndSize("BuyHeroWindowInfoLine", 340, 60, 480, 50);
@@ -291,17 +335,22 @@ function BuyHero.Internal:BuyHeroWindowUpdateButton(_Type)
     local GuiPlayer = GUI.GetPlayerID();
     local PlayerID = (SelectedPlayer ~= 0 and SelectedPlayer) or GuiPlayer;
 
-    -- Update button
+    -- Get heroes
     local Button = self.Config.TypeToBuyHeroButton[_Type];
     local HeroCount = self:CountHeroes(PlayerID);
     local PickedHeroes = {};
     for k,v in pairs(self:GetHeroes(PlayerID)) do
         PickedHeroes[Logic.GetEntityType(v)] = true;
     end
+
+    -- Update buttons
     local IsDisabled = 0;
-    if  self:GetNumberOfBuyableHeroes(PlayerID) - HeroCount < 1
-    and not PickedHeroes[_Type] then
-        IsDisabled = 1;
+    if self:GetNumberOfBuyableHeroes(PlayerID) - HeroCount < 1 then
+        IsDisabled = (PickedHeroes[_Type] and 0) or 1;
+    else
+        if not BuyHero.Internal:IsHeroAllowed(_Type) or PickedHeroes[_Type] then
+            IsDisabled = 1;
+        end
     end
     XGUIEng.DisableButton(Button, IsDisabled);
 end
@@ -312,6 +361,15 @@ function BuyHero.Internal:AllowHero(_Type, _Allowed)
             self.Config.TypesAllowedToChoose[i][2] = _Allowed == true;
         end
     end
+end
+
+function BuyHero.Internal:IsHeroAllowed(_Type)
+    for i= 1, table.getn(self.Config.TypesAllowedToChoose) do
+        if self.Config.TypesAllowedToChoose[i][1] == _Type then
+            return self.Config.TypesAllowedToChoose[i][2];
+        end
+    end
+    return false;
 end
 
 function BuyHero.Internal:SetNumberOfBuyableHeroes(_PlayerID, _Amount)
