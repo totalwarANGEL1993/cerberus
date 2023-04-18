@@ -72,7 +72,7 @@ function BriefingSystem.AddPages(_Briefing)
 end
 
 --- Changes the amount of multiple choice buttons.
---- (Do not use this unless you know what you are doing!)
+--- (More than 2 buttons must be created inside the GUI XML!)
 --- @param _Amount number Amount of buttons
 function BriefingSystem.SetMCButtonCount(_Amount)
     BriefingSystem.Internal.MCButtonAmount = _Amount;
@@ -171,7 +171,6 @@ BriefingSystem.Internal = BriefingSystem.Internal or {
         Fader = {},
         Book = {},
         Queue = {},
-        SelectedChoices = {},
     },
 }
 
@@ -211,7 +210,6 @@ function BriefingSystem.Internal:CreateScriptEvents()
         if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
             local Page = BriefingSystem.Internal.Data.Book[_PlayerID][_PageID];
             if Page then
-                assert(Page.Name ~= nil, "Multiple Choice Pages must have an name!");
                 if Page.MC then
                     for k, v in pairs(Page.MC) do
                         if v and v.ID == _OptionID then
@@ -221,8 +219,6 @@ function BriefingSystem.Internal:CreateScriptEvents()
                                 BriefingSystem.Internal.Data.Book[_PlayerID].Page = BriefingSystem.Internal:GetPageID(v[2], _PlayerID) -1;
                             end
                             BriefingSystem.Internal.Data.Book[_PlayerID][_PageID].MC.Selected = _OptionID;
-                            BriefingSystem.Internal.Data.SelectedChoices[_PlayerID] = BriefingSystem.Internal.Data.SelectedChoices[_PlayerID] or {};
-                            BriefingSystem.Internal.Data.SelectedChoices[_PlayerID][Page.Name] = _OptionID;
                             BriefingSystem.Internal:NextPage(_PlayerID, false);
                             return;
                         end
@@ -252,6 +248,13 @@ function BriefingSystem.Internal:OverrideBriefingFunctions()
 end
 
 function BriefingSystem.Internal:AddPages(_Briefing)
+    local AP = self:GetAddPage(_Briefing);
+    local ASP = self:GetAddShortPage(_Briefing);
+    local AMC = self:GetAddShortChoice(_Briefing);
+    return AP, ASP, AMC;
+end
+
+function BriefingSystem.Internal:GetAddPage(_Briefing)
     local AP = function(_Page)
         if _Page == nil then
             _Page = -1;
@@ -267,15 +270,16 @@ function BriefingSystem.Internal:AddPages(_Briefing)
         table.insert(_Briefing, _Page);
         return _Page;
     end
+    return AP;
+end
 
-    ---
+function BriefingSystem.Internal:GetAddShortPage(_Briefing)
     -- Creates a simple dialog page.
     --
     -- Parameter order: [name, ] position, title, text, dialogCamera, action
     --
     -- @param ... Page arguments
     -- @return[type=table] Created page
-    --
     local ASP = function(...)
         -- Add invalid page name
         if type(arg[5]) ~= "boolean" then
@@ -304,8 +308,10 @@ function BriefingSystem.Internal:AddPages(_Briefing)
         Page.Signal    = false;
         return Page;
     end
+    return ASP;
+end
 
-    ---
+function BriefingSystem.Internal:GetAddShortChoice(_Briefing)
     -- Creates a simple multiple choice page.
     --
     -- Parameter order: [name, ] position, title, text, dialogCamera, action,
@@ -313,7 +319,6 @@ function BriefingSystem.Internal:AddPages(_Briefing)
     --
     -- @param ... Page arguments
     -- @return[type=table] Created page
-    --
     local AMC = function(...)
         -- Add invalid page name
         if type(arg[5]) ~= "boolean" then
@@ -348,7 +353,7 @@ function BriefingSystem.Internal:AddPages(_Briefing)
         end
         return Page;
     end
-    return AP, ASP, AMC;
+    return AMC;
 end
 
 function BriefingSystem.Internal:IsBriefingActive(_PlayerID)
@@ -561,7 +566,9 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     Cinematic.Internal:SetPageStyle(
         Page.MiniMap ~= true,
         (Page.MC and table.getn(Page.MC)) or 0,
-        self.Data.Book[_PlayerID].PageStyle or 1
+        (BriefingSystem.MCButtonAmount > 2 and 2)
+            or self.Data.Book[_PlayerID].PageStyle
+            or 1
     );
 
     local RenderFoW = 0;
@@ -623,18 +630,11 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
         end
     end
 
-    if Page.Title then
-        self:PrintHeadline(Page.Title);
-    else
-        self:PrintHeadline("");
-    end
+    local Title = self:GetPageHeadline(_PlayerID, self.Data.Book[_PlayerID].Page);
+    self:PrintHeadline(Title);
 
-    if Page.Text then
-        self:PrintText(Page.Text);
-        -- TODO: Start speech
-    else
-        self:PrintText("");
-    end
+    local Text = self:GetPageText(_PlayerID, self.Data.Book[_PlayerID].Page);
+    self:PrintText(Text);
 
     if Page.MC then
         self:PrintOptions(Page);
@@ -643,6 +643,26 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
             XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
         end
     end
+end
+
+function BriefingSystem.Internal:GetPageHeadline(_PlayerID, _PageID)
+    if self:IsBriefingActive(_PlayerID) then
+        local Page = self.Data.Book[_PlayerID][_PageID];
+        if Page.Title then
+            return Page.Title;
+        end
+    end
+    return "";
+end
+
+function BriefingSystem.Internal:GetPageText(_PlayerID, _PageID)
+    if self:IsBriefingActive(_PlayerID) then
+        local Page = self.Data.Book[_PlayerID][_PageID];
+        if Page.Text then
+            return Page.Text;
+        end
+    end
+    return "";
 end
 
 function BriefingSystem.Internal:BriefingMCButtonSelected(_Selected)
@@ -780,27 +800,37 @@ end
 function BriefingSystem.Internal:PrintOptions(_Page)
     local Language = GetLanguage();
     if _Page.MC then
-        Mouse.CursorShow();
-        for i= 1, table.getn(_Page.MC), 1 do
-            if BriefingSystem.MCButtonAmount >= i then
-                -- Button highlight fix
-                XGUIEng.DisableButton("CinematicMC_Button" ..i, 1);
-                XGUIEng.DisableButton("CinematicMC_Button" ..i, 0);
-                -- Localize text
-                local Text = _Page.MC[i][1];
-                if type(Text) == "table" then
-                    Text = Text[Language];
+        -- Add the option to hide choices so that a player is stuck on the
+        -- choice page until external intervention
+        if _Page.MC.HideChoices then
+            for i= 1, table.getn(_Page.MC), 1 do
+                if BriefingSystem.MCButtonAmount >= i then
+                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
                 end
-                -- String table text or replace placeholders
-                if string.find(Text, "^%w/%w$") then
-                    Text = XGUIEng.GetStringTableText(Text);
-                else
-                    Text = Placeholder.Replace(Text);
+            end
+        -- Display choices normally
+        else
+            Mouse.CursorShow();
+            for i= 1, table.getn(_Page.MC), 1 do
+                if BriefingSystem.MCButtonAmount >= i then
+                    -- Button highlight fix
+                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 1);
+                    XGUIEng.DisableButton("CinematicMC_Button" ..i, 1);
+                    XGUIEng.DisableButton("CinematicMC_Button" ..i, 0);
+                    -- Localize text
+                    local Text = _Page.MC[i][1];
+                    if type(Text) == "table" then
+                        Text = Text[Language];
+                    end
+                    -- String table text or replace placeholders
+                    if string.find(Text, "^%w/%w$") then
+                        Text = XGUIEng.GetStringTableText(Text);
+                    else
+                        Text = Placeholder.Replace(Text);
+                    end
+                    -- Set text
+                    XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
                 end
-                -- Set text
-                XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
-                -- Set text for HE
-                XGUIEng.SetText("NetworkWindowPlayer" ..i.. "Name", Text or "");
             end
         end
     end
