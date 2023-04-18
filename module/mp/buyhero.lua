@@ -3,7 +3,7 @@ Lib.Require("comfort/GetCirclePosition");
 Lib.Require("comfort/GetLanguage");
 Lib.Require("module/lua/Overwrite");
 Lib.Require("module/mp/Syncer");
-Lib.Register("module/ui/BuyHero");
+Lib.Register("module/mp/BuyHero");
 
 ---
 --- Buy Hero
