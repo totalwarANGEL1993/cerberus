@@ -48,15 +48,23 @@ BriefingSystem = BriefingSystem or {
 --- after the briefing is finished.
 ---
 --- Fields to configure:
---- * DisableSkipping  Page skipping is disabled
---- * RestoreCamera    Camera position before the briefing is restored
---- * RenderFoW        Show or hide the FoW
---- * RenderSky        Show or hide the Sky
+--- * NoSkip      - Page skipping is disabled
+--- * ResetCamera - Camera position before the briefing is restored
+--- * RenderFoW   - Show or hide the FoW
+--- * RenderSky   - Show or hide the Sky
 ---
 --- @param _PlayerID number     Player the briefing is started for
 --- @param _BriefingName string Name of Briefing (must be unique for player)
 --- @param _Briefing table      Definition of briefing
 function BriefingSystem.Start(_PlayerID, _BriefingName, _Briefing)
+    -- Transmute some fields
+    if _Briefing.NoSkip ~= nil then
+        _Briefing.DisableSkipping = _Briefing.NoSkip == true;
+    end
+    if _Briefing.ResetCamera ~= nil then
+        _Briefing.RestoreCamera = _Briefing.ResetCamera == true;
+    end
+
     BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
 end
 
@@ -100,28 +108,28 @@ end
 --- Creates a page from the page definition.
 --- 
 --- Fields to configure:
---- * Name              Name of Page
---- * Title             Headline of the page
---- * Text              Text of the page
---- * DialogCamera      Use dialog camera settings
---- * Action            Function called when page is shown
---- * CameraFlight      Fly from last position
---- * Duration          Display duration of page
---- * Target            Entity the camera shows
---- * Height            Camera hight emulation
---- * Distance          Distance of the camera
---- * Rotation          Rotation of the camera
---- * Angle             Angle of the camera
---- * DisableSkipping   Disable skipping on this page
---- * RenderFoW         Render FoW for this page
---- * RenderSky         Render Sky for this page
---- * FadeIn            Duration of fading in from black
---- * FadeOut           Duration of fading out to black
---- * FaderAlpha        Opacity of fader mask
---- * MiniMap           Display the minimap on this page
---- * Signal            Mark the camera position on the minimap
---- * Explore           Show an area while page is shown
---- 
+--- * Name       - Name of Page
+--- * Title      - Headline of the page
+--- * Text       - Text of the page
+--- * CloseUp    - Use dialog camera settings
+--- * Action     - Function called when page is shown
+--- * Flight     - Fly from last position
+--- * Duration   - Display duration of page
+--- * Target     - Entity the camera shows
+--- * Height     - Camera hight emulation
+--- * Distance   - Distance of the camera
+--- * Rotation   - Rotation of the camera
+--- * Angle      - Angle of the camera
+--- * NoSkip     - Disable skipping on this page
+--- * RenderFoW  - Render FoW for this page
+--- * RenderSky  - Render Sky for this page
+--- * FadeIn     - Duration of fading in from black
+--- * FadeOut    - Duration of fading out to black
+--- * FaderAlpha - Opacity of fader mask
+--- * MiniMap    - Display the minimap on this page
+--- * Signal     - Mark the camera position on the minimap
+--- * Explore    - Show an area while page is shown
+---
 --- @param _Data table Page definition
 --- @return table Page Page definition
 function AP(_Data)
@@ -255,6 +263,16 @@ function BriefingSystem.Internal:AddPages(_Briefing)
             _Page = -1;
         end
         if type(_Page) == "table" then
+            -- Transmute some fields
+            if _Page.CloseUp ~= nil then
+                _Page.DialogCamera = _Page.CloseUp == true;
+            end
+            if _Page.Flight ~= nil then
+                _Page.CameraFlight = _Page.Flight == true;
+            end
+            if _Page.NoSkip ~= nil then
+                _Page.DisableSkipping = _Page.NoSkip == true;
+            end
             -- Add IDs automatically, if not provided
             if _Page.MC then
                 for i= 1, table.getn(_Page.MC) do

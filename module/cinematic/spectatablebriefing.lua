@@ -30,35 +30,43 @@ SpectatableBriefing = SpectatableBriefing or {}
 --- @param ... number           List of spectating players
 --- @see BriefingSystem.Start
 function SpectatableBriefing.Start(_PlayerID, _BriefingName, _Briefing, ...)
+    -- Transmute some fields
+    if _Briefing.NoSkip ~= nil then
+        _Briefing.DisableSkipping = _Briefing.NoSkip == true;
+    end
+    if _Briefing.ResetCamera ~= nil then
+        _Briefing.RestoreCamera = _Briefing.ResetCamera == true;
+    end
+
     SpectatableBriefing.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing, unpack(arg));
 end
 
 --- Creates a page from the page definition.
 --- 
 --- Fields to configure:
---- * Name              Name of Page
---- * Title             Headline of the page
---- * Text              Text of the page
---- * TitleAlter        Headline shown to a spectating player.
---- * TextAlter         Text shown to a spectating player.
---- * DialogCamera      Use dialog camera settings
---- * Action            Function called when page is shown
---- * CameraFlight      Fly from last position
---- * Duration          Display duration of page
---- * Target            Entity the camera shows
---- * Height            Camera hight emulation
---- * Distance          Distance of the camera
---- * Rotation          Rotation of the camera
---- * Angle             Angle of the camera
---- * DisableSkipping   Disable skipping on this page
---- * RenderFoW         Render FoW for this page
---- * RenderSky         Render Sky for this page
---- * FadeIn            Duration of fading in from black
---- * FadeOut           Duration of fading out to black
---- * FaderAlpha        Opacity of fader mask
---- * MiniMap           Display the minimap on this page
---- * Signal            Mark the camera position on the minimap
---- * Explore           Show an area while page is shown
+--- * Name       - Name of Page
+--- * Title      - Headline of the page
+--- * Text       - Text of the page
+--- * TitleAlter - Headline shown to a spectating player.
+--- * TextAlter  - Text shown to a spectating player.
+--- * CloseUp    - Use dialog camera settings
+--- * Action     - Function called when page is shown
+--- * Flight     - Fly from last position
+--- * Duration   - Display duration of page
+--- * Target     - Entity the camera shows
+--- * Height     - Camera hight emulation
+--- * Distance   - Distance of the camera
+--- * Rotation   - Rotation of the camera
+--- * Angle      - Angle of the camera
+--- * NoSkip     - Disable skipping on this page
+--- * RenderFoW  - Render FoW for this page
+--- * RenderSky  - Render Sky for this page
+--- * FadeIn     - Duration of fading in from black
+--- * FadeOut    - Duration of fading out to black
+--- * FaderAlpha - Opacity of fader mask
+--- * MiniMap    - Display the minimap on this page
+--- * Signal     - Mark the camera position on the minimap
+--- * Explore    - Show an area while page is shown
 --- 
 --- @param _Data table Page definition
 --- @return table Page Page definition

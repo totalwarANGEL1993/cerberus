@@ -126,5 +126,3 @@ function WeatherMaker.Internal:InitWeatherDisplay(_ID)
     Display.SetRenderUseGfxSets(1);
 end
 
--- Logic.AddWeatherElement(season,DAYTIME.m_OneHourLength, 0, gfx, 0, 0);
-

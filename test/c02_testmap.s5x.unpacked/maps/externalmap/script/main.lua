@@ -78,8 +78,8 @@ end
 function CreateExclusiveBriefingNpcsForPlayers()
     NonPlayerCharacter.Create {
         ScriptName = "Npc2P1",
-        Callback   = function()
-            TestBriefing(1, "ExclusiveBriefing");
+        Callback   = function(_Data)
+            TestBriefing(_Data.ScriptName, 1, "ExclusiveBriefing");
         end
     };
     NonPlayerCharacter.Activate("Npc2P1");
@@ -88,8 +88,8 @@ function CreateExclusiveBriefingNpcsForPlayers()
         ScriptName = "Npc2P2",
         Hero = "HansWurst",
         WrongHeroMsg = "It work's but I am not talking to you!",
-        Callback   = function()
-            TestBriefing(2, "ExclusiveBriefing");
+        Callback   = function(_Data)
+            TestBriefing(_Data.ScriptName, 2, "ExclusiveBriefing");
         end
     };
     NonPlayerCharacter.Activate("Npc2P2");
@@ -115,24 +115,53 @@ end
 
 -- -- --
 
-function TestBriefing(_PlayerID, _Name)
+-- This briefing just tests the default briefing stuff.
+function TestBriefing(_ScriptName, _PlayerID, _Name)
     local Briefing = {};
     local AP, ASP, AMC = BriefingSystem.AddPages(Briefing);
 
-    -- Long text to test escape
-    ASP(Interaction.Npc(_PlayerID), "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
-    ASP(Interaction.Npc(_PlayerID), "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(_ScriptName, "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(_ScriptName, "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
     BriefingSystem.Start(_PlayerID, _Name, Briefing);
 end
 
+-- This briefing tests the spectatable briefings. Players that are not the
+-- leading players can not skip by pressing escape and MC options are not
+-- visible to them.
 function TestBriefing2(_ScriptName, _PlayerID, _Name)
     local Briefing = {};
     local AP, ASP, AMC = BriefingSystem.AddPages(Briefing);
 
-    -- Long text to test escape
+    -- Avoid getting stuck in Singleplayer tests
+    if not Syncer.IsMultiplayer() then
+        _PlayerID = 1;
+    end
+
+    local PlayerName = UserTool_GetPlayerName(_PlayerID);
+    local PlayerColor = "@color:"..table.concat({GUI.GetPlayerColor(_PlayerID)}, ",");
+
     ASP(_ScriptName, "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
     ASP(_ScriptName, "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+
+    AP {
+        Name         = "ChoicePage1",
+        Title        = "Important Choice",
+        Text         = "Make a important choice that will inevitable advance the plot!",
+        TextAlter    = "Wait until " ..PlayerColor.. " " ..PlayerName.. " @color:255,255,255 has made a decision...",
+        Target       = _ScriptName,
+        DialogCamera = true,
+        MC           = {
+            {"Option 1", "PathOption1"},
+            {"Option 2", "PathOption2"},
+        },
+    }
+
+    ASP("PathOption1", _ScriptName, "Page 4", "Option 2 was chosen.", true);
+    ASP(_ScriptName, "Page 5", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    AP();
+    ASP("PathOption2", _ScriptName, "Page 4", "Option 2 was chosen.", true);
+    ASP(_ScriptName, "Page 6", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
     SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
 end
