@@ -255,11 +255,11 @@ function Cinematic.Internal:DisableCinematicMode(_PlayerID)
     Input.GameMode();
     Stream.Stop();
 
-    XGUIEng.ShowWidget("Normal",1);
-    XGUIEng.ShowWidget("3dOnScreenDisplay",1);
     XGUIEng.ShowWidget("Cinematic",0);
     XGUIEng.ShowWidget("CinematicMiniMapContainer",0);
 
+    XGUIEng.ShowWidget("Normal",1);
+    XGUIEng.ShowWidget("3dWorldView",1);
     XGUIEng.ShowWidget("Windows",1);
     XGUIEng.ShowWidget("Top",1);
     XGUIEng.ShowWidget("ResourceView",1);
@@ -284,30 +284,18 @@ function Cinematic.Internal:SetPageStyle(_DisableMap, _MCAmount, _PageStyle)
 end
 
 function Cinematic.Internal:SetRegularPageStyle(_DisableMap)
-    local size = {GUI.GetScreenSize()};
-    local titlePosY = 45;
-    local textPosY = ((size[2]*(768/size[2])))-100;
-    local titleSize = (size[1]-200);
-
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container",0,0,size[1],size[2]);
-    XGUIEng.SetWidgetPositionAndSize("Cinematic_Text",(200),textPosY,(680),100);
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Text",(200),textPosY,(680),100);
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Headline",100,titlePosY,titleSize,15);
-    XGUIEng.SetWidgetPositionAndSize("Cinematic_Headline",100,titlePosY,titleSize,15);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar01",0,size[2],size[1],180);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar00",0,0,size[1],size[2]);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Text", 200, 668, 624, 100);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Text", 200, 668, 624, 100);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Headline", 100, 45, 824, 15);
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Headline", 100, 45, 824, 15);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar01", 0, 768, 1024, 180);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar00", 0, 0, 1024, 768);
     XGUIEng.SetMaterialTexture("CinematicBar02", 0, "data/graphics/textures/gui/cutscene_top.dds");
     XGUIEng.SetMaterialColor("CinematicBar02", 0, 255, 255, 255, 255);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, size[1], 180);
-
-    local choiceHeight = Round(46*(768/size[2]));
-    local choiceWidth  = Round(400*(1024/size[1]));
-    local choicePosX1 = 100 * (1024/size[1]);
-    local choicePosY1 = (size[2] * (1024/size[1])) - choiceHeight;
-    local choicePosX2 = size[1] - (choiceWidth + (100 * (1024/size[1])));
-    local choicePosY2 = (size[2] * (1024/size[1])) - choiceHeight;
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button1", choicePosX1, choicePosY1, 400, 46);
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button2", choicePosX2, choicePosY2, 400, 46);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, 1024, 180);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button1", 75, 720, 412, 46);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button2", 549, 720, 412, 46);
 
     XGUIEng.ShowWidget("CinematicMiniMapOverlay", (_DisableMap and 0) or 1);
     XGUIEng.ShowWidget("CinematicMiniMap", (_DisableMap and 0) or 1);
@@ -322,28 +310,22 @@ end
 
 function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
     local size = {GUI.GetScreenSize()};
-    local Is4To3 = (size[2]/3) * 4 == size[1];
-    local button1Y = (size[2]*(768/size[2]))-10;
-    local button2Y = (size[2]*(768/size[2]))-10;
-    local titlePosY = 45;
-    local textPosY = ((size[2]*(768/size[2])))-100;
-    local titleSize = (size[1]-200);
-    local choiceHeight = Round(46*(768/size[2]));
-    local choiceWidth  = Round(800*(1024/size[1]));
-    local choicePosX   = Round(((Is4To3 and 112) or (112*1.4))*(size[1]/1024));
-    local choicePosY   = Round(((size[2]*(768/size[2]))/2) - ((_MCAmount/2)*(choiceHeight+10)));
+    local choiceHeight = 46;
+    local choiceWidth  = 824;
+    local choicePosX   = 112;
+    local choicePosY   = Round((size[2]/2) - ((_MCAmount/2)*(choiceHeight+10)));
 
     -- Set widget apperance
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container",0,0,size[1],size[2]);
-    XGUIEng.SetWidgetPositionAndSize("Cinematic_Text",(200),textPosY,(680),100);
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Text",(200),textPosY,(680),100);
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Headline",100,titlePosY,titleSize,15);
-    XGUIEng.SetWidgetPositionAndSize("Cinematic_Headline",100,titlePosY,titleSize,15);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar01",0,size[2],size[1],180);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar00",0,0,size[1],size[2]);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Text", 200, 668, 624, 100);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Text", 200, 668, 624, 100);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Headline", 100, 45, 824, 15);
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Headline", 100, 45, 824, 15);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar01", 0, 768, 1024, 180);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar00", 0, 0, 1024, 768);
     XGUIEng.SetMaterialTexture("CinematicBar02", 0, "data/graphics/textures/gui/cutscene_top.dds");
     XGUIEng.SetMaterialColor("CinematicBar02", 0, 255, 255, 255, 255);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, size[1], 180);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, 1024, 180);
 
     -- Set answers
     for i= 1, _MCAmount, 1 do
@@ -371,19 +353,15 @@ function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
 end
 
 function Cinematic.Internal:SetCutscenePageStyle()
-    local size = {GUI.GetScreenSize()};
-    local titlePosY = 45;
-    local textPosY = ((size[2]*(768/size[2])))-100;
-    local titleSize = (size[1]-200);
-
     -- Set widget apperance
-    XGUIEng.SetWidgetPositionAndSize("Cinematic_Text",(200),textPosY,(680),100);
-    XGUIEng.SetWidgetPositionAndSize("Cinematic_Headline",100,titlePosY,titleSize,15);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar01",0,size[2],size[1],180);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar00",0,0,size[1],size[2]);
+    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Text", 200, 668, 624, 100);
+    XGUIEng.SetWidgetPositionAndSize("Cinematic_Headline", 100, 45, 824, 15);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar01", 0, 768, 1024, 180);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar00", 0, 0, 1024, 768);
     XGUIEng.SetMaterialTexture("CinematicBar02", 0, "data/graphics/textures/gui/cutscene_top.dds");
     XGUIEng.SetMaterialColor("CinematicBar02", 0, 255, 255, 255, 255);
-    XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, size[1], 180);
+    XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, 1024, 180);
     -- Set widget visability
     XGUIEng.ShowWidget("Cinematic_Text", 1);
     XGUIEng.ShowWidget("Cinematic_Headline", 1);
