@@ -1027,12 +1027,13 @@ function QuestSystem.Internal:InitJobs()
         PaydayOverFlag = PaydayOverFlag or {};
 
         for i= 1, table.getn(Score.Player), 1 do
+            local Frequency = Logic.GetPlayerPaydayFrequency(i);
             PaydayTimeoutFlag[i] = PaydayTimeoutFlag[i] or false;
             PaydayOverFlag[i] = PaydayOverFlag[i] or false;
 
             if Logic.GetPlayerPaydayTimeLeft(i) < 1000  then
                 PaydayTimeoutFlag[i] = true;
-            elseif Logic.GetPlayerPaydayTimeLeft(i) > 118000 then
+            elseif Logic.GetPlayerPaydayTimeLeft(i) > Frequency - 2000 then
                 PaydayTimeoutFlag[i] = false;
                 PaydayOverFlag[i] = false;
             end
