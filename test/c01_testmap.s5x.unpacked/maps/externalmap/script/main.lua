@@ -14,6 +14,7 @@ function OnMapStart()
     Lib.Require("module/mp/BuyHero");
     Lib.Require("module/mp/Syncer");
     Lib.Require("module/io/NonPlayerMerchant");
+    Lib.Require("module/quest/QuestSystem");
     Lib.Require("module/ui/Clock");
     Lib.Require("module/ui/Workplace");
     Lib.Require("module/weather/WeatherMaker");
@@ -27,6 +28,19 @@ function OnMapStart()
     Tools.GiveResouces(1, 9999, 9999, 9999, 9999, 9999, 9999);
 
     Script.Load("C:/Users/marti/Downloads/alliedrefill.lua");
+end
+
+function CreateTestQuest()
+    CreateQuest {
+        Name        = "TestQuest1",
+        Receiver    = 1,
+        Time        = 5,
+
+        {{Condition.Time, 10}},
+        {{Objective.EntityDistance, "ari", "serf2", 500, true}},
+        {{Effect.Message, "Oh no! It won't just work. :("}},
+        {{Effect.Message, "It just work's. :)"}},
+    }
 end
 
 function CreateTestMerchant()
