@@ -160,9 +160,10 @@ function TestBriefing2(_ScriptName, _PlayerID, _Name)
     ASP("PathOption1", _ScriptName, "Page 4", "Option 2 was chosen.", true);
     ASP(_ScriptName, "Page 5", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
     AP();
-    ASP("PathOption2", _ScriptName, "Page 4", "Option 2 was chosen.", true);
+    ASP("PathOption2", _ScriptName, "Page 5", "Option 2 was chosen.", true);
     ASP(_ScriptName, "Page 6", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
-    SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
+    -- SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
+    BriefingSystem.Start(_PlayerID, _Name, Briefing, 1, 2);
 end
 

@@ -591,7 +591,10 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     Display.SetRenderSky(RenderSky);
     Camera.ScrollUpdateZMode(0);
     Camera.FollowEntity(0);
-    Mouse.CursorHide();
+    -- Because Mouse.CursorHide does not work...
+    XGUIEng.ShowWidget("3dWorldView", 1);
+    GUI.CancelState();
+    GUI.ActivateCutSceneState();
 
     if Page.Target then
         local EntityID = GetID(Page.Target);
@@ -818,9 +821,13 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                     XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
                 end
             end
-        -- Display choices normally
         else
-            Mouse.CursorShow();
+            -- Because Mouse.CursorShow does not work...
+            XGUIEng.ShowWidget("3dWorldView", 0);
+            GUI.CancelState();
+            GUI.ActivateSelectionState();
+
+            -- Display choices normally
             for i= 1, table.getn(_Page.MC), 1 do
                 if BriefingSystem.MCButtonAmount >= i then
                     -- Button highlight fix
