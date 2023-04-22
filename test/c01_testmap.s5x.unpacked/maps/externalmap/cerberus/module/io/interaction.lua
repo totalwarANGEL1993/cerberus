@@ -37,29 +37,34 @@ end
 --- @param _PlayerID integer ID of player
 --- @param _HeroID integer   ID of hero
 --- @param _NpcID integer    ID of npc
-function GameCallback_Logic_InteractWithCharacter(_PlayerID, _HeroID, _NpcID)
+--- @param _Data table  Data object of npc
+function GameCallback_Logic_InteractWithCharacter(_PlayerID, _HeroID, _NpcID, _Data)
 end
 
 --- Called when a hero is talking to a merchant.
 --- @param _PlayerID integer ID of player
 --- @param _HeroID integer   ID of hero
 --- @param _NpcID integer    ID of npc
-function GameCallback_Logic_InteractWithMerchant(_PlayerID, _HeroID, _NpcID)
+--- @param _Data table  Data object of npc
+function GameCallback_Logic_InteractWithMerchant(_PlayerID, _HeroID, _NpcID, _Data)
 end
 
 --- Called on each second for each npc.
 --- @param _Name string Script name of npc
-function GameCallback_Logic_OnTickNpcController(_Name)
+--- @param _Data table  Data object of npc
+function GameCallback_Logic_OnTickNpcController(_Name, _Data)
 end
 
 --- Called when a npc is activated.
 --- @param _Name string Script name of npc
-function GameCallback_Logic_OnNpcActivated(_Name)
+--- @param _Data table  Data object of npc
+function GameCallback_Logic_OnNpcActivated(_Name, _Data)
 end
 
 --- Called when a npc is deactivated.
 --- @param _Name string Script name of npc
-function GameCallback_Logic_OnNpcDeactivated(_Name)
+--- @param _Data table  Data object of npc
+function GameCallback_Logic_OnNpcDeactivated(_Name, _Data)
 end
 
 -- -------------------------------------------------------------------------- --
@@ -128,7 +133,7 @@ function Interaction.Internal:Activate(_ScriptName)
     if Logic.IsSettler(ID) == 1 then
         Logic.SetOnScreenInformation(ID, 1);
         self.Data.IO[_ScriptName].Active = true;
-        GameCallback_Logic_OnNpcActivated(_ScriptName);
+        GameCallback_Logic_OnNpcActivated(_ScriptName, self.Data.IO[_ScriptName]);
     end
 end
 
@@ -137,7 +142,7 @@ function Interaction.Internal:Deactivate(_ScriptName)
     if Logic.IsSettler(ID) == 1 then
         Logic.SetOnScreenInformation(ID, 0);
         self.Data.IO[_ScriptName].Active = false;
-        GameCallback_Logic_OnNpcDeactivated(_ScriptName);
+        GameCallback_Logic_OnNpcDeactivated(_ScriptName, self.Data.IO[_ScriptName]);
     end
 end
 
@@ -234,9 +239,9 @@ function Interaction.Internal:OverrideNpcInteraction()
             local Data = Interaction.Internal.Data.IO[ScriptName];
             if Data then
                 if Data.IsMerchant then
-                    GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID);
+                    GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID, Data);
                 else
-                    GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID);
+                    GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID, Data);
                 end
             end
         end
@@ -250,6 +255,7 @@ function Interaction_Internal_NpcController(_Name)
     if not IsExisting(_Name) then
         return true;
     end
-    GameCallback_Logic_OnTickNpcController(_Name);
+    local Data = Interaction.Internal.Data.IO[_Name];
+    GameCallback_Logic_OnTickNpcController(_Name, Data);
 end
 

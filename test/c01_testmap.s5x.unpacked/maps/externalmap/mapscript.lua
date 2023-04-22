@@ -12,7 +12,8 @@
 function Mission_OnSaveGameLoaded()
 end
 
-Script.Load("maps\\user\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\main.lua");
+-- Script.Load("maps\\user\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\main.lua");
+Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\main.lua");
 
 function GameCallback_OnGameStart()
 	Script.Load(Folders.MapTools.."Ai\\Support.lua");

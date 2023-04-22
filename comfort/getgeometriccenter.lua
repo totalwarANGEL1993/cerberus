@@ -4,7 +4,7 @@ Lib.Register("comfort/GetGeometricCenter");
 --- @param ... any List of positions
 --- @return table Center Center position
 ---
---- @author Unknown
+--- @author totalwarANGEL
 --- @version 1.0.0
 ---
 function GetGeometricCenter(...)

@@ -2,6 +2,7 @@ Lib.Require("comfort/KeyOf");
 Lib.Require("comfort/GetResourceName");
 Lib.Require("module/ui/Placeholder");
 Lib.Require("module/io/Interaction");
+Lib.Require("module/mp/Syncer");
 Lib.Register("module/io/NonPlayerMerchant");
 
 --- 
@@ -11,11 +12,14 @@ Lib.Register("module/io/NonPlayerMerchant");
 --- 
 --- @require Interaction
 --- @author totalwarANGEL
---- @version 1.0.0
+--- @version 1.1.0
 --- 
 
 NonPlayerMerchant = NonPlayerMerchant or {
     MaxSoldiers = 16,
+    InflationStep = 0.05,
+    InflationMin = 0.75,
+    InflationMax = 1.75,
 }
 
 MerchantOfferTypes = {
@@ -194,10 +198,10 @@ function NonPlayerMerchant.Internal:DeleteNpc(_ScriptName)
     Interaction.Internal:DeleteNpc(_ScriptName);
 end
 
-function NonPlayerMerchant.Internal:OnNpcActivated(_ScriptName)
+function NonPlayerMerchant.Internal:OnNpcActivated(_ScriptName, _Data)
 end
 
-function NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName)
+function NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName, _Data)
     GUIAction_MerchantReady();
 end
 
@@ -283,53 +287,53 @@ end
 
 function NonPlayerMerchant.Internal:OverrideNpcInteractionCallbacks()
     self.Orig_GameCallback_Logic_InteractWithMerchant = GameCallback_Logic_InteractWithMerchant;
-    GameCallback_Logic_InteractWithMerchant = function(_PlayerID, _HeroID, _NpcID)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_InteractWithMerchant(_PlayerID, _HeroID, _NpcID);
+    GameCallback_Logic_InteractWithMerchant = function(_PlayerID, _HeroID, _NpcID, _Data)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_InteractWithMerchant(_PlayerID, _HeroID, _NpcID, _Data);
         local HeroScriptName = Interaction.Hero(_PlayerID);
         local NpcScriptName = Interaction.Npc(_PlayerID);
         NonPlayerMerchant.Internal:OnNpcInteraction(NpcScriptName, HeroScriptName);
     end
 
     self.Orig_GameCallback_Logic_OnTickNpcController = GameCallback_Logic_OnTickNpcController;
-    GameCallback_Logic_OnTickNpcController = function(_ScriptName)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnTickNpcController(_ScriptName);
-        NonPlayerMerchant.Internal:OnTickNpcController(_ScriptName);
+    GameCallback_Logic_OnTickNpcController = function(_ScriptName, _Data)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnTickNpcController(_ScriptName, _Data);
+        NonPlayerMerchant.Internal:OnTickNpcController(_ScriptName, _Data);
     end
 
     self.Orig_GameCallback_Logic_OnNpcActivated = GameCallback_Logic_OnNpcActivated;
-    GameCallback_Logic_OnNpcActivated = function(_ScriptName)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcActivated(_ScriptName);
-        NonPlayerMerchant.Internal:OnNpcActivated(_ScriptName);
+    GameCallback_Logic_OnNpcActivated = function(_ScriptName, _Data)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcActivated(_ScriptName, _Data);
+        NonPlayerMerchant.Internal:OnNpcActivated(_ScriptName, _Data);
     end
 
     self.Orig_GameCallback_Logic_OnNpcDeactivated = GameCallback_Logic_OnNpcDeactivated;
-    GameCallback_Logic_OnNpcDeactivated = function(_ScriptName)
-        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcDeactivated(_ScriptName);
-        NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName);
+    GameCallback_Logic_OnNpcDeactivated = function(_ScriptName, _Data)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcDeactivated(_ScriptName, _Data);
+        NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName, _Data);
     end
 end
 
-function NonPlayerMerchant.Internal:OnTickNpcController(_NpcScriptName)
-    local Data = Interaction.Internal.Data.IO[_NpcScriptName];
-    if Data.Active == true and Data.IsMerchant then
-        for k, v in pairs(Data.Offers) do
+function NonPlayerMerchant.Internal:OnTickNpcController(_NpcScriptName, _Data)
+    if _Data.Active == true and _Data.IsMerchant then
+        for k, v in pairs(_Data.Offers) do
             if v and v.Refresh > -1 then
-                Data.Offers[k].LastRefresh = v.LastRefresh or Logic.GetTime();
+                _Data.Offers[k].LastRefresh = v.LastRefresh or Logic.GetTime();
                 if Logic.GetTime() > v.LastRefresh + v.Refresh then
                     -- Update load
-                    if Data.Offers[k].Load < Data.Offers[k].LoadMax then
-                        Data.Offers[k].Load = v.Load +1;
+                    if _Data.Offers[k].Load < _Data.Offers[k].LoadMax then
+                        _Data.Offers[k].Load = v.Load +1;
                     end
                     -- Update inflation
-                    Data.Offers[k].Inflation = Data.Offers[k].Inflation - 0.05;
-                    if Data.Offers[k].Inflation < 0.75 then
-                        Data.Offers[k].Inflation = 0.75;
+                    _Data.Offers[k].Inflation = _Data.Offers[k].Inflation - NonPlayerMerchant.InflationStep;
+                    if _Data.Offers[k].Inflation < NonPlayerMerchant.InflationMin then
+                        _Data.Offers[k].Inflation = NonPlayerMerchant.InflationMin;
                     end
                     -- Delete refresh time
-                    Data.Offers[k].LastRefresh = nil;
+                    _Data.Offers[k].LastRefresh = nil;
                 end
             end
         end
+        Interaction.Internal.Data.IO[_NpcScriptName] = _Data;
     end
 end
 
@@ -678,9 +682,9 @@ function NonPlayerMerchant.Internal:UpdateValues(_NpcScriptName, _SlotIndex)
     local Data = Interaction.Internal.Data.IO[_NpcScriptName];
     Data.Offers[_SlotIndex].Volume = Data.Offers[_SlotIndex].Volume +1;
     Data.Offers[_SlotIndex].Load = Data.Offers[_SlotIndex].Load -1;
-    Data.Offers[_SlotIndex].Inflation = Data.Offers[_SlotIndex].Inflation + 0.05;
-    if Data.Offers[_SlotIndex].Inflation > 1.75 then
-        Data.Offers[_SlotIndex].Inflation = 1.75;
+    Data.Offers[_SlotIndex].Inflation = Data.Offers[_SlotIndex].Inflation + NonPlayerMerchant.InflationStep;
+    if Data.Offers[_SlotIndex].Inflation > NonPlayerMerchant.InflationMax then
+        Data.Offers[_SlotIndex].Inflation = NonPlayerMerchant.InflationMax;
     end
 end
 

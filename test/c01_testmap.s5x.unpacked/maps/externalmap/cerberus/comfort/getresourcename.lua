@@ -17,7 +17,7 @@ function GetResourceName(_ResourceType)
         GoodName = XGUIEng.GetStringTableText("InGameMessages/GUI_NameStone");
     elseif _ResourceType == ResourceType.Iron or _ResourceType == ResourceType.IronRaw then
         GoodName = XGUIEng.GetStringTableText("InGameMessages/GUI_NameIron");
-    elseif _ResourceType == ResourceType.Sulfur or _ResourceType == ResourceType.Sulfur then
+    elseif _ResourceType == ResourceType.Sulfur or _ResourceType == ResourceType.SulfurRaw then
         GoodName = XGUIEng.GetStringTableText("InGameMessages/GUI_NameSulfur");
     end
     return GoodName;

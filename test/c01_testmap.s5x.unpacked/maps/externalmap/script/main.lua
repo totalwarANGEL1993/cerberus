@@ -4,7 +4,7 @@ function OnMapStart()
     Camera.ZoomSetFactorMax(2.0);
     CreateMapEntities();
 
-    Script.Load("maps\\user\\cerberus\\loader.lua");
+    Script.Load("maps\\externalmap\\cerberus\\loader.lua");
 
     Lib.Require("comfort/IsDeadWrapper");
     -- Lib.Require("module/ai/AiArmy");
@@ -18,7 +18,6 @@ function OnMapStart()
     Lib.Require("module/ui/Clock");
     Lib.Require("module/ui/Workplace");
     Lib.Require("module/weather/WeatherMaker");
-    Lib.Require("module/mp/Random");
 
     Archive.Install();
     Workplace.Install();
@@ -27,14 +26,14 @@ function OnMapStart()
 
     Tools.GiveResouces(1, 9999, 9999, 9999, 9999, 9999, 9999);
 
-    Script.Load("C:/Users/marti/Downloads/alliedrefill.lua");
+    -- Script.Load("C:/Users/marti/Downloads/alliedrefill.lua");
 end
 
 function CreateTestQuest()
     CreateQuest {
         Name        = "TestQuest1",
         Receiver    = 1,
-        Time        = 5,
+        Time        = 10,
 
         {{Condition.Time, 10}},
         {{Objective.EntityDistance, "ari", "serf2", 500, true}},
