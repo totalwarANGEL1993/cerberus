@@ -119,7 +119,7 @@ function AiTroopSpawner.Internal:Install()
         self.IsInstalled = true;
 
         self.ControllerJobID = Job.Second(function()
-            for i= 1, table.getn(AiTroopSpawner.Internal.Spawners) do
+            for i= table.getn(AiTroopSpawner.Internal.Spawners), 1, -1 do
                 AiTroopSpawner.Internal:ControllSpawner(i);
             end
         end);
@@ -211,8 +211,6 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                     end
                 end
             end
-        else
-            table.remove(AiTroopSpawner.Internal.Spawners, _Index);
         end
     end
 end
