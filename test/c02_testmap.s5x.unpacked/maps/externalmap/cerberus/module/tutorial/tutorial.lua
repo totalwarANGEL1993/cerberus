@@ -10,6 +10,9 @@ Lib.Register("module/tutorial/Tutorial");
 --- window. Texts can either be skipped by pressing enter or automatically if a
 --- condition is fulfilled.
 ---
+--- While a tutorial is running messages can not be added to the screen unless
+--- GUI.AddStaticNote is used.
+---
 --- @author totalwarANGEL
 --- @version 1.0.0
 ---
@@ -40,6 +43,13 @@ end
 --- optional .Action field to perform an action when the page is shown and
 --- an optional .Condition field for automatically skipping the page after
 --- a condition is fulfilled.
+---
+--- Fields:
+--- * Text        Text to print
+--- * Arrow       (Optional) Position of arrow
+--- * ArrowWidget (Optional) Name of widget used for the arrow
+--- * Condition   (Optional) Next page condition function
+--- * Action      (Optional) Page display action function
 --- 
 --- @param _Page table Tutorial message
 function Tutorial.AddMessage(_Page)
@@ -74,6 +84,7 @@ function Tutorial.Internal:Install()
     if not self.IsInstalled then
         self.m_Language = GetLanguage();
         self.Data.ContinueText = self.Text.ContinueText[self.m_Language];
+        self:OverwriteMessageFunctions();
         self.IsInstalled = true;
     end
 end
@@ -88,8 +99,9 @@ end
 
 function Tutorial.Internal:OnSaveGameLoaded()
 	if self.Data.Running then
+        self:OverwriteMessageFunctions();
         self:PrintTutorialMessage();
-        self:DisplayTutorialBackground(true);
+        self:ShowTutorialBackground();
         self:ActivateHotkey();
     end
 end
@@ -99,15 +111,15 @@ function Tutorial.Internal:Start()
     self.Data.Running = true;
 
     GUI.ClearNotes();
-    self:DisplayTutorialBackground(true);
+    self:ShowTutorialBackground();
     self:ActivateHotkey();
     self:PrintTutorialMessage();
 end
 
 function Tutorial.Internal:Stop()
     GUI.ClearNotes();
-    self:DisplayTutorialArrow(false);
-    self:DisplayTutorialBackground(false);
+    self:HideTutorialArrow();
+    self:HideTutorialBackground();
 
     self.Data.Iterator = 0
     self.Data.Running = false;
@@ -115,6 +127,15 @@ function Tutorial.Internal:Stop()
     if self.Data.Callback then
         self.Data:Callback();
         self.Data.Callback = nil;
+    end
+end
+
+function Tutorial.Internal:OverwriteMessageFunctions()
+    self.Orig_GUI_AddNote = GUI.AddNote;
+    GUI.AddNote = function(_Text)
+        if not Tutorial.Internal.Data.Running then
+            Tutorial.Internal.Orig_GUI_AddNote(_Text);
+        end
     end
 end
 
@@ -146,19 +167,10 @@ function Tutorial.Internal:PrintTutorialMessage()
     GUI.ClearNotes();
     GUI.AddStaticNote(self.Data.Messages[self.Data.Iterator].Text);
     -- Display arrow
-    self:DisplayTutorialArrow(self.Data.Messages[self.Data.Iterator].Arrow ~= nil);
+    self:ShowTutorialArrow();
     -- Call action
     if self.Data.Messages[self.Data.Iterator].Action then
         self.Data.Messages[self.Data.Iterator].Action(self.Data.Messages[self.Data.Iterator]);
-    end
-end
-
-function Tutorial.Internal:DisplayTutorialArrow(_Flag)
-    XGUIEng.ShowWidget("TutorialArrow", (_Flag and 1) or 0);
-    XGUIEng.SetWidgetSize("TutorialArrow", 30, 30);
-    if _Flag and self.Data.Messages[self.Data.Iterator].Arrow then
-        local Position = self.Data.Messages[self.Data.Iterator].Arrow;
-        XGUIEng.SetWidgetPosition("TutorialArrow", Position[1], Position[2]);
     end
 end
 
@@ -177,6 +189,7 @@ function Tutorial.Internal:OnEnterPressed()
         end
         -- Continue to next page
         if not self.Data.Messages[Iterator].Trigger then
+            self:HideTutorialArrow();
             self.Data.Iterator = Iterator +1;
             self:PrintTutorialMessage();
         end
@@ -199,17 +212,39 @@ function Tutorial.Internal:NextPageTrigger()
     -- Condition fulfilled
     if self.Data.Messages[self.Data.Iterator].Condition(self.Data.Messages[self.Data.Iterator]) then
         self.Data.Messages[self.Data.Iterator].Trigger = nil;
+        self:HideTutorialArrow();
         self.Data.Iterator = self.Data.Iterator +1;
         self:PrintTutorialMessage();
         return true;
     end
 end
 
-function Tutorial.Internal:ActivateHotkey()
-    Input.KeyBindDown(Keys.Enter, "Tutorial.Internal:OnEnterPressed()", 2);
+function Tutorial.Internal:ShowTutorialArrow()
+    local Data = self.Data.Messages[self.Data.Iterator];
+    local Widget = Data.ArrowWidget or "TutorialArrow";
+    if self.Data.Messages[self.Data.Iterator].Arrow then
+        local Position = self.Data.Messages[self.Data.Iterator].Arrow;
+        XGUIEng.SetWidgetPosition(Widget, Position[1], Position[2]);
+        XGUIEng.SetWidgetSize(Widget, 30, 30);
+        XGUIEng.ShowWidget(Widget, 1);
+    end
 end
 
-function Tutorial.Internal:DisplayTutorialBackground(_Flag)
-    XGUIEng.ShowWidget("TutorialMessageBG", (_Flag and 1) or 0);
+function Tutorial.Internal:HideTutorialArrow()
+    local Data = self.Data.Messages[self.Data.Iterator];
+    local Widget = Data.ArrowWidget or "TutorialArrow";
+    XGUIEng.ShowWidget(Widget, 0);
+end
+
+function Tutorial.Internal:ShowTutorialBackground()
+    XGUIEng.ShowWidget("TutorialMessageBG", 1);
+end
+
+function Tutorial.Internal:HideTutorialBackground()
+    XGUIEng.ShowWidget("TutorialMessageBG", 0);
+end
+
+function Tutorial.Internal:ActivateHotkey()
+    Input.KeyBindDown(Keys.Enter, "Tutorial.Internal:OnEnterPressed()", 2);
 end
 
