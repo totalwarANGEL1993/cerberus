@@ -1,6 +1,6 @@
 Lib.Require("comfort/AreEnemiesInArea");
 Lib.Require("comfort/GetDistance");
-Lib.Register("module/trigger/Job");
+Lib.Require("module/trigger/Job");
 Lib.Require("module/ai/AiArmy");
 Lib.Register("module/ai/AiTroopSpawner");
 
@@ -44,16 +44,16 @@ end
 --- @param _Type number Type of Leader
 --- @param _Exp number  Experience points
 function AiTroopSpawner.AddAllowedTypes(_ID, _Type, _Exp)
-    if AiTroopSpawner.Internal.Spawner[_ID] then
-        table.insert(AiTroopSpawner.Internal.Spawner[_ID].AllowedTypes, {_Type, _Exp});
+    if AiTroopSpawner.Internal.Spawners[_ID] then
+        table.insert(AiTroopSpawner.Internal.Spawners[_ID].AllowedTypes, {_Type, _Exp});
     end
 end
 
 --- Removes all allowed types from the unit roster.
 --- @param _ID number ID of spawner
 function AiTroopSpawner.ClearAllowedTypes(_ID)
-    if AiTroopSpawner.Internal.Spawner[_ID] then
-        AiTroopSpawner.Internal.Spawner[_ID].AllowedTypes = {};
+    if AiTroopSpawner.Internal.Spawners[_ID] then
+        AiTroopSpawner.Internal.Spawners[_ID].AllowedTypes = {};
     end
 end
 
@@ -97,7 +97,7 @@ function AiTroopSpawner.DraftTroops(_ID)
     local Troops = {};
     if AiTroopSpawner.Internal.Spawners[_ID] then
         for i= table.getn(AiTroopSpawner.Internal.Spawners[_ID].Refilling), 1, -1 do
-            local ID = table.remove(AiTroopSpawner.Internal.Spawner[_ID].Refilling, i);
+            local ID = table.remove(AiTroopSpawner.Internal.Spawners[_ID].Refilling, i);
             table.insert(Troops, ID);
         end
     end
@@ -147,9 +147,9 @@ function AiTroopSpawner.Internal:CreateSpawner(_Data)
 end
 
 function AiTroopSpawner.Internal:DeleteSpawner(_ID)
-    for i= table.getn(AiTroopSpawner.Internal.Spawner), 1, -1 do
-        if AiTroopSpawner.Internal.Spawner[i].ID == _ID then
-            table.remove(AiTroopSpawner.Internal.Spawner, i);
+    for i= table.getn(AiTroopSpawner.Internal.Spawners), 1, -1 do
+        if AiTroopSpawner.Internal.Spawners[i].ID == _ID then
+            table.remove(AiTroopSpawner.Internal.Spawners, i);
         end
     end
 end
@@ -168,7 +168,7 @@ function AiTroopSpawner.Internal:RemoveArmy(_Index, _ArmyID)
     if AiTroopSpawner.Internal.Spawners[_Index] then
         for i= table.getn(AiTroopSpawner.Internal.Spawners[_Index].Armies), 1, -1 do
             if AiTroopSpawner.Internal.Spawners[_Index].Armies[i].ID == _ArmyID then
-                table.remove(AiTroopSpawner.Internal.Spawner[_Index].Armies, i);
+                table.remove(AiTroopSpawner.Internal.Spawners[_Index].Armies, i);
             end
         end
     end
@@ -184,7 +184,7 @@ function AiTroopSpawner.Internal:RemoveTroop(_Index, _TroopID)
     if AiTroopSpawner.Internal.Spawners[_Index] then
         for i= table.getn(AiTroopSpawner.Internal.Spawners[_Index].Refilling), 1, -1 do
             if AiTroopSpawner.Internal.Spawners[_Index].Refilling[i] == _TroopID then
-                table.remove(AiTroopSpawner.Internal.Spawner[_Index].Refilling, i);
+                table.remove(AiTroopSpawner.Internal.Spawners[_Index].Refilling, i);
             end
         end
     end

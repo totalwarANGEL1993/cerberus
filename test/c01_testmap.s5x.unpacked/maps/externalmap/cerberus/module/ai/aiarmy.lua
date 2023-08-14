@@ -6,7 +6,7 @@ Lib.Require("comfort/GetEnemiesInArea");
 Lib.Require("comfort/GetEntityCategoriesAsString");
 Lib.Require("comfort/GetGeometricCenter");
 Lib.Require("comfort/IsFighting");
-Lib.Register("module/trigger/Job");
+Lib.Require("module/trigger/Job");
 Lib.Register("module/ai/AiArmy");
 
 ---
@@ -233,6 +233,16 @@ function AiArmy.SetRodeLength(_ID, _Area)
     local Army = AiArmy.Get(_ID);
     if Army then
         return Army:SetRodeLength(_Area);
+    end
+end
+
+--- Sets a function that overwrites which formation is given to troops.
+--- @param _ID number           ID of army
+--- @param _Controller function Formation controller function
+function AiArmy.SetFormationController(_ID, _Controller)
+    local Army = AiArmy.Get(_ID);
+    if Army then
+        Army:SetFormationController(_Controller);
     end
 end
 
@@ -537,6 +547,7 @@ function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
     Army.HomePosition = _Position;
     Army.RodeLength = _RodeLength;
     Army.Strength = _Strength;
+    Army.FormationController = nil;
     return Army;
 end
 
@@ -752,7 +763,11 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
 
         if AiArmy.Internal:IsTroopAlive(_ID) then
             AI.Army_EnableLeaderAi(_ID, 0);
-            self:ChoseFormation(_ID);
+            if self.FormationController then
+                self:FormationController(_ID);
+            else
+                self:ChoseFormation(_ID);
+            end
         end
         if _Reinforcement then
             AiArmyData_ReinforcementIdToArmyId[_ID] = self.ID;
@@ -829,6 +844,10 @@ end
 
 function AiArmy.Internal.Army:SetRodeLength(_RodeLength)
     self.RodeLength = _RodeLength;
+end
+
+function AiArmy.Internal.Army:SetFormationController(_FormationController)
+    self.FormationController = _FormationController;
 end
 
 function AiArmy.Internal.Army:SetStrength(_Strength)
