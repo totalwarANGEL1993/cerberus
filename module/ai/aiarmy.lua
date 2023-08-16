@@ -1,4 +1,3 @@
-Lib.Require("comfort/AreEnemiesInArea");
 Lib.Require("comfort/ArePositionsConnected");
 Lib.Require("comfort/CopyTable");
 Lib.Require("comfort/GetDistance");
@@ -38,11 +37,11 @@ AiArmy = AiArmy or {
 -- API
 
 --- Creates an new army.
---- @param _PlayerID number   Owner of army
---- @param _Strength number   Max amount of leaders
---- @param _Position table    Position of army
---- @param _RodeLength number Radius of action
---- @return number ID ID of army
+--- @param _PlayerID integer   Owner of army
+--- @param _Strength integer   Max amount of leaders
+--- @param _Position table     Position of army
+--- @param _RodeLength integer Radius of action
+--- @return integer ID ID of army
 function AiArmy.New(_PlayerID, _Strength, _Position, _RodeLength)
     local Army = AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength);
     AiArmyData_ArmyIdToArmyInstance[Army.ID] = Army;
@@ -53,7 +52,7 @@ end
 ---
 --- Remaining members are not deleted. Their leader ai is reactivated.
 ---
---- @param _ID number ID of army
+--- @param _ID integer ID of army
 function AiArmy.Delete(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         AiArmyData_ArmyIdToArmyInstance[_ID]:Dispose();
@@ -61,12 +60,22 @@ function AiArmy.Delete(_ID)
 end
 
 --- Returns the army with the ID if any.
---- @param _ID number ID of army
+--- @param _ID integer ID of army
 --- @return table? Army Instance of army
 function AiArmy.Get(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         return AiArmyData_ArmyIdToArmyInstance[_ID];
     end
+end
+
+--- Returns the owner of the army.
+--- @param _ID integer ID of army
+--- @return integer PlayerID ID of owner
+function AiArmy.GetPlayer(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID].PlayerID;
+    end
+    return 0;
 end
 
 --- Adds a new troop to the army.
@@ -75,14 +84,13 @@ end
 --- search enemies near to this troop. The troop will walk to the current
 --- position of the army using attack walk.
 ---
---- @param _ID number         ID of army
---- @param _TroopID number    ID of troop
+--- @param _ID integer        ID of army
+--- @param _TroopID integer   ID of troop
 --- @param _Reinforce boolean Add as reinforcement
 --- @return boolean Added Was successfully added
 function AiArmy.AddTroop(_ID, _TroopID, _Reinforce)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        return Army:AddTroop(_TroopID, _Reinforce);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:AddTroop(_TroopID, _Reinforce);
     end
     return false;
 end
@@ -91,26 +99,28 @@ end
 ---
 --- A troop is always added as reinforcement.
 ---
---- @param _ID number    ID of army
---- @param _Type number  Unit type to spawn
---- @param _Position any Where to spawn
---- @param _Exp? number  Experience of troop
+--- @param _ID integer    ID of army
+--- @param _Type integer  Unit type to spawn
+--- @param _Position any  Where to spawn
+--- @param _Exp? integer  Experience of troop
 --- @return boolean Added Was successfully added
 function AiArmy.SpawnTroop(_ID, _Type, _Position, _Exp)
-    local Army = AiArmy.Get(_ID);
-    if Army and Army.Strength > Army:GetNumberOfLeader(true) then
-        local Position = _Position;
-        if type(Position) ~= "table" then
-            Position = GetPosition(_Position);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
+        if Army.Strength > Army:GetNumberOfLeader(true) then
+            local Position = _Position;
+            if type(Position) ~= "table" then
+                Position = GetPosition(_Position);
+            end
+            local TroopID = AI.Entity_CreateFormation(Army.PlayerID, _Type, 0, 0, _Position.X, _Position.Y, 0, 0, _Exp or 0, 0);
+            assert(TroopID ~= nil);
+            for i= 1, Logic.LeaderGetMaxNumberOfSoldiers(TroopID) do
+                local SoldierType = Logic.LeaderGetSoldiersType(TroopID);
+                Logic.CreateEntity(SoldierType, _Position.X, _Position.Y, 0, Army.PlayerID);
+                Tools.AttachSoldiersToLeader(TroopID, 1);
+            end
+            return AiArmy.AddTroop(_ID, TroopID, true);
         end
-        local TroopID = AI.Entity_CreateFormation(Army.PlayerID, _Type, 0, 0, _Position.X, _Position.Y, 0, 0, _Exp or 0, 0);
-        assert(TroopID ~= nil);
-        for i= 1, Logic.LeaderGetMaxNumberOfSoldiers(TroopID) do
-            local SoldierType = Logic.LeaderGetSoldiersType(TroopID);
-            Logic.CreateEntity(SoldierType, _Position.X, _Position.Y, 0, Army.PlayerID);
-            Tools.AttachSoldiersToLeader(TroopID, 1);
-        end
-        return AiArmy.AddTroop(_ID, TroopID, true);
     end
     return false;
 end
@@ -120,20 +130,19 @@ end
 --- Returns true on success and false on failure. A failure usually means
 --- either the army or the troop might not exist.
 --- 
---- @param _ID number      ID of army
---- @param _TroopID number ID of troop
+--- @param _ID integer      ID of army
+--- @param _TroopID integer ID of troop
 --- @return boolean Removed Was successfully removed
 function AiArmy.RemoveTroop(_ID, _TroopID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        return Army:RemoveTroop(_TroopID) ~= 0;
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:RemoveTroop(_TroopID) ~= 0;
     end
     return false;
 end
 
 --- Returns the army ID the troop is connected to if any.
---- @param _ID number ID of troop
---- @return number ID ID of army
+--- @param _ID integer ID of troop
+--- @return integer ID ID of army
 function AiArmy.GetArmyOfTroop(_ID)
     if AiArmyData_ReinforcementIdToArmyId[_ID] then
         return AiArmyData_ReinforcementIdToArmyId[_ID];
@@ -149,59 +158,74 @@ end
 --- A Army is alive when it has troops. Add troops to a dead army and it will
 --- rise like Lazarus. ;)
 --- 
---- @param _ID number ID of army
+--- @param _ID integer ID of army
 --- @return boolean Army is alive
 function AiArmy.IsAlive(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        return Army:IsAlive();
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:IsAlive();
     end
     return false;
 end
 
 --- Returns the number of leader attached to the army.
---- @param _ID number                 ID of army
---- @return number Amount Leader count of army
+--- @param _ID integer ID of army
+--- @return integer Amount Leader count of army
 function AiArmy.GetNumberOfLeader(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        return Army:GetNumberOfLeader(true);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:GetNumberOfLeader(true);
     end
     return 0;
 end
 
 --- Returns the max number of leader the army can have.
---- @param _ID number                 ID of army
---- @return number Amount Leader count of army
+--- @param _ID integer ID of army
+--- @return integer Amount Leader count of army
 function AiArmy.GetMaxNumberOfLeader(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        return Army.Strength;
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID].Strength;
     end
     return 0;
 end
 
 --- Returns if the army has the max amount of leaders and if the leader have
 --- a full regiment of soldiers.
---- @param _ID number ID of army
+--- @param _ID integer ID of army
 --- @return boolean FullStrength Army is full
 function AiArmy.HasFullStrength(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        return Army.Strength <= Army:GetCurrentStregth(true);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
+        return Army:GetCurrentStregth(true) >= 1;
     end
     return false;
 end
 
---- Forcefully changes the state of the army.
---- (Do not use unless you know what you are doing!)
---- @param _ID number    ID of army
---- @param _State number ID of state
-function AiArmy.SetBehavior(_ID, _State)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        Army:SetBehavior(_State)
+--- Changes the max strength of the army.
+--- @param _ID integer       ID of army
+--- @param _Strength integer Amount of troops
+function AiArmy.SetStrength(_ID, _Strength)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:SetStrength(_ID, _Strength);
     end
+end
+
+--- Forcefully changes the behavior of the army.
+--- (Do not use unless you know what you are doing!)
+--- @param _ID integer    ID of army
+--- @param _State integer ID of behavior
+function AiArmy.SetBehavior(_ID, _State)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:SetBehavior(_State);
+    end
+end
+
+--- Returns the current behavior of the army.
+--- @param _ID integer ID of army
+--- @return integer ID of behavior
+function AiArmy.GetBehavior(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID].Behavior;
+    end
+    return 0;
 end
 
 --- Changes the target position of the army.
@@ -209,16 +233,24 @@ end
 --- The army will automatically walk to the position if possible. The army will
 --- automatically attack enemies. They do not need a command to do so.
 ---
---- @param _ID number    ID of army
---- @param _Position any Target position of army
+--- @param _ID integer     ID of army
+--- @param _Position table Target position of army
 function AiArmy.SetPosition(_ID, _Position)
-    local Army = AiArmy.Get(_ID);
-    if Army then
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
         local Position = _Position;
         if type(Position) ~= "table" then
             Position = GetPosition(_Position);
         end
-        return Army:SetPosition(Position);
+        AiArmyData_ArmyIdToArmyInstance[_ID]:SetPosition(Position);
+    end
+end
+
+--- Returns the current target position of the army.
+--- @param _ID integer    ID of army
+--- @return table? Target Target position
+function AiArmy.GetPosition(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID].Position;
     end
 end
 
@@ -227,31 +259,49 @@ end
 --- If the anchor for a battle is already set it will still use the old
 --- area of action until the battle has concluded.
 --- 
---- @param _ID number   ID of army
---- @param _Area number Area size
+--- @param _ID integer   ID of army
+--- @param _Area integer Area size
 function AiArmy.SetRodeLength(_ID, _Area)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        return Army:SetRodeLength(_Area);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:SetRodeLength(_Area);
     end
+end
+
+--- Returns the radius of action of the army.
+--- @param _ID integer ID of army
+--- @return integer RodeLength Area of action
+function AiArmy.GetRodeLength(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
+        return Army.Anchor.RodeLength or Army.RodeLength;
+    end
+    return 0;
 end
 
 --- Sets a function that overwrites which formation is given to troops.
---- @param _ID number           ID of army
+--- @param _ID integer          ID of army
 --- @param _Controller function Formation controller function
 function AiArmy.SetFormationController(_ID, _Controller)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        Army:SetFormationController(_Controller);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:SetFormationController(_Controller);
     end
 end
 
+--- Returns if the army is active
+--- @param _ID integer ID of army
+--- @return boolean Active Army is active
+function AiArmy.IsActive(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID].Active;
+    end
+    return false;
+end
+
 --- Resumes the army.
---- @param _ID number ID of army
+--- @param _ID integer ID of army
 function AiArmy.Resume(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        Army:SetActive(true);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:SetActive(true);
     end
 end
 
@@ -259,32 +309,30 @@ end
 --- 
 --- Use this if you want to defunc the army without deleting it.
 --- 
---- @param _ID number ID of army
+--- @param _ID integer ID of army
 function AiArmy.Yield(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        Army:SetActive(false);
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:SetActive(false);
     end
 end
 
 --- Commands an army to hold position. 
 --- (Use this inside a job.)
---- @param _ID number    ID of army
+--- @param _ID integer    ID of army
 --- @param _Target table Position to defend
-function AiArmy:Defend(_ID, _Target)
-    local Army = AiArmy.Get(_ID);
-    if Army then
-        Army:SetPosition(_Target);
+function AiArmy.Defend(_ID, _Target)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:SetPosition(_Target);
     end
 end
 
 --- Commands an army to advance to a position. 
 --- (Use this inside a job.)
---- @param _ID number    ID of army
+--- @param _ID integer   ID of army
 --- @param _Target table Position to attack
-function AiArmy:Advance(_ID, _Target)
-    local Army = AiArmy.Get(_ID);
-    if Army then
+function AiArmy.Advance(_ID, _Target)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         if GetDistance(Army:GetArmyPosition(), _Target) > 1200 then
             Army:SetPosition(_Target);
         end
@@ -297,12 +345,13 @@ end
 --- If enemies are encountered the army will hold the position and fight
 --- angainst them.
 ---
---- @param _ID number ID of army
-function AiArmy:Retreat(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
+--- @param _ID integer ID of army
+function AiArmy.Retreat(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         local Position = Army:GetArmyPosition();
-        if AreEnemiesInArea(Army.PlayerID, Position, Army.RodeLength) then
+        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(Army.PlayerID, Position, Army.RodeLength);
+        if Enemies[1] then
             Army:SetPosition(Position);
         elseif GetDistance(Position, Army.HomePosition) > 1200 then
             Army:SetPosition(Army.HomePosition);
@@ -315,10 +364,10 @@ end
 ---
 --- Enemies are ignored.
 ---
---- @param _ID number ID of army
-function AiArmy:Fallback(_ID)
-    local Army = AiArmy.Get(_ID);
-    if Army then
+--- @param _ID integer ID of army
+function AiArmy.Fallback(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         if Army.Position then
             for j= 1, table.getn(Army.Reinforcements) do
                 Logic.SettlerStand(Army.Reinforcements[j]);
@@ -331,6 +380,22 @@ function AiArmy:Fallback(_ID)
         Army:SetPosition(nil);
         Army:ResetArmySpeed();
     end
+end
+
+--- Returns a list of enemies of the army.
+--- @param _ID integer          ID of army
+--- @param _Position? table     Area center
+--- @param _RodeLength? integer Area size
+--- @return table Enemies List of enemies
+function AiArmy.GetEnemies(_ID, _Position, _RodeLength)
+    local Enemies = {};
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
+        local Position = _Position or Army.Anchor.Position or Army.Position or Army.HomePosition;
+        local Area = _RodeLength or Army.Anchor.RodeLength or Army.RodeLength;
+        Enemies = AiArmy.Internal:GetEnemiesInTerritory(Army.PlayerID, Position, Area);
+    end
+    return Enemies;
 end
 
 -- -------------------------------------------------------------------------- --
@@ -559,12 +624,10 @@ end
 function AiArmy.Internal.Army:WaitBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
-    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
-        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
-        if Enemies[1] then
-            self:SetBehavior(AiArmy.Behavior.BATTLE);
-            self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
-        end
+    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+    if Enemies[1] then
+        self:SetBehavior(AiArmy.Behavior.BATTLE);
+        self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
     else
         if self.Position then
             if ArePositionsConnected(ArmyPosition, self.Position) then
@@ -589,12 +652,10 @@ end
 function AiArmy.Internal.Army:RefillBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
-    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
-        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
-        if Enemies[1] then
-            self:SetBehavior(AiArmy.Behavior.BATTLE);
-            self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
-        end
+    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+    if Enemies[1] then
+        self:SetBehavior(AiArmy.Behavior.BATTLE);
+        self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
     else
         if self:GetCurrentStregth() >= 1 then
             self:SetBehavior(AiArmy.Behavior.WAITING);
@@ -607,11 +668,9 @@ function AiArmy.Internal.Army:AdvanceBehavior()
     local EncounteredEnemy = 0;
     for j= 1, table.getn(self.Troops) do
         local Exploration = Logic.GetEntityExplorationRange(self.Troops[j]);
-        if AreEnemiesInArea(self.PlayerID, self.Troops[j], Exploration * 100) then
-            local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, GetPosition(self.Troops[j]), Exploration * 100);
-            if Enemies[1] then
-                EncounteredEnemy = Enemies[1];
-            end
+        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, GetPosition(self.Troops[j]), Exploration * 100);
+        if Enemies[1] then
+            EncounteredEnemy = Enemies[1];
             break;
         end
     end
@@ -633,7 +692,9 @@ function AiArmy.Internal.Army:AdvanceBehavior()
             if ArePositionsConnected(ArmyPosition, self.Position) then
                 if GetDistance(ArmyPosition, self.Position) > 1200 then
                     for j= 1, table.getn(self.Troops) do
-                        Logic.MoveSettler(self.Troops[j], self.Position.X, self.Position.Y);
+                        if Logic.IsEntityMoving(self.Troops[j]) == false then
+                            Logic.MoveSettler(self.Troops[j], self.Position.X, self.Position.Y);
+                        end
                     end
                 else
                     self:SetBehavior(AiArmy.Behavior.WAITING);
@@ -644,7 +705,8 @@ function AiArmy.Internal.Army:AdvanceBehavior()
 end
 
 function AiArmy.Internal.Army:BattleBehavior()
-    if not AreEnemiesInArea(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength) then
+    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength);
+    if not Enemies[1] then
         self:SetBehavior(AiArmy.Behavior.REGROUP);
         self:SetAnchor(nil, nil);
     else
@@ -655,7 +717,7 @@ function AiArmy.Internal.Army:BattleBehavior()
                 self:LockOn(self.Troops[j], nil);
             else
                 if not self.Targets[self.Troops[j]] then
-                    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
+                    Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
                     if Enemies[1] then
                         local TargetID = AiArmy.Internal:PriorityTarget(self.Troops[j], Enemies);
                         self:LockOn(self.Troops[j], TargetID);
@@ -674,13 +736,11 @@ end
 
 function AiArmy.Internal.Army:RegroupBehavior()
     local ArmyPosition = self:GetArmyPosition();
+    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
     self:NormalizedArmySpeed();
-    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
-        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
-        if Enemies[1] then
-            self:SetBehavior(AiArmy.Behavior.BATTLE);
-            self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
-        end
+    if Enemies[1] then
+        self:SetBehavior(AiArmy.Behavior.BATTLE);
+        self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
     else
         if self:IsScattered() then
             for j= 1, table.getn(self.Troops) do
@@ -801,6 +861,29 @@ function AiArmy.Internal.Army:RemoveTroop(_ID)
         end
     end
     return 0;
+end
+
+function AiArmy.Internal.Army:GetWeakenedTroops()
+    local Removed = {};
+    for i= table.getn(self.Reinforcements), 1, -1 do
+        local MaxHealth = Logic.GetEntityMaxHealth(self.Reinforcements[i]);
+        local Health = Logic.GetEntityHealth(self.Reinforcements[i]);
+        local MaxSoldiers = Logic.LeaderGetMaxNumberOfSoldiers(self.Reinforcements[i]);
+        local Soldiers = Logic.LeaderGetNumberOfSoldiers(self.Reinforcements[i]);
+        if Soldiers < MaxSoldiers or Health < MaxHealth then
+            table.insert(Removed, self.Troops[i]);
+        end
+    end
+    for i= table.getn(self.Troops), 1, -1 do
+        local MaxHealth = Logic.GetEntityMaxHealth(self.Troops[i]);
+        local Health = Logic.GetEntityHealth(self.Troops[i]);
+        local MaxSoldiers = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
+        local Soldiers = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
+        if Soldiers < MaxSoldiers or Health < MaxHealth then
+            table.insert(Removed, self.Troops[i]);
+        end
+    end
+    return Removed;
 end
 
 function AiArmy.Internal.Army:Abadon(_KillLater)
