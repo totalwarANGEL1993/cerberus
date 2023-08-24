@@ -11,7 +11,7 @@ Lib.Register("module/ai/AiTroopSpawner");
 --- troops. The unit roster is the same for all armies.
 ---
 --- @author totalwarANGEL
---- @version 0.0.1 BETA
+--- @version 1.0.0
 ---
 
 AiTroopSpawner = AiTroopSpawner or {

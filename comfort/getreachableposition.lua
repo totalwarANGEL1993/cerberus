@@ -1,13 +1,14 @@
-Lib.Require("comfort/ArePositionsConnected");
 Lib.Register("comfort/GetReachablePosition");
 
 --- Returns a position that can be reached by the entity
---- @param _Entity any Reference entity
---- @param _Target any Target position
---- @return table? Position Reachable position
-function GetReachablePosition(_Entity, _Target)
+--- @param _Entity any   Reference entity
+--- @param _Target any   Target position
+--- @param _Fallback any Position in case of error
+--- @return table Position Reachable position
+function GetReachablePosition(_Entity, _Target, _Fallback)
+    local Result;
     if CUtil then
-        return GetReachablePositionCUtil(_Entity, _Target);
+        Result = GetReachablePosition_Helper_CUtil(_Entity, _Target);
     else
         local PlayerID = Logic.EntityGetPlayer(GetID(_Entity));
         local Position1 = GetPosition(_Entity);
@@ -18,21 +19,21 @@ function GetReachablePosition(_Entity, _Target)
         assert(type(Position1) == "table");
         assert(type(Position2) == "table");
         local ID = AI.Entity_CreateFormation(PlayerID, Entities.PU_Serf, 0, 0, Position2.X, Position2.Y, 0, 0, 0, 0);
-        if ArePositionsConnected(_Entity, ID) then
-            local NewPosition = GetPosition(ID);
-            DestroyEntity(ID);
-            return NewPosition;
-        end
+        local NewPosition = GetPosition(ID);
         DestroyEntity(ID);
+        Result = NewPosition;
     end
-    return nil;
+
+    if Result == nil then
+        Result = _Fallback or _Entity;
+        if type(Result) ~= "table" then
+            Result = GetPosition(_Fallback);
+        end
+    end
+    return Result;
 end
 
---- Returns a position that can be reached by the entity
---- @param _Entity any Reference entity
---- @param _Target any Target position
---- @return table? Position Reachable position
-function GetReachablePositionCUtil(_Entity, _Target)
+function GetReachablePosition_Helper_CUtil(_Entity, _Target)
     local WorldX, WorldY = Logic.WorldGetSize();
 
     -- Get target position
@@ -45,8 +46,8 @@ function GetReachablePositionCUtil(_Entity, _Target)
     -- Evaluate reachable position
     local PrevDistance = WorldX ^ 2;
     local ReachableX, ReachableY = 0, 0;
-    for x = TargetX - 2000, TargetX + 2000, 100 do
-        for y = TargetY - 2000, TargetY + 2000, 100 do
+    for x = TargetX - 2000, TargetX + 2000, 50 do
+        for y = TargetY - 2000, TargetY + 2000, 50 do
             if y > 0 and x > 0 and x < WorldX and y < WorldY then
                 local Distance = (x - TargetX)^2 + (y - TargetY)^2
                 local height, blockingtype, sector, terrainType = CUtil.GetTerrainInfo(x, y);
@@ -61,9 +62,7 @@ function GetReachablePositionCUtil(_Entity, _Target)
     end
     if ReachableX ~= 0 and ReachableY ~= 0 then
         local NewPosition = {X= ReachableX, Y= ReachableY, Z= 0};
-        if ArePositionsConnected(_Entity, NewPosition) then
-            return NewPosition;
-        end
+        return NewPosition;
     end
 end
 
