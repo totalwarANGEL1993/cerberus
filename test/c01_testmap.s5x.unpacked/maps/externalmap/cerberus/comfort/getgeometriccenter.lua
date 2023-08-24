@@ -1,3 +1,4 @@
+Lib.Require("comfort/IsValidPosition");
 Lib.Register("comfort/GetGeometricCenter");
 
 --- Returns the average position of all positions.
@@ -8,24 +9,28 @@ Lib.Register("comfort/GetGeometricCenter");
 --- @version 1.0.0
 ---
 function GetGeometricCenter(...)
+    local Valid = 0;
     local SumX = 0;
     local SumY = 0;
     local SumZ = 0;
     for i= 1, table.getn(arg), 1 do
+        --- @type table
+        --- @diagnostic disable-next-line: assign-type-mismatch
         local Position = arg[i];
         if type(arg[i]) ~= "table" then
             Position = GetPosition(arg[i]);
         end
-        SumX = SumX + Position.X;
-        SumY = SumY + Position.Y;
-        if Position.Z then
-            SumZ = SumZ + Position.Z;
+        if Position and IsValidPosition(Position) then
+            SumX = SumX + Position.X;
+            SumY = SumY + Position.Y;
+            SumZ = SumZ + (Position.Z or 0);
+            Valid = Valid +1;
         end
     end
     return {
-        X= 1/table.getn(arg) * SumX,
-        Y= 1/table.getn(arg) * SumY,
-        Z= 1/table.getn(arg) * SumZ
+        X= (1/Valid) * SumX,
+        Y= (1/Valid) * SumY,
+        Z= (1/Valid) * SumZ
     };
 end
 
