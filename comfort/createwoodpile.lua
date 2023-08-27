@@ -14,20 +14,22 @@ function CreateWoodPile(_posEntity, _resources)
 
     gvWoodPiles = gvWoodPiles or {
         ID = 0,
-        JobID = StartSimpleJob("ControlWoodPiles"),
+        JobID = StartSimpleHiResJob("ControlWoodPiles"),
     };
     gvWoodPiles.ID = gvWoodPiles.ID +1;
 
     local pos = GetPosition( _posEntity );
-    local pile_id = Logic.CreateEntity( Entities.XD_SingnalFireOff, pos.X, pos.Y, 0, 0 );
-    SetEntityName( pile_id, _posEntity.."_WoodPile" );
-    ReplaceEntity( _posEntity, Entities.XD_ResourceTree );
-    Logic.SetResourceDoodadGoodAmount( GetEntityId( _posEntity ), _resources*10 );
+    local pile_id = Logic.CreateEntity( Entities.XD_Rock3, pos.X, pos.Y, 0, 0 );
+    SetEntityName(pile_id, _posEntity.."_WoodPile");
+    Logic.SetModelAndAnimSet(pile_id, Models.Effects_XF_ExtractStone);
+    local res_id = ReplaceEntity(_posEntity, Entities.XD_ResourceTree);
+    Logic.SetModelAndAnimSet(res_id, Models.XD_SignalFire1);
+    Logic.SetResourceDoodadGoodAmount( GetEntityId( _posEntity ), _resources*15 );
     table.insert(gvWoodPiles, {
         ID = gvWoodPiles.ID,
         ResourceEntity = _posEntity,
         PileEntity = _posEntity.."_WoodPile",
-        ResourceLimit = _resources*9
+        ResourceLimit = _resources*14
     });
     return gvWoodPiles.ID;
 end
