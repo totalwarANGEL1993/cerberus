@@ -240,22 +240,25 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                     table.remove(self.Data.Spawners[_Index].Armies, i);
                 end
             end
+
             -- Assign refilled troop
             -- Adds 1 refilled troop per second to the weakest army if possible
             local ArmyID = self:GetArmyAwardedRespawn(_Index);
-            local PlayerID = AiArmy.GetPlayer(ArmyID);
-            if PlayerID ~= 0 then
-                local TroopID = self:GetTroop(_Index, PlayerID);
-                if TroopID ~= 0 then
-                    AiArmy.AddTroop(ArmyID, TroopID, true);
+            if ArmyID > 0 and AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL then
+                local PlayerID = AiArmy.GetPlayer(ArmyID);
+                if PlayerID ~= 0 then
+                    local TroopID = self:GetTroop(_Index, PlayerID);
+                    if TroopID ~= 0 then
+                        AiArmy.AddTroop(ArmyID, TroopID, true);
+                    end
                 end
             end
             -- Control respawn
-            -- Respawns 1 troop per cycle or adds an existing troop
+            -- Respawns n troops per cycle or adds an existing troop
             if self:Tick(_Index) then
                 for i= 1, Spawner.MaxSpawn do
                     ArmyID = self:GetArmyAwardedRespawn(_Index);
-                    if ArmyID > 0 then
+                    if ArmyID > 0 and AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL then
                         local ID = self:Spawn(_Index, ArmyID);
                         AiArmy.AddTroop(ArmyID, ID, true);
                     end
