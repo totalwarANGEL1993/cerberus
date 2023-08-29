@@ -682,7 +682,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     Anchor           = {
         Position     = nil,
         RodeLength   = nil,
-    }, 
+    },
     Debug            = {
         ShowPosition = false,
         Position     = 0,
