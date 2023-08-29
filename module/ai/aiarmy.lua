@@ -421,34 +421,56 @@ function AiArmy.GetEnemies(_ID, _Position, _RodeLength)
     return Enemies;
 end
 
---- Sets targeting priorieties for the category or the type.
+--- Changes the default how troops target enemies.
 ---
---- Entity categories must be provided as string.
+--- #### Options:
+--- `AiArmyTargetingBehavior.Dumb`
+--- - Always attack clostest enemy
 ---
---- Priorities for a type are priviliged over category priorities.
+--- `AiArmyTargetingBehavior.Rational`
+--- - Select enemies first troop is strong against
+--- - Otherwise attack clostest enemy
 ---
---- #### Example
---- ```lua
---- -- Example #1: Set for category
---- AiArmy.SetPriorities("CavalryHeavy", {
----     [Entities.PU_Hero4] = 1.0,
----     [Entities.PU_Hero10] = 1.0,
----     ["Hero"] = 0.8,
----     ["LongRange"] = 0.7,
----     ["Sword"] = 0.65,
----     ["MilitaryBuilding"] = 0.4,
---- });
---- -- Example #2: Set for type
---- AiArmy.SetPriorities(Entities.PV_Cannon3, {
----     ["EvilLeader"] = 1.0,
----     ["LongRange"] = 0.7,
---- });
---- ```
+--- `AiArmyTargetingBehavior.Clever`
+--- - Select enemies first troop is strong against
+--- - Otherwise attack clostest enemy
+--- - Avoid enemies if the troop is weak to
 ---
---- @param _CategoryOrType string|integer
---- @param _Priorities table
-function AiArmy.SetPriorities(_CategoryOrType, _Priorities)
-    AiArmy.Internal:ChangePriorities(_CategoryOrType, _Priorities);
+--- `AiArmyTargetingBehavior.Tactical`
+--- - Troops will snipe hostile heroes
+--- - Select enemies first troop is strong against
+--- - Different levels of prioritization
+--- - Avoid enemies if the troop is weak to
+function AiArmy.ConfigureGlobalTargeting(_Config)
+    AiArmy.Internal:ChangeDefaultTroopTargetingConfig(_Config);
+end
+
+--- Configures targeting for a specific army.
+---
+--- #### Options:
+--- `AiArmyTargetingBehavior.Dumb`
+--- - Always attack clostest enemy
+---
+--- `AiArmyTargetingBehavior.Rational`
+--- - Select enemies first troop is strong against
+--- - Otherwise attack clostest enemy
+---
+--- `AiArmyTargetingBehavior.Clever`
+--- - Select enemies first troop is strong against
+--- - Otherwise attack clostest enemy
+--- - Avoid enemies if the troop is weak to
+---
+--- `AiArmyTargetingBehavior.Tactical`
+--- - Troops will snipe hostile heroes
+--- - Select enemies first troop is strong against
+--- - Different levels of prioritization
+--- - Avoid enemies if the troop is weak to
+--- @param _ID integer ID of army
+--- @param _Config table Configuration
+function AiArmy.ConfigureTargeting(_ID, _Config)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:SetTargeting(_Config);
+    end
 end
 
 -- -------------------------------------------------------------------------- --
@@ -570,10 +592,11 @@ function AiArmy.Internal:GetAttackingCosts(_TroopID, _EnemyID)
     local Factor = 1.0;
     if Priorities[EnemyType] then
         Factor = Factor * (1/Priorities[EnemyType]);
-    end
-    for k, v in pairs(GetEntityCategoriesAsString(_EnemyID)) do
-        if Priorities[v] then
-            Factor = Factor * (1/Priorities[v]);
+    else
+        for k, v in pairs(GetEntityCategoriesAsString(_EnemyID)) do
+            if Priorities[v] then
+                Factor = Factor * (1/Priorities[v]);
+            end
         end
     end
     -- Adjust factor by threat potency
@@ -597,36 +620,42 @@ function AiArmy.Internal:GetAttackingCosts(_TroopID, _EnemyID)
 end
 
 function AiArmy.Internal:GetPriorityFactorMap(_TroopID)
+    local Config = AiArmyConstants.Targeting;
+    local Army = AiArmy.Get(AiArmy.GetArmyOfTroop(_TroopID));
+    if Army and Army.Targeting then
+        Config = Army.Targeting;
+    end
+
     local Type = Logic.GetEntityType(_TroopID);
-    if AiArmyConfig.Targeting[Type] then
-        return AiArmyConfig.Targeting[Type];
+    if Config[Type] then
+        return Config[Type];
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.EvilLeader) == 1
     or Type == Entities.CU_Evil_LeaderSkirmisher then
-        return AiArmyConfig.Targeting.LongRange;
+        return Config.LongRange;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Rifle) == 1
     or Type == Entities.PU_Hero10 then
-        return AiArmyConfig.Targeting.Rifle;
+        return Config.Rifle;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.LongRange) == 1
     or Type == Entities.PU_Hero5 then
-        return AiArmyConfig.Targeting.LongRange;
+        return Config.LongRange;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Spear) == 1 then
-        return AiArmyConfig.Targeting.Spear;
+        return Config.Spear;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.CavalryHeavy) == 1 then
-        return AiArmyConfig.Targeting.CavalryHeavy;
+        return Config.CavalryHeavy;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Cannon) == 1 then
-        return AiArmyConfig.Targeting.Cannon;
+        return Config.Cannon;
     end
-    return AiArmyConfig.Targeting.Sword;
+    return Config.Sword;
 end
 
-function AiArmy.Internal:ChangePriorities(_Key, _Priorities)
-    AiArmyConfig.Targeting[_Key] = _Priorities;
+function AiArmy.Internal:ChangeDefaultTroopTargetingConfig(_Config)
+    AiArmyConstants.Targeting = _Config;
 end
 
 -- -------------------------------------------------------------------------- --
@@ -644,6 +673,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     DefeatThreshold  = 0.20,
     LastTick         = 0,
 
+    Targeting        = nil,
     Targets          = {},
     Reinforcements   = {},
     Troops           = {},
@@ -980,6 +1010,10 @@ function AiArmy.Internal.Army:SetActive(_Active)
     self.Active = _Active == true;
 end
 
+function AiArmy.Internal.Army:SetTargeting(_Targeting)
+    self.Targeting = _Targeting;
+end
+
 function AiArmy.Internal.Army:SetBehavior(_State)
     self.Behavior = _State;
 end
@@ -1084,23 +1118,23 @@ function AiArmy.Internal.Army:NormalizedArmySpeed()
     -- Get unit speeds
     for i= 1, table.getn(self.Troops), 1 do
         local First = self:GetTroopSpeedConfigKey(self.Troops[i]);
-        First = (AiArmyConfig.SpeedWeighting[First] and First) or "_Others";
+        First = (AiArmyConstants.SpeedWeighting[First] and First) or "_Others";
         TroopSpeedTable[First] = TroopSpeedTable[First] or {};
-        TroopSpeedTable[First][1] = AiArmyConfig.SpeedWeighting[First];
+        TroopSpeedTable[First][1] = AiArmyConstants.SpeedWeighting[First];
         TroopSpeedTable[First][2] = (TroopSpeedTable[First][2] or 0) +1;
         AbsoluteTroopAmount = AbsoluteTroopAmount +1;
     end
     -- Calculate army
     for k, v in pairs(TroopSpeedTable) do
-        Dividend = Dividend + (v[1]*v[2]*AiArmyConfig.BaseSpeed[k]);
+        Dividend = Dividend + (v[1]*v[2]*AiArmyConstants.BaseSpeed[k]);
     end
-    Dividend = Dividend + AiArmyConfig.SpeedWeighting["_Others"];
+    Dividend = Dividend + AiArmyConstants.SpeedWeighting["_Others"];
     TroopSpeed = Dividend/(AbsoluteTroopAmount+1);
     -- Set speed factor
     for i= 1, table.getn(self.Troops), 1 do
         local First = self:GetTroopSpeedConfigKey(self.Troops[i]);
         local NewSpeed = (TroopSpeed >= 250 and TroopSpeed) or 250;
-        self:SetTroopSpeed(self.Troops[i], NewSpeed/AiArmyConfig.BaseSpeed[First]);
+        self:SetTroopSpeed(self.Troops[i], NewSpeed/AiArmyConstants.BaseSpeed[First]);
     end
 end
 
@@ -1127,11 +1161,11 @@ end
 function AiArmy.Internal.Army:GetTroopSpeedConfigKey(_TroopID)
     if AiArmy.Internal:IsTroopAlive(_TroopID) then
         local TypeName = Logic.GetEntityTypeName(Logic.GetEntityType(_TroopID));
-        if AiArmyConfig.BaseSpeed[TypeName] then
+        if AiArmyConstants.BaseSpeed[TypeName] then
             return TypeName;
         else
             for k, v in pairs(GetEntityCategoriesAsString(_TroopID)) do
-                if AiArmyConfig.BaseSpeed[v] then
+                if AiArmyConstants.BaseSpeed[v] then
                     return v;
                 end
             end
@@ -1156,49 +1190,189 @@ end
 -- -------------------------------------------------------------------------- --
 -- Config
 
-AiArmyConfig = {
-    -- Configures the favorite target type of specific entity categories.
-    -- (The lower the less focus. 0 Means always attack those last)
-    Targeting = {
+AiArmyTargetingBehavior = {
+    Dumb = {},
+    Rational = {
         Sword = {
             ["Rifle"] = 1.0,
-            ["Spear"] = 0.9,
-            ["Hero"] = 0.8,
-            ["LongRange"] = 0.8,
+            ["LongRange"] = 1.0,
+            ["Spear"] = 1.0,
+        },
+        Spear = {
+            ["CavalryHeavy"] = 1.0,
+        },
+        CavalryHeavy = {
+            ["Cannon"] = 1.0,
+            ["LongRange"] = 1.0,
+            ["Rifle"] = 1.0,
+        },
+        LongRange = {
+            ["Cannon"] = 1.0,
+            ["CavalryHeavy"] = 1.0,
+            ["CavalryLight"] = 1.0,
+        },
+        Rifle = {
+            ["EvilLeader"] = 1.0,
+            ["LongRange"] = 1.0,
+        },
+        Cannon = {
+            ["MilitaryBuilding"] = 1.0,
+            ["LongRange"] = 1.0,
+        },
+    },
+    Clever = {
+        Sword = {
+            ["Rifle"] = 1.0,
+            ["LongRange"] = 1.0,
+            ["Spear"] = 1.0,
             ["CavalryHeavy"] = 0,
             ["CavalryLight"] = 0,
         },
         Spear = {
             ["CavalryHeavy"] = 1.0,
+            ["CavalryLight"] = 1.0,
+            ["MilitaryBuilding"] = 1.0,
+            ["Sword"] = 0,
+            ["Cannon"] = 0,
+        },
+        CavalryHeavy = {
+            ["Cannon"] = 1.0,
+            ["LongRange"] = 1.0,
+            ["Sword"] = 1.0,
+            ["MilitaryBuilding"] = 0,
+            ["Spear"] = 0,
+        },
+        LongRange = {
+            ["Cannon"] = 1.0,
+            ["CavalryHeavy"] = 1.0,
+            ["Spear"] = 1.0,
+            ["Rifle"] = 0,
+            ["Sword"] = 0,
+        },
+        Rifle = {
+            ["EvilLeader"] = 1.0,
+            ["LongRange"] = 1.0,
+            ["Spear"] = 1.0,
+            ["MilitaryBuilding"] = 0,
+        },
+        Cannon = {
+            ["MilitaryBuilding"] = 1.0,
+            ["LongRange"] = 1.0,
+            ["Rifle"] = 1.0,
+            ["CavalryLight"] = 1.0,
+            ["CavalryHeavy"] = 0,
+        },
+    },
+    Tactical = {
+        Sword = {
+            ["Hero"] = 1.0,
+            ["Rifle"] = 0.9,
+            ["LongRange"] = 0.8,
+            ["Cannon"] = 0.6,
+            ["Spear"] = 0.4,
+            ["CavalryHeavy"] = 0,
+            ["CavalryLight"] = 0,
+        },
+        Spear = {
+            ["Hero"] = 1.0,
+            ["CavalryHeavy"] = 0.9,
             ["CavalryLight"] = 0.8,
             ["MilitaryBuilding"] = 0.4,
             ["Sword"] = 0,
+            ["Cannon"] = 0,
         },
         CavalryHeavy = {
-            ["Rifle"] = 1.0,
-            ["LongRange"] = 0.9,
-            ["Hero"] = 0.8,
-            ["Sword"] = 0.75,
-            ["MilitaryBuilding"] = 0.4,
+            ["Hero"] = 1.0,
+            ["Cannon"] = 0.9,
+            ["Rifle"] = 0.8,
+            ["LongRange"] = 0.8,
+            ["Sword"] = 0.8,
+            ["MilitaryBuilding"] = 0,
             ["Spear"] = 0,
         },
         LongRange = {
             ["Hero"] = 1.0,
-            ["CavalryHeavy"] = 0.9,
-            ["CavalryLight"] = 0.7,
+            ["Cannon"] = 0.9,
+            ["CavalryHeavy"] = 0.8,
+            ["CavalryLight"] = 0.6,
             ["Spear"] = 0.6,
+            ["Rifle"] = 0,
+            ["Sword"] = 0,
         },
         Rifle = {
-            ["MilitaryBuilding"] = 1.0,
-            ["EvilLeader"] = 1.0,
+            ["Hero"] = 1.0,
+            ["Cannon"] = 0.9,
+            ["EvilLeader"] = 0.9,
             ["LongRange"] = 0.8,
+            ["Spear"] = 0.7,
+            ["CavalryHeavy"] = 0.4,
+            ["Sword"] = 0.4,
+            ["MilitaryBuilding"] = 0,
         },
-        Cannon = {
-            ["MilitaryBuilding"] = 1.0,
+
+        -- Types -----------
+
+        [Entities.PV_Cannon1] = {
+            ["Hero"] = 1.0,
+            ["CavalryLight"] = 1.0,
             ["EvilLeader"] = 1.0,
-            ["LongRange"] = 0.7,
-        }
+            ["LongRange"] = 1.0,
+            ["Spear"] = 1.0,
+            ["Sword"] = 0.8,
+            ["Cannon"] = 0.5,
+            ["CavalryHeavy"] = 0.5,
+            ["MilitaryBuilding"] = 0,
+        },
+        [Entities.PV_Cannon2] = {
+            ["Hero"] = 1.0,
+            ["MilitaryBuilding"] = 1.0,
+            ["Cannon"] = 0.5,
+            ["EvilLeader"] = 0.3,
+            ["LongRange"] = 0.3,
+            ["CavalryHeavy"] = 0,
+            ["CavalryLight"] = 0,
+            ["Sword"] = 0,
+            ["Spear"] = 0,
+        },
+        [Entities.PV_Cannon3] = {
+            ["Hero"] = 1.0,
+            ["CavalryLight"] = 1.0,
+            ["EvilLeader"] = 1.0,
+            ["LongRange"] = 1.0,
+            ["Spear"] = 1.0,
+            ["Sword"] = 0.8,
+            ["Cannon"] = 0.5,
+            ["CavalryHeavy"] = 0.5,
+            ["MilitaryBuilding"] = 0,
+        },
+        [Entities.PV_Cannon4] = {
+            ["Hero"] = 1.0,
+            ["MilitaryBuilding"] = 1.0,
+            ["Cannon"] = 0.5,
+            ["EvilLeader"] = 0.3,
+            ["LongRange"] = 0.3,
+            ["CavalryHeavy"] = 0,
+            ["CavalryLight"] = 0,
+            ["Sword"] = 0,
+            ["Spear"] = 0,
+        },
+        -- Becase they are basically siege cannons...
+        [Entities.PU_LeaderRifle] = {
+            ["Hero"] = 1.0,
+            ["MilitaryBuilding"] = 1.0,
+            ["Cannon"] = 0.5,
+            ["EvilLeader"] = 0.3,
+            ["LongRange"] = 0.3,
+            ["CavalryHeavy"] = 0,
+            ["CavalryLight"] = 0,
+            ["Sword"] = 0,
+            ["Spear"] = 0,
+        },
     },
+}
+
+AiArmyConstants = {
+    Targeting = AiArmyTargetingBehavior.Rational,
 
     -- Holds the basic speed of the units.
     BaseSpeed = {
@@ -1218,7 +1392,7 @@ AiArmyConfig = {
 
     -- Configures how much a singular base speed influences the calculated
     -- average speed of the army.
-    -- (We do not want wo make anyone as slow as the slowest unit!)
+    -- The factor must be between 0 and 1.
     SpeedWeighting = {
         ["CavalryLight"] = 0.4,
         ["CavalryHeavy"] = 0.4,
