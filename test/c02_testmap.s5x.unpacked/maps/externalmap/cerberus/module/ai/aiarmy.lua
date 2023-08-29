@@ -313,6 +313,12 @@ function AiArmy.IsActive(_ID)
     return false;
 end
 
+--- Sets the percentage when the army is defeated.
+--- @param _Threshold number Defeated threshold
+function AiArmy.SetAliveThreshold(_Threshold)
+    AiArmy.Internal.Army:SetAliveThreshold(_Threshold)
+end
+
 --- Resumes the army.
 --- @param _ID integer ID of army
 function AiArmy.Resume(_ID)
@@ -393,7 +399,7 @@ function AiArmy.Fallback(_ID)
                 Logic.SettlerStand(Army.Troops[j]);
             end
         end
-        Army:SetAnchor(nil);
+        Army:SetAnchor(nil, nil);
         Army:SetPosition(nil);
         Army:ResetArmySpeed();
     end
@@ -413,6 +419,36 @@ function AiArmy.GetEnemies(_ID, _Position, _RodeLength)
         Enemies = AiArmy.Internal:GetEnemiesInTerritory(Army.PlayerID, Position, Area);
     end
     return Enemies;
+end
+
+--- Sets targeting priorieties for the category or the type.
+---
+--- Entity categories must be provided as string.
+---
+--- Priorities for a type are priviliged over category priorities.
+---
+--- #### Example
+--- ```lua
+--- -- Example #1: Set for category
+--- AiArmy.SetPriorities("CavalryHeavy", {
+---     [Entities.PU_Hero4] = 1.0,
+---     [Entities.PU_Hero10] = 1.0,
+---     ["Hero"] = 0.8,
+---     ["LongRange"] = 0.7,
+---     ["Sword"] = 0.65,
+---     ["MilitaryBuilding"] = 0.4,
+--- });
+--- -- Example #2: Set for type
+--- AiArmy.SetPriorities(Entities.PV_Cannon3, {
+---     ["EvilLeader"] = 1.0,
+---     ["LongRange"] = 0.7,
+--- });
+--- ```
+---
+--- @param _CategoryOrType string|integer
+--- @param _Priorities table
+function AiArmy.SetPriorities(_CategoryOrType, _Priorities)
+    AiArmy.Internal:ChangePriorities(_CategoryOrType, _Priorities);
 end
 
 -- -------------------------------------------------------------------------- --
@@ -477,11 +513,12 @@ function AiArmy.Internal:Controller()
         Army:SetLastTick(Turn);
         Army:ManageArmyMembers();
 
-        if not Army:IsAlive() then
+        if not Army:IsAlive() and Army.Behavior ~= AiArmy.Behavior.REFILL then
             Army:SetBehavior(AiArmy.Behavior.REFILL);
-            Army:SetPosition(nil);
             Army:SetAnchor(nil, nil);
-            Army:Abadon(true);
+            Army:SetPosition(nil);
+            Army:ResetArmySpeed();
+            return;
         end
         Army:DebugShowCurrentPosition();
 
@@ -528,14 +565,16 @@ end
 
 function AiArmy.Internal:GetAttackingCosts(_TroopID, _EnemyID)
     -- Obtain base priority factor
-    local Factor = 1.0;
+    local EnemyType = Logic.GetEntityType(_EnemyID);
     local Priorities = self:GetPriorityFactorMap(_TroopID);
+    local Factor = 1.0;
+    if Priorities[EnemyType] then
+        Factor = Factor * (1/Priorities[EnemyType]);
+    end
     for k, v in pairs(GetEntityCategoriesAsString(_EnemyID)) do
-        if not Priorities[v] then
-            Factor = 0;
-            break;
+        if Priorities[v] then
+            Factor = Factor * (1/Priorities[v]);
         end
-        Factor = Factor * (1/Priorities[v]);
     end
     -- Adjust factor by threat potency
     -- (Leaders with more soldiers will do more damage and are higher up on
@@ -558,16 +597,20 @@ function AiArmy.Internal:GetAttackingCosts(_TroopID, _EnemyID)
 end
 
 function AiArmy.Internal:GetPriorityFactorMap(_TroopID)
+    local Type = Logic.GetEntityType(_TroopID);
+    if AiArmyConfig.Targeting[Type] then
+        return AiArmyConfig.Targeting[Type];
+    end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.EvilLeader) == 1
-    or Logic.GetEntityType(_TroopID) == Entities.CU_Evil_LeaderSkirmisher then
+    or Type == Entities.CU_Evil_LeaderSkirmisher then
         return AiArmyConfig.Targeting.LongRange;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Rifle) == 1
-    or Logic.GetEntityType(_TroopID) == Entities.PU_Hero10 then
+    or Type == Entities.PU_Hero10 then
         return AiArmyConfig.Targeting.Rifle;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.LongRange) == 1
-    or Logic.GetEntityType(_TroopID) == Entities.PU_Hero5 then
+    or Type == Entities.PU_Hero5 then
         return AiArmyConfig.Targeting.LongRange;
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Spear) == 1 then
@@ -582,6 +625,10 @@ function AiArmy.Internal:GetPriorityFactorMap(_TroopID)
     return AiArmyConfig.Targeting.Sword;
 end
 
+function AiArmy.Internal:ChangePriorities(_Key, _Priorities)
+    AiArmyConfig.Targeting[_Key] = _Priorities;
+end
+
 -- -------------------------------------------------------------------------- --
 -- Model
 
@@ -594,7 +641,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     RodeLength  	 = 3000,
     HomePosition     = nil,
     Position         = nil,
-    DefeatThreshold  = 0.10,
+    DefeatThreshold  = 0.20,
     LastTick         = 0,
 
     Targets          = {},
@@ -655,6 +702,7 @@ function AiArmy.Internal.Army:WaitBehavior()
             if GetDistance(ArmyPosition, self.HomePosition) > 1200 then
                 for j= 1, table.getn(self.Troops) do
                     if Logic.IsEntityMoving(self.Troops[j]) == false then
+                        ---@diagnostic disable-next-line: undefined-field
                         Logic.MoveSettler(self.Troops[j], self.HomePosition.X, self.HomePosition.Y);
                     end
                 end
@@ -692,9 +740,7 @@ function AiArmy.Internal.Army:AdvanceBehavior()
     if EncounteredEnemy ~= 0 then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
         self:SetAnchor(GetPosition(EncounteredEnemy), self.RodeLength);
-        for j= 1, table.getn(self.Troops) do
-            Logic.GroupAttackMove(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
-        end
+        self:BattleBehavior();
     else
         if self:IsScattered() then
             self:SetBehavior(AiArmy.Behavior.REGROUP);
@@ -726,6 +772,7 @@ function AiArmy.Internal.Army:BattleBehavior()
         self:ResetArmySpeed();
         for j= 1, table.getn(self.Troops) do
             if GetDistance(self.Anchor.Position, self.Troops[j]) > self.Anchor.RodeLength then
+                ---@diagnostic disable-next-line: undefined-field
                 Logic.MoveSettler(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
                 self:LockOn(self.Troops[j], nil);
             else
@@ -738,6 +785,7 @@ function AiArmy.Internal.Army:BattleBehavior()
                     else
                         local ArmyPosition = self:GetArmyPosition();
                         if GetDistance(ArmyPosition, self.Anchor.Position) > 1200 then
+                            ---@diagnostic disable-next-line: undefined-field
                             Logic.MoveSettler(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
                         end
                     end
@@ -952,6 +1000,10 @@ function AiArmy.Internal.Army:SetStrength(_Strength)
     self.Strength = _Strength;
 end
 
+function AiArmy.Internal.Army:SetAliveThreshold(_Threshold)
+    self.DefeatThreshold = _Threshold;
+end
+
 function AiArmy.Internal.Army:SetAnchor(_Position, _RodeLength)
     self.Anchor.RodeLength = _RodeLength;
     self.Anchor.Position = _Position;
@@ -1024,6 +1076,7 @@ function AiArmy.Internal.Army:ChoseFormation(_TroopID)
 end
 
 function AiArmy.Internal.Army:NormalizedArmySpeed()
+    -- FIXME: Use server functions if available
     local TroopSpeed = 0;
     local AbsoluteTroopAmount = 0;
     local Dividend = 0;
@@ -1105,22 +1158,29 @@ end
 
 AiArmyConfig = {
     -- Configures the favorite target type of specific entity categories.
-    -- (The lower the less focus. No entry means 0.)
+    -- (The lower the less focus. 0 Means always attack those last)
     Targeting = {
         Sword = {
-            ["Hero"] = 1.0,
-            ["LongRange"] = 0.9,
+            ["Rifle"] = 1.0,
             ["Spear"] = 0.9,
+            ["Hero"] = 0.8,
+            ["LongRange"] = 0.8,
+            ["CavalryHeavy"] = 0,
+            ["CavalryLight"] = 0,
         },
         Spear = {
             ["CavalryHeavy"] = 1.0,
             ["CavalryLight"] = 0.8,
+            ["MilitaryBuilding"] = 0.4,
+            ["Sword"] = 0,
         },
         CavalryHeavy = {
-            ["Hero"] = 1.0,
+            ["Rifle"] = 1.0,
             ["LongRange"] = 0.9,
+            ["Hero"] = 0.8,
             ["Sword"] = 0.75,
             ["MilitaryBuilding"] = 0.4,
+            ["Spear"] = 0,
         },
         LongRange = {
             ["Hero"] = 1.0,

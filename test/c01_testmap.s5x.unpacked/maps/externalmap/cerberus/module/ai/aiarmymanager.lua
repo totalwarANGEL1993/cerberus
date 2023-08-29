@@ -83,21 +83,31 @@ end
 
 --- Adds an attack target to the manager.
 --- @param _ID integer ID of manager
---- @param _Target any Target script entity
+--- @param _Target string Target script entity
 function AiArmyManager.AddAttackTarget(_ID, _Target)
     AiArmyManager.Internal:AddAttackTarget(_ID, _Target);
 end
 
+--- Adds a attacking path to the manager.
+---
+--- The last element of the path becomes the attack target. Enemies are
+--- searched there and it is used for comparisons between the targets.
+--- @param _ID integer ID of manager
+--- @param ... table Waypoint list
+function AiArmyManager.AddAttackTargetPath(_ID, ...)
+    AiArmyManager.Internal:AddAttackTarget(_ID, arg);
+end
+
 --- Removes an attack target from the manager.
 --- @param _ID integer ID of manager
---- @param _Target any Target script entity
+--- @param _Target string Target script entity
 function AiArmyManager.RemoveAttackTarget(_ID, _Target)
     AiArmyManager.Internal:RemoveAttackTarget(_ID, _Target);
 end
 
 --- Adds a guard position to the manager.
 --- @param _ID integer ID of manager
---- @param _Target any Target script entity
+--- @param _Target string Target script entity
 function AiArmyManager.AddGuardPosition(_ID, _Target)
     AiArmyManager.Internal:AddGuardPosition(_ID, _Target);
 end
@@ -183,8 +193,18 @@ function AiArmyManager.Internal:ControllManagers(_Index)
                 self:EndCampaign(Data.ID);
                 return;
             end
+            -- Control movement
+            if Data.Campaign.Target.Index < table.getn(Data.Campaign.Target) then
+                local CurrentData = Data.Campaign.Target;
+                if GetDistance(CurrentData[CurrentData.Index], Army:GetArmyPosition()) < 1200 then
+                    self.Data.Managers[_Index].Campaign.Target.Index = Data.Campaign.Target.Index + 1;
+                    AiArmy.Advance(Data.ArmyID, GetPosition(CurrentData[CurrentData.Index]));
+                    return;
+                end
+            end
             -- Check enemies defeated
-            local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Data.Campaign.Target));
+            local Target = Data.Campaign.Target[table.getn(Data.Campaign.Target)];
+            local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Target));
             if not Enemies[1] then
                 self:EndCampaign(Data.ID);
                 AiArmy.Retreat(Data.ArmyID);
@@ -213,14 +233,14 @@ function AiArmyManager.Internal:ControllManagers(_Index)
             if Army.Behavior == AiArmy.Behavior.WAITING then
                 -- Get attack target
                 local AttackTarget = self:GetUnattendedAttackTarget(Data.ID, AiArmyManager.Campaign.ATTACK);
-                if AttackTarget ~= 0 then
+                if AttackTarget ~= nil then
                     self:BeginOffensiveCampaign(Data.ID, AttackTarget);
-                    AiArmy.Advance(Data.ArmyID, GetPosition(AttackTarget));
+                    AiArmy.Advance(Data.ArmyID, GetPosition(AttackTarget[AttackTarget.Index]));
                     return;
                 end
                 -- Get guard target
                 local GuardTarget = self:GetUnattendedDefendTarget(Data.ID, AiArmyManager.Campaign.DEFEND);
-                if GuardTarget ~= 0 then
+                if GuardTarget ~= nil then
                     self:BeginDefensiveCampaign(Data.ID, GuardTarget, Data.GuardTime);
                     AiArmy.Advance(Data.ArmyID, GetPosition(GuardTarget));
                 else
@@ -243,8 +263,9 @@ function AiArmyManager.Internal:GetUnattendedAttackTarget(_ID, _CampaignType)
             local Other = AiArmyManagerData_ManagerIdToManagerInstance[Data.Synchronized[i]];
             if Other then
                 for j= table.getn(Targets), 1, -1 do
+                    local OtherTargets = Other.Campaign.Target;
                     if  Other.Campaign.Type == _CampaignType
-                    and Other.Campaign.Target == Targets[j] then
+                    and OtherTargets[table.getn(OtherTargets)] == Targets[j][table.getn(Targets[j])] then
                         table.remove(Targets, j);
                     end
                 end
@@ -254,14 +275,14 @@ function AiArmyManager.Internal:GetUnattendedAttackTarget(_ID, _CampaignType)
         -- Get target
         if table.getn(Targets) >= 0 then
             for i= table.getn(Targets), 1, -1 do
-                local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Targets[i]));
+                local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Targets[i][table.getn(Targets[i])]));
                 if Enemies[1] then
+                    Targets[i].Index = 1;
                     return Targets[i];
                 end
             end
         end
     end
-    return 0;
 end
 
 function AiArmyManager.Internal:GetUnattendedDefendTarget(_ID, _CampaignType)
@@ -285,29 +306,38 @@ function AiArmyManager.Internal:GetUnattendedDefendTarget(_ID, _CampaignType)
 
         -- Get target
         if table.getn(Targets) == 0 then
+            -- FIXME: Prioritize already attended position with lowest guard time remaining!
             local Random = math.random(1, table.getn(Data.GuardPositions));
             return Data.GuardPositions[Random];
         end
         local Random = math.random(1, table.getn(Targets));
         return Targets[Random];
     end
-    return 0;
 end
 
 -- -------------------------------------------------------------------------- --
 
+function AiArmyManager.Internal:SetArmyID(_ID, _ArmyID)
+    if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
+        AiArmyManagerData_ManagerIdToManagerInstance[_ID].ArmyID = _ArmyID;
+    end
+end
+
 function AiArmyManager.Internal:AddAttackTarget(_ID, _Target)
     if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
-        if not IsInTable(_Target, AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets) then
-            table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets, _Target);
+        local Target = (type(_Target) ~= "table" and {_Target}) or _Target;
+        if not self:IsInTargetTable(Target, AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets) then
+            table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets, Target);
         end
     end
 end
 
 function AiArmyManager.Internal:RemoveAttackTarget(_ID, _Target)
     if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
-        for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID]), 1, -1 do
-            if AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets[i] == _Target then
+        local Target = (type(_Target) ~= "table" and {_Target}) or _Target;
+        for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets), 1, -1 do
+            local SelfTarget = AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets[i];
+            if SelfTarget[table.getn(SelfTarget)] == Target[table.getn(Target)] then
                 table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets, i);
             end
         end
@@ -324,12 +354,21 @@ end
 
 function AiArmyManager.Internal:RemoveGuardPosition(_ID, _Target)
     if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
-        for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID]), 1, -1 do
+        for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions), 1, -1 do
             if AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions[i] == _Target then
                 table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions, i);
             end
         end
     end
+end
+
+function AiArmyManager.Internal:IsInTargetTable(_Target, _Table)
+    for i= 1, table.getn(_Table) do
+        if _Target == _Table[i][table.getn(_Table[i])] then
+            return true;
+        end
+    end
+    return false;
 end
 
 function AiArmyManager.Internal:SetGuardTime(_ID, _Time)
