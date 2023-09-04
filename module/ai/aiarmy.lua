@@ -31,6 +31,8 @@ AiArmy = AiArmy or {
         BATTLE = 4,
         -- Army is waiting for full strength
         REFILL = 5,
+        -- 
+        FALLBACK = 6,
     },
 };
 
@@ -344,7 +346,9 @@ end
 --- @param _Target table Position to defend
 function AiArmy.Defend(_ID, _Target)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
-        AiArmyData_ArmyIdToArmyInstance[_ID]:SetPosition(_Target);
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
+        Army:SetBehavior(AiArmy.Behavior.WAITING);
+        Army:SetPosition(_Target);
     end
 end
 
@@ -355,30 +359,19 @@ end
 function AiArmy.Advance(_ID, _Target)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
-        if GetDistance(Army:GetArmyPosition(), _Target) > 1200 then
-            Army:SetPosition(_Target);
-        end
+        Army:SetBehavior(AiArmy.Behavior.ADVANCE);
+        Army:SetPosition(_Target);
     end
 end
 
 --- Commands an army to retreat to the home position. 
---- (Use this inside a job.)
----
---- If enemies are encountered the army will hold the position and fight
---- angainst them.
----
 --- @param _ID integer ID of army
 function AiArmy.Retreat(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
-        local Position = Army:GetArmyPosition();
-        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(Army.PlayerID, Position, Army.RodeLength);
-        if Enemies[1] and Army.Troops[1] then
-            local Reachable = GetReachablePosition(Army.Troops[1], Position, Army.Troops[1]);
-            Army:SetPosition(Reachable);
-        elseif GetDistance(Position, Army.HomePosition) > 1200 then
-            Army:SetPosition(Army.HomePosition);
-        end
+        Army:SetBehavior(AiArmy.Behavior.ADVANCE);
+        Army:SetPosition(nil);
+        Army:SetAnchor(nil, nil);
     end
 end
 
@@ -399,8 +392,9 @@ function AiArmy.Fallback(_ID)
                 Logic.SettlerStand(Army.Troops[j]);
             end
         end
-        Army:SetAnchor(nil, nil);
+        Army:SetBehavior(AiArmy.Behavior.FALLBACK);
         Army:SetPosition(nil);
+        Army:SetAnchor(nil, nil);
         Army:ResetArmySpeed();
     end
 end
@@ -535,8 +529,14 @@ function AiArmy.Internal:Controller()
         Army:SetLastTick(Turn);
         Army:ManageArmyMembers();
 
-        if not Army:IsAlive() and Army.Behavior ~= AiArmy.Behavior.REFILL then
-            Army:SetBehavior(AiArmy.Behavior.REFILL);
+        if not Army:IsAlive() and Army.Behavior ~= AiArmy.Behavior.FALLBACK then
+            for j= 1, table.getn(Army.Reinforcements) do
+                Logic.SettlerStand(Army.Reinforcements[j]);
+            end
+            for j= 1, table.getn(Army.Troops) do
+                Logic.SettlerStand(Army.Troops[j]);
+            end
+            Army:SetBehavior(AiArmy.Behavior.FALLBACK);
             Army:SetAnchor(nil, nil);
             Army:SetPosition(nil);
             Army:ResetArmySpeed();
@@ -554,6 +554,8 @@ function AiArmy.Internal:Controller()
             Army:BattleBehavior();
         elseif Army.Behavior == AiArmy.Behavior.REGROUP then
             Army:RegroupBehavior();
+        elseif Army.Behavior == AiArmy.Behavior.FALLBACK then
+            Army:FallbackBehavior();
         end
     end
 end
@@ -716,6 +718,15 @@ function AiArmy.Internal.Army:Dispose()
     AiArmyData_ArmyIdToArmyInstance[self.ID] = nil;
 end
 
+-- -------------------------------------------------------------------------- --
+
+--- Army is waiting to be refilled.
+---
+--- * Enemies found
+---   - Set behavior: AiArmy.Behavior.BATTLE
+---   - Set anchor: Enemy position
+--- * Troops scattered
+---   - Move troops to army center
 function AiArmy.Internal.Army:WaitBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
@@ -724,23 +735,39 @@ function AiArmy.Internal.Army:WaitBehavior()
         self:SetBehavior(AiArmy.Behavior.BATTLE);
         self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
     else
-        if self.Position then
-            if GetDistance(ArmyPosition, self.Position) > 1200 then
-                self:SetBehavior(AiArmy.Behavior.ADVANCE);
-            end
-        else
-            if GetDistance(ArmyPosition, self.HomePosition) > 1200 then
-                for j= 1, table.getn(self.Troops) do
-                    if Logic.IsEntityMoving(self.Troops[j]) == false then
-                        ---@diagnostic disable-next-line: undefined-field
-                        Logic.MoveSettler(self.Troops[j], self.HomePosition.X, self.HomePosition.Y);
-                    end
-                end
+        if self:IsScattered() then
+            local Position = (self.Position ~= nil and self.Position) or ArmyPosition;
+            local Reachable = GetReachablePosition(self.Troops[1], Position);
+            for j= 1, table.getn(self.Troops) do
+                Logic.MoveSettler(self.Troops[j], Reachable.X, Reachable.Y);
             end
         end
     end
 end
 
+--- Army haistly retreats to home position.
+---
+--- * Not close to home
+---   - Troops move to home position
+function AiArmy.Internal.Army:FallbackBehavior()
+    if GetDistance(self:GetArmyPosition(), self.HomePosition) > 1000 then
+        for j= 1, table.getn(self.Troops) do
+            if Logic.IsEntityMoving(self.Troops[j]) == false then
+                Logic.MoveSettler(self.Troops[j], self.Position.X, self.Position.Y);
+            end
+        end
+    else
+        self:SetBehavior(AiArmy.Behavior.REFILL);
+    end
+end
+
+--- Army is waiting to be refilled.
+---
+--- * Enemies found
+---   - Set behavior: AiArmy.Behavior.BATTLE
+---   - Set anchor: Enemy position
+--- * Army full
+---   - Set behavior: AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:RefillBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
@@ -755,6 +782,18 @@ function AiArmy.Internal.Army:RefillBehavior()
     end
 end
 
+--- Army is advancing to the position.
+---
+--- * Enemies found
+---   - Set behavior: AiArmy.Behavior.BATTLE
+---   - Set anchor: Enemy position
+--- * Scattered while walking
+---   - Set behavior: AiArmy.Behavior.REGROUP
+---   - Call regroup behavior directly
+--- * Move to positon
+---   - Walk to position
+--- * Position reached
+---   - Set behavior: AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:AdvanceBehavior()
     self:NormalizedArmySpeed();
     local EncounteredEnemy = 0;
@@ -774,13 +813,14 @@ function AiArmy.Internal.Army:AdvanceBehavior()
     else
         if self:IsScattered() then
             self:SetBehavior(AiArmy.Behavior.REGROUP);
-            for j= 1, table.getn(self.Troops) do
-                Logic.SettlerStand(self.Troops[j]);
-            end
+            self:RegroupBehavior();
+            return;
+        elseif self.Position == nil then
+            self:SetBehavior(AiArmy.Behavior.WAITING);
         else
             local ArmyPosition = self:GetArmyPosition();
             local Reachable = GetReachablePosition(self.Troops[1], ArmyPosition, self.Troops[1]);
-            if GetDistance(Reachable, self.Position) > 1200 then
+            if GetDistance(Reachable, self.Position) > 1000 then
                 for j= 1, table.getn(self.Troops) do
                     if Logic.IsEntityMoving(self.Troops[j]) == false then
                         Logic.MoveSettler(self.Troops[j], self.Position.X, self.Position.Y);
@@ -788,21 +828,31 @@ function AiArmy.Internal.Army:AdvanceBehavior()
                 end
             else
                 self:SetBehavior(AiArmy.Behavior.WAITING);
+                self:SetPosition(nil);
             end
         end
     end
 end
 
+--- Controls the battle against enemies.
+--- 
+--- * No enemies found
+---   - Set behavior: AiArmy.Behavior.REGROUP
+---   - Delete anchor
+--- * Battle the enemies
+---   - Each troop searches enemies
+---   - Move to anchor if to far apart
+---   - Move to anchor if no enemy
 function AiArmy.Internal.Army:BattleBehavior()
     local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength);
     if not Enemies[1] then
-        self:SetBehavior(AiArmy.Behavior.REGROUP);
         self:SetAnchor(nil, nil);
+        self:SetBehavior(AiArmy.Behavior.REGROUP);
     else
         self:ResetArmySpeed();
         for j= 1, table.getn(self.Troops) do
             if GetDistance(self.Anchor.Position, self.Troops[j]) > self.Anchor.RodeLength then
-                ---@diagnostic disable-next-line: undefined-field
+                --- @diagnostic disable-next-line: undefined-field
                 Logic.MoveSettler(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
                 self:LockOn(self.Troops[j], nil);
             else
@@ -814,8 +864,8 @@ function AiArmy.Internal.Army:BattleBehavior()
                         Logic.GroupAttack(self.Troops[j], TargetID);
                     else
                         local ArmyPosition = self:GetArmyPosition();
-                        if GetDistance(ArmyPosition, self.Anchor.Position) > 1200 then
-                            ---@diagnostic disable-next-line: undefined-field
+                        if GetDistance(ArmyPosition, self.Anchor.Position) > 1000 then
+                            --- @diagnostic disable-next-line: undefined-field
                             Logic.MoveSettler(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);
                         end
                     end
@@ -825,6 +875,16 @@ function AiArmy.Internal.Army:BattleBehavior()
     end
 end
 
+--- Controls the regrouping of the army.
+---
+--- * Enemies encountered
+---   - Set behavior: AiArmy.Behavior.BATTLE
+---   - Set anchor: Position of enemy
+--- * Army is scattered
+---   - Move troops to army center
+--- * Army has reformated
+---   - If army has position --> AiArmy.Behavior.ADVANCE
+---   - If not --> AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:RegroupBehavior()
     local ArmyPosition = self:GetArmyPosition();
     local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
@@ -840,13 +900,15 @@ function AiArmy.Internal.Army:RegroupBehavior()
             end
         else
             if self.Position then
-                self:SetBehavior(AiArmy.Behavior.WAITING);
+                self:SetBehavior(AiArmy.Behavior.ADVANCE);
             else
-                self:SetBehavior(AiArmy.Behavior.REFILL);
+                self:SetBehavior(AiArmy.Behavior.WAITING);
             end
         end
     end
 end
+
+-- -------------------------------------------------------------------------- --
 
 function AiArmy.Internal.Army:ManageArmyMembers()
     -- Update reinforcements

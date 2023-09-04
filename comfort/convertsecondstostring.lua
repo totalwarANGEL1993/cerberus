@@ -10,8 +10,14 @@ Lib.Register("comfort/ConvertSecondsToString");
 ---
 function ConvertSecondsToString(_TotalSeconds)
     local TotalMinutes = math.floor(_TotalSeconds / 60);
+    local TotalHours = math.floor(TotalMinutes / 60);
+    local Hours = math.mod(TotalHours, 60);
+    if Hours == 60 then
+        Hours = Hours -1;
+    end
     local Minutes = math.mod(TotalMinutes, 60);
     if Minutes == 60 then
+        Hours = Hours +1;
         Minutes = Minutes -1;
     end
     local Seconds = math.floor(math.mod(_TotalSeconds, 60));
@@ -21,6 +27,11 @@ function ConvertSecondsToString(_TotalSeconds)
     end
 
     local String = "";
+    if Hours < 10 then
+        String = String .. "0" .. Hours .. ":";
+    else
+        String = String .. Hours .. ":";
+    end
     if Minutes < 10 then
         String = String .. "0" .. Minutes .. ":";
     else
