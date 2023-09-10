@@ -83,6 +83,8 @@ SpectatableBriefing.Internal = SpectatableBriefing.Internal or {}
 function SpectatableBriefing.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
+
+        self:OverwriteGetPageText();
     end
 end
 

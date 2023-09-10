@@ -22,7 +22,6 @@ Lib.Register("module/cinematic/CutsceneSystem");
 --- @author totalwarANGEL
 --- @version 1.0.0
 --- 
-
 CutsceneSystem = CutsceneSystem or {}
 
 -- -------------------------------------------------------------------------- --

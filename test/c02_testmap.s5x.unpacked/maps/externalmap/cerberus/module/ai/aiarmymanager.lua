@@ -152,8 +152,8 @@ function AiArmyManager.Internal:CreateManager(_Data)
         GuardTime      = _Data.GuardTime or (3*60),
         Campaign       = {},
         Synchronized   = {},
-        AttackTargets  = {},
-        GuardPositions = {},
+        AttackTargets  = _Data.AttackTargets or {},
+        GuardPositions = _Data.GuardPositions or {},
     };
     table.insert(self.Data.Managers, Manager);
     AiArmyManagerData_ManagerIdToManagerInstance[ID] = Manager;
@@ -189,14 +189,14 @@ function AiArmyManager.Internal:ControllManagers(_Index)
         -- Control attack campaign
         if Data.Campaign.Type == AiArmyManager.Campaign.ATTACK then
             -- Check army defeated
-            if Army.Behavior == AiArmy.Behavior.REFILL then
+            if Army.Behavior == AiArmy.Behavior.FALLBACK then
                 self:EndCampaign(Data.ID);
                 return;
             end
             -- Control movement
             if Data.Campaign.Target.Index < table.getn(Data.Campaign.Target) then
                 local CurrentData = Data.Campaign.Target;
-                if GetDistance(CurrentData[CurrentData.Index], Army:GetArmyPosition()) < 1200 then
+                if GetDistance(CurrentData[CurrentData.Index], Army:GetArmyPosition()) < 1000 then
                     self.Data.Managers[_Index].Campaign.Target.Index = Data.Campaign.Target.Index + 1;
                     AiArmy.Advance(Data.ArmyID, GetPosition(CurrentData[CurrentData.Index]));
                     return;
@@ -214,7 +214,7 @@ function AiArmyManager.Internal:ControllManagers(_Index)
         -- Control guard campaign
         elseif Data.Campaign.Type == AiArmyManager.Campaign.DEFEND then
             -- Check army defeated
-            if Army.Behavior == AiArmy.Behavior.REFILL then
+            if Army.Behavior == AiArmy.Behavior.FALLBACK then
                 self:EndCampaign(Data.ID);
                 return;
             end
@@ -245,7 +245,7 @@ function AiArmyManager.Internal:ControllManagers(_Index)
                     AiArmy.Advance(Data.ArmyID, GetPosition(GuardTarget));
                 else
                     self:BeginDefensiveCampaign(Data.ID, Army.HomePosition, Data.GuardTime);
-                    AiArmy.Retreat(Data.ArmyID);
+                    AiArmy.Advance(Data.ArmyID, Army.HomePosition);
                 end
             end
         end
@@ -257,6 +257,10 @@ function AiArmyManager.Internal:GetUnattendedAttackTarget(_ID, _CampaignType)
     local Data = AiArmyManagerData_ManagerIdToManagerInstance[_ID];
     if Data and Data.Campaign.Type == nil and table.getn(Data.AttackTargets) > 0 then
         local Targets = CopyTable(Data.AttackTargets);
+        -- If only 1 is defined, return it immedaitly
+        if table.getn(Targets) == 1 then
+            return Targets[1];
+        end
 
         -- Remove targets processed by synchronized armies
         for i= table.getn(Data.Synchronized), 1, -1 do
@@ -290,28 +294,49 @@ function AiArmyManager.Internal:GetUnattendedDefendTarget(_ID, _CampaignType)
     local Data = AiArmyManagerData_ManagerIdToManagerInstance[_ID];
     if Data and Data.Campaign.Type == nil and table.getn(Data.GuardPositions) > 0 then
         local Targets = CopyTable(Data.GuardPositions);
+        -- If only 1 is defined, return it immedaitly
+        if table.getn(Targets) == 1 then
+            return Targets[1];
+        end
 
         -- Remove targets processed by synchronized armies
+        local ExtraDataAmount = 0;
+        local ExtraData = {};
         for i= table.getn(Data.Synchronized), 1, -1 do
             local Other = AiArmyManagerData_ManagerIdToManagerInstance[Data.Synchronized[i]];
             if Other then
                 for j= table.getn(Targets), 1, -1 do
                     if  Other.Campaign.Type == _CampaignType
                     and Other.Campaign.Target == Targets[j] then
+                        ExtraDataAmount = ExtraDataAmount +1;
+                        ExtraData[Targets[j]] = {Data.Synchronized[i], Other.Campaign.Target, Other.Campaign.Time};
                         table.remove(Targets, j);
                     end
                 end
             end
         end
 
-        -- Get target
-        if table.getn(Targets) == 0 then
-            -- FIXME: Prioritize already attended position with lowest guard time remaining!
-            local Random = math.random(1, table.getn(Data.GuardPositions));
-            return Data.GuardPositions[Random];
+        -- Return random target if available
+        if table.getn(Targets) > 0 then
+            local Random = math.random(1, table.getn(Targets));
+            return Targets[Random];
         end
-        local Random = math.random(1, table.getn(Targets));
-        return Targets[Random];
+
+        -- Find target with smallest guard time remaining
+        Targets = CopyTable(Data.GuardPositions);
+        for i= table.getn(Targets), 1, -1 do
+            if Data.LastGuardTarget == Targets[i] then
+                table.remove(Targets[i]);
+            end
+        end
+        if ExtraDataAmount > 0 and table.getn(Targets) > 1 then
+            table.sort(Targets, function(a, b)
+                a = (ExtraData[a] and ExtraData[a][3]) or 999999999;
+                b = (ExtraData[b] and ExtraData[b][3]) or 999999999;
+                return a < b;
+            end);
+        end
+        return Targets[1];
     end
 end
 
@@ -379,6 +404,9 @@ end
 
 function AiArmyManager.Internal:BeginOffensiveCampaign(_ID, _Target)
     assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
+    -- Delete target memory
+    AiArmyManagerData_ManagerIdToManagerInstance[_ID].LastAttackTarget = nil;
+    -- Save campaign data
     AiArmyManagerData_ManagerIdToManagerInstance[_ID].Campaign = {
         Type = AiArmyManager.Campaign.ATTACK,
         Target = _Target,
@@ -388,6 +416,9 @@ end
 
 function AiArmyManager.Internal:BeginDefensiveCampaign(_ID, _Target, _Time)
     assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
+    -- Delete target memory
+    AiArmyManagerData_ManagerIdToManagerInstance[_ID].LastGuardTarget = nil;
+    -- Save campaign data
     AiArmyManagerData_ManagerIdToManagerInstance[_ID].Campaign = {
         Type = AiArmyManager.Campaign.DEFEND,
         Target = _Target,
@@ -396,8 +427,18 @@ function AiArmyManager.Internal:BeginDefensiveCampaign(_ID, _Target, _Time)
 end
 
 function AiArmyManager.Internal:EndCampaign(_ID)
-    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
+    local Data = AiArmyManagerData_ManagerIdToManagerInstance[_ID];
+    assert(Data);
     self:DispatchTroopsToSpawner(_ID);
+    -- Save last position
+    if Data.Campaign.Type == AiArmyManager.Campaign.Attack then
+        local Target = Data.Campaign.Target[table.getn(Data.Campaign.Target)];
+        AiArmyManagerData_ManagerIdToManagerInstance[_ID].LastAttackTarget = Target;
+    end
+    if Data.Campaign.Type == AiArmyManager.Campaign.DEFEND then
+        AiArmyManagerData_ManagerIdToManagerInstance[_ID].LastGuardTarget = Data.Campaign.Target;
+    end
+    -- Create idle campaign
     AiArmyManagerData_ManagerIdToManagerInstance[_ID].Campaign = {
         Type = AiArmyManager.Campaign.IDLE,
         Target = 0,

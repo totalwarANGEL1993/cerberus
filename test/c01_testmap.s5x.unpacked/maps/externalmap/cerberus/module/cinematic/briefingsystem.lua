@@ -20,9 +20,8 @@ Lib.Register("module/cinematic/BriefingSystem");
 ---   A briefing finished for the player.
 --- 
 --- @author totalwarANGEL
---- @version 1.1.0
+--- @version 1.2.0
 --- 
-
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,
     FakeHeight = 150,
@@ -41,10 +40,10 @@ BriefingSystem = BriefingSystem or {
 
 --- Starts a briefing for a player.
 ---
---- If the briefing table contains a function 'Starting' then it is called
+--- If the briefing table contains a function `Starting` then it is called
 --- before the briefing starts.
 ---
---- If the briefing table contains a function 'Finished' then it is called
+--- If the briefing table contains a function `Finished` then it is called
 --- after the briefing is finished.
 ---
 --- Fields to configure:
@@ -401,12 +400,12 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID)
     for k, v in pairs(self.Data.Book[_PlayerID].Exploration) do
         DestroyEntity(v);
     end
-    -- Call finished
-    if self.Data.Book[_PlayerID].Finished then
-        self.Data.Book[_PlayerID]:Finished();
-    end
     -- Register briefing as finished
     Cinematic.Conclude(_PlayerID, self.Data.Book[_PlayerID].ID);
+    -- Call finished
+    if self.Data.Book[_PlayerID].Finished then
+        self.Data.Book[_PlayerID]:Finished(_PlayerID);
+    end
     -- Call game callback
     GameCallback_Logic_BriefingFinished(_PlayerID, self.Data.Book[_PlayerID]);
     -- Invalidate briefing
@@ -427,6 +426,7 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     self.Data.Book[_PlayerID]             = CopyTable(Briefing[2]);
     self.Data.Book[_PlayerID].Exploration = {};
     self.Data.Book[_PlayerID].ID          = Briefing[1];
+    self.Data.Book[_PlayerID].PlayerID    = _PlayerID;
     self.Data.Book[_PlayerID].Page        = 0;
 
     -- Calculate duration and height
@@ -450,12 +450,12 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
         end
     end
 
-    -- Call function on start
-    if self.Data.Book[_PlayerID].Starting then
-        self.Data.Book[_PlayerID]:Starting();
-    end
     -- Register briefing as active
     Cinematic.Activate(_PlayerID, self.Data.Book[_PlayerID].ID);
+    -- Call function on start
+    if self.Data.Book[_PlayerID].Starting then
+        self.Data.Book[_PlayerID]:Starting(_PlayerID);
+    end
     -- Call game callback
     GameCallback_Logic_BriefingStarted(_PlayerID, self.Data.Book[_PlayerID]);
     -- Show cinematic

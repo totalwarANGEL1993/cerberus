@@ -7,9 +7,8 @@ Lib.Register("module/cinematic/Cinematic");
 --- the functions, if you know what you are doing!
 --- 
 --- @author totalwarANGEL
---- @version 1.0.0
+--- @version 1.1.0
 --- 
-
 Cinematic = Cinematic or {}
 
 --- List of states for cinematic events.
@@ -57,10 +56,22 @@ end
 
 --- Checks if the cinematic is currently active for the player.
 --- @param _PlayerID integer ID of player
---- @param _Name string
+--- @param _Name string Name of cinematic
 --- @return boolean Active The event is active
 function Cinematic.IsActive(_PlayerID, _Name)
     return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Active;
+end
+
+--- Checks if the cinematic is currently active for at least one player.
+--- @param _Name string Name of cinematic
+--- @return boolean Active The event is active for a player
+function Cinematic.IsActiveForAnyPlayer(_Name)
+    for i= 1, table.getn(Score.Player) do
+        if Cinematic.Internal:SetCinematicEventState(i, _Name) == CinematicEventStatus.Active then
+            return true;
+        end
+    end
+    return false;
 end
 
 --- Checks if the cinematic is already finished for the player.
@@ -69,6 +80,18 @@ end
 --- @return boolean Over The event is over
 function Cinematic.IsConcluded(_PlayerID, _Name)
     return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Over;
+end
+
+--- Checks if the cinematic is finished for at least one player.
+--- @param _Name string Name of cinematic
+--- @return boolean Active The event is active for a player
+function Cinematic.IsConcludedForAnyPlayer(_Name)
+    for i= 1, table.getn(Score.Player) do
+        if Cinematic.Internal:SetCinematicEventState(i, _Name) == CinematicEventStatus.Over then
+            return true;
+        end
+    end
+    return false;
 end
 
 --- Checks if any cinematic event is currently active for the player.
