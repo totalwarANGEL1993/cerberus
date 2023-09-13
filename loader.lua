@@ -9,13 +9,9 @@ Lib = {
         "maps/externalmap/",
         -- Search in script directory
         "script/",
-        -- Search in map directory
-        "maps/user/",
-        -- Search in Root
-        ""
     },
 
-    Version = "1.3.0",
+    Version = "1.3.1",
     Sources = {},
     Loaded = {},
 };
@@ -38,6 +34,12 @@ function Lib.Require(_Path)
     end
     assert(Lib.Loaded[Key] ~= nil, "\nFile not found: \n".._Path);
     Lib.Sources[Key] = nil;
+end
+
+--- Adds a path at top of the search order.
+--- @param _Path string Path to search in
+function Lib.AddPath(_Path)
+    table.insert(Lib.Paths, 1, _Path);
 end
 
 --- DO NOT USE THIS MANUALLY!
