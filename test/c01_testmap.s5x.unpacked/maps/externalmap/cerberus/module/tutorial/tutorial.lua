@@ -1,6 +1,7 @@
 Lib.Require("comfort/GetLanguage");
 Lib.Require("comfort/CopyTable");
 Lib.Require("module/trigger/Job");
+Lib.Require("module/ui/Placeholder");
 Lib.Register("module/tutorial/Tutorial");
 
 ---
@@ -151,7 +152,7 @@ function Tutorial.Internal:AddMessage(_Page)
     end
     -- Add continuation text
     if not _Page.Condition then
-        _Page.Text = _Page.Text.. " @cr @color:66,206,244 " ..self.Data.ContinueText;
+        _Page.Text = Placeholder.Replace(_Page.Text).. " @cr @color:66,206,244 " ..self.Data.ContinueText;
     end
     -- Add page
     table.insert(self.Data.Messages, CopyTable(_Page));
@@ -177,21 +178,28 @@ end
 function Tutorial.Internal:OnEnterPressed()
     if self.Data.Running then
         local Iterator = self.Data.Iterator;
+        if not self.Data.Messages[Iterator].Trigger then
+            -- Continue to next page
+            self:HideTutorialArrow();
+            self.Data.Iterator = Iterator +1;
+            self:ActivateNextPageTrigger();
+            self:PrintTutorialMessage();
+        end
+    end
+end
+
+function Tutorial.Internal:ActivateNextPageTrigger()
+    if self.Data.Running then
+        local Iterator = self.Data.Iterator;
         -- Start condition job of next page
-        if self.Data.Messages[Iterator +1] then
-            if self.Data.Messages[Iterator +1].Condition then
-                if not self.Data.Messages[Iterator +1].Trigger then
-                    self.Data.Messages[Iterator +1].Trigger = Job.Second(function()
+        if self.Data.Messages[Iterator] then
+            if self.Data.Messages[Iterator].Condition then
+                if not self.Data.Messages[Iterator].Trigger then
+                    self.Data.Messages[Iterator].Trigger = Job.Second(function()
                         return Tutorial.Internal:NextPageTrigger();
                     end);
                 end
             end
-        end
-        -- Continue to next page
-        if not self.Data.Messages[Iterator].Trigger then
-            self:HideTutorialArrow();
-            self.Data.Iterator = Iterator +1;
-            self:PrintTutorialMessage();
         end
     end
 end
@@ -214,6 +222,7 @@ function Tutorial.Internal:NextPageTrigger()
         self.Data.Messages[self.Data.Iterator].Trigger = nil;
         self:HideTutorialArrow();
         self.Data.Iterator = self.Data.Iterator +1;
+        self:ActivateNextPageTrigger();
         self:PrintTutorialMessage();
         return true;
     end
@@ -222,7 +231,7 @@ end
 function Tutorial.Internal:ShowTutorialArrow()
     local Data = self.Data.Messages[self.Data.Iterator];
     local Widget = Data.ArrowWidget or "TutorialArrow";
-    if self.Data.Messages[self.Data.Iterator].Arrow then
+    if Data and Data.Arrow then
         local Position = self.Data.Messages[self.Data.Iterator].Arrow;
         XGUIEng.SetWidgetPosition(Widget, Position[1], Position[2]);
         XGUIEng.SetWidgetSize(Widget, 30, 30);
@@ -232,8 +241,10 @@ end
 
 function Tutorial.Internal:HideTutorialArrow()
     local Data = self.Data.Messages[self.Data.Iterator];
-    local Widget = Data.ArrowWidget or "TutorialArrow";
-    XGUIEng.ShowWidget(Widget, 0);
+    if Data then
+        local Widget = Data.ArrowWidget or "TutorialArrow";
+        XGUIEng.ShowWidget(Widget, 0);
+    end
 end
 
 function Tutorial.Internal:ShowTutorialBackground()

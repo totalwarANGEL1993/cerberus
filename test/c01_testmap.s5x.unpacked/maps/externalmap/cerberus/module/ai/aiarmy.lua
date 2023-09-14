@@ -1419,7 +1419,7 @@ AiArmyTargetingBehavior = {
             ["Spear"] = 0,
         },
         -- Becase they are basically siege cannons...
-        [Entities.PU_LeaderRifle] = {
+        [Entities.PU_LeaderRifle2] = {
             ["Hero"] = 1.0,
             ["MilitaryBuilding"] = 1.0,
             ["Cannon"] = 0.5,
