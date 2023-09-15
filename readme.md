@@ -19,25 +19,25 @@ Lib.Require("comfort/GetEnemiesInArea");
 ## File Locations
 
 The library can be packed into the map. The path would be 
-`maps\\externalmap\\cerberus`.
+`maps/externalmap/cerberus`.
 (Don't forget to delete the .git folder!)
 
 The library can also be used in a map that exists as a folder. Then your path
-is `maps\\user\\name_of_map\\cerberus`.
+is `maps/user/name_of_map/cerberus`.
 
-The library can also be placed directly in the usermaps folder.
-Then the path is `maps\\user\\cerberus`.
+The library is packed directly in the root folder of the script.
+Then the path is `script/cerberus`.
 
-The library is packed directly in the root folder of the file system.
-Then the path is `cerberus`.
+Additional paths can be defined.
 
 ### Load Order
 
 When searching for files the library will check in the following order:
-* `maps\\user\\cerberus`
-* `maps\\user\\name_of_map\\cerberus`
-* `maps\\externalmap\\cerberus`
-* `cerberus`
+* `maps/user/cerberus`
+* `maps/externalmap/cerberus`
+* `script/cerberus`
+
+Any custom path will be add before the first entry and checked first.
 
 ## Save Games
 
@@ -55,4 +55,5 @@ Mission_OnSaveGameLoaded = function()
 end
 ```
 Do NOT use the overwrite module for this function! Overwriting 
-`Mission_OnSaveGameLoaded` does break the overwrite!
+`Mission_OnSaveGameLoaded` while using an overwrite will cause an infinite
+loop and break the game!
