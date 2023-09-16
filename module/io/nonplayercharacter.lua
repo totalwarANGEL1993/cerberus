@@ -100,6 +100,7 @@ function NonPlayerCharacter.Internal:CreateNpc(_Data)
     local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
     Data.IsCharacter = true;
     Data.LookAt      = (_Data.LookAt == nil and true) or _Data.LookAt == true;
+    Data.ScriptName  = _Data.ScriptName;
     Data.Follow      = _Data.Follow;
     Data.Target      = _Data.Target;
     Data.Waypoints   = _Data.Waypoints or {};

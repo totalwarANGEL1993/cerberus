@@ -81,6 +81,26 @@ function AiArmy.GetPlayer(_ID)
     return 0;
 end
 
+--- Returns the custom value saved in the army at the key.
+--- @param _ID integer ID of army
+--- @param _Key string Name of key
+--- @return any Value Value of key
+function AiArmy.GetKey(_ID, _Key)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:GetKey(_Key);
+    end
+end
+
+--- Saves a custom valua in the army instance.
+--- @param _ID integer ID of army
+--- @param _Key string Name of key
+--- @param _Value any  Value to save
+function AiArmy.SetKey(_ID, _Key, _Value)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:SetKey(_Key, _Value)
+    end
+end
+
 --- Adds a new troop to the army.
 ---
 --- A troop can be added as reinforcement. In that case the army will not
@@ -122,8 +142,22 @@ function AiArmy.SpawnTroop(_ID, _Type, _Position, _Exp)
                 Logic.CreateEntity(SoldierType, _Position.X, _Position.Y, 0, Army.PlayerID);
                 Tools.AttachSoldiersToLeader(TroopID, 1);
             end
-            return AiArmy.AddTroop(_ID, TroopID, true);
+            local Success = AiArmy.AddTroop(_ID, TroopID, true);
+            return Success;
         end
+    end
+    return false;
+end
+
+--- Returns if the army was initalized.
+---
+--- A army is automatically marked as initalized by the code when it has full
+--- strength for the first time.
+--- @param _ID integer ID of army
+--- @return boolean Initialized Army was initalized
+function AiArmy.IsInitallyFilled(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:IsInitalized();
     end
     return false;
 end
@@ -666,6 +700,7 @@ end
 AiArmy.Internal.Army = AiArmy.Internal.Army or {
     ID               = 0,
     Active           = true,
+    Initalized       = false,
     PlayerID         = 1,
     Behavior         = 0;
     Strength         = 8,
@@ -681,6 +716,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     Troops           = {},
     CleanUp          = {},
 
+    Data             = {},
     Anchor           = {
         Position     = nil,
         RodeLength   = nil,
@@ -753,7 +789,7 @@ function AiArmy.Internal.Army:FallbackBehavior()
     if GetDistance(self:GetArmyPosition(), self.HomePosition) > 1000 then
         for j= 1, table.getn(self.Troops) do
             if Logic.IsEntityMoving(self.Troops[j]) == false then
-                Logic.MoveSettler(self.Troops[j], self.Position.X, self.Position.Y);
+                Logic.MoveSettler(self.Troops[j], self.HomePosition.X, self.HomePosition.Y);
             end
         end
     else
@@ -991,6 +1027,7 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
             AiArmyData_TroopIdToArmyId[_ID] = self.ID;
             table.insert(self.Troops, _ID);
         end
+        self:SetInitalized(self:GetCurrentStregth(true) >= 1);
         return true;
     end
     return false;
@@ -1247,6 +1284,22 @@ function AiArmy.Internal.Army:DebugShowCurrentPosition()
         local ID = Logic.CreateEntity(Entities.XD_CoordinateEntity, Position.X, Position.Y, 0, self.PlayerID);
         self.Debug.Position = ID;
     end
+end
+
+function AiArmy.Internal.Army:IsInitalized()
+    return self.Initalized == true;
+end
+
+function AiArmy.Internal.Army:SetInitalized(_Value)
+    self.Initalized = _Value == true;
+end
+
+function AiArmy.Internal.Army:GetKey(_Key)
+    return self.Data[_Key];
+end
+
+function AiArmy.Internal.Army:SetKey(_Key, _Value)
+    self.Data[_Key] = _Value;
 end
 
 -- -------------------------------------------------------------------------- --

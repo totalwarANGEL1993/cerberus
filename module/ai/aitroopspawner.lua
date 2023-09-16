@@ -255,12 +255,18 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
             end
             -- Control respawn
             -- Respawns n troops per cycle or adds an existing troop
-            if self:Tick(_Index) then
-                for i= 1, Spawner.MaxSpawn do
-                    ArmyID = self:GetArmyAwardedRespawn(_Index);
-                    if ArmyID > 0 and AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL then
-                        local ID = self:Spawn(_Index, ArmyID);
-                        AiArmy.AddTroop(ArmyID, ID, true);
+            if ArmyID > 0 then
+                local DoSpawn = true;
+                if AiArmy.IsInitallyFilled(ArmyID) == true then
+                    DoSpawn = self:Tick(_Index) == true;
+                end
+                if DoSpawn then
+                    for i= 1, Spawner.MaxSpawn do
+                        ArmyID = self:GetArmyAwardedRespawn(_Index);
+                        if ArmyID > 0 and AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL then
+                            local ID = self:Spawn(_Index, ArmyID);
+                            AiArmy.AddTroop(ArmyID, ID, true);
+                        end
                     end
                 end
             end

@@ -74,7 +74,9 @@ function GetEnemiesInArea_Helper_GetEntitiesInArea(_PlayerID, _Type, _Position, 
     local Results = {};
     local AreaSearch = {Logic.GetPlayerEntitiesInArea(_PlayerID, _Type, _Position.X, _Position.Y , _Area, _Amount or 16)};
     for i= 2, AreaSearch[1] +1 do
-        table.insert(Results, AreaSearch[i]);
+        if Logic.GetEntityHealth(AreaSearch[i]) > 0 then
+            table.insert(Results, AreaSearch[i]);
+        end
     end
     return Results;
 end
