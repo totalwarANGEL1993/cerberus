@@ -26,7 +26,7 @@ AiTroopSpawner = AiTroopSpawner or {
 ---
 --- Possible fields for definition:
 --- * ScriptName   (Required) Scriptname of spawner
---- * SpawnPoint   (Required) Scriptname of position
+--- * SpawnPoint   (Optional) Scriptname of position
 --- * SpawnAmount  (Optional) Max amount to spawn per cycle
 --- * SpawnTimer   (Optional) Time between spawn cycles
 --- * AllowedTypes (Optional) List of types {Type, Experience}
@@ -95,6 +95,27 @@ end
 --- @param _TroopID integer ID of troop
 function AiTroopSpawner.RemoveTroop(_ID, _TroopID)
     AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID);
+end
+
+--- Changes the time to the next respawn of the spawner.
+--- @param _ID integer   ID of spawner
+--- @param _Time integer Time to respawn
+function AiTroopSpawner.SetSpawnTime(_ID, _Time)
+    assert(_Time > 0, "Time must be larger than 0!");
+    if AiTroopSpawner.Internal.Data.Spawners[_ID] then
+        AiTroopSpawner.Internal.Data.Spawners[_ID].TimerMax = _Time;
+        AiTroopSpawner.Internal.Data.Spawners[_ID].Timer = _Time;
+    end
+end
+
+--- Changes the maximum troops a spawner can spawn per cycle.
+--- @param _ID integer     ID of spawner
+--- @param _Amount integer Maximum quantity
+function AiTroopSpawner.SetSpawnAmount(_ID, _Amount)
+    assert(_Amount > 0, "Amount must be larger than 0!");
+    if AiTroopSpawner.Internal.Data.Spawners[_ID] then
+        AiTroopSpawner.Internal.Data.Spawners[_ID].MaxSpawn = _Amount;
+    end
 end
 
 --- All troops that are currently refilling are removed from the spawner.

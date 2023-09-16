@@ -788,6 +788,7 @@ function AiArmy.Internal.Army:FallbackBehavior()
     if GetDistance(self:GetArmyPosition(), self.HomePosition) > 1000 then
         for j= 1, table.getn(self.Troops) do
             if Logic.IsEntityMoving(self.Troops[j]) == false then
+                ---@diagnostic disable-next-line: undefined-field
                 Logic.MoveSettler(self.Troops[j], self.HomePosition.X, self.HomePosition.Y);
             end
         end

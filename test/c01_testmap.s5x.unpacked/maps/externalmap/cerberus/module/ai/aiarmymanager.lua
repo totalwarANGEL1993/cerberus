@@ -259,6 +259,7 @@ function AiArmyManager.Internal:GetUnattendedAttackTarget(_ID, _CampaignType)
         local Targets = CopyTable(Data.AttackTargets);
         -- If only 1 is defined, return it immedaitly
         if table.getn(Targets) == 1 then
+            Targets[1].Index = 1;
             return Targets[1];
         end
 
