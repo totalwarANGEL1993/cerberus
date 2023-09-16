@@ -326,7 +326,7 @@ function AiArmyManager.Internal:GetUnattendedDefendTarget(_ID, _CampaignType)
         Targets = CopyTable(Data.GuardPositions);
         for i= table.getn(Targets), 1, -1 do
             if Data.LastGuardTarget == Targets[i] then
-                table.remove(Targets[i]);
+                table.remove(Targets, i);
             end
         end
         if ExtraDataAmount > 0 and table.getn(Targets) > 1 then
