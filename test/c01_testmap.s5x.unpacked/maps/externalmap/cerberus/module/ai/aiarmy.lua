@@ -142,8 +142,7 @@ function AiArmy.SpawnTroop(_ID, _Type, _Position, _Exp)
                 Logic.CreateEntity(SoldierType, _Position.X, _Position.Y, 0, Army.PlayerID);
                 Tools.AttachSoldiersToLeader(TroopID, 1);
             end
-            local Success = AiArmy.AddTroop(_ID, TroopID, true);
-            return Success;
+            return AiArmy.AddTroop(_ID, TroopID, true);
         end
     end
     return false;
