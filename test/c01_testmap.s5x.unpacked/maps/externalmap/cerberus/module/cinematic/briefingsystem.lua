@@ -488,7 +488,7 @@ function BriefingSystem.Internal:NextPage(_PlayerID, _FirstPage)
     if Page.Target and Page.Explore and Page.Explore > 0 then
         local Position = GetPosition(Page.Target);
         local ID = Logic.CreateEntity(Entities.XD_ScriptEntity, Position.X, Position.Y, 0, _PlayerID);
-        Logic.SetEntityExplorationRange(Position, math.ceil(Page.Explore/100));
+        Logic.SetEntityExplorationRange(ID, math.ceil(Page.Explore/100));
         table.insert(self.Data.Book[_PlayerID].Exploration, ID);
     end
     -- Start Fader

@@ -115,6 +115,7 @@ function Tutorial.Internal:Start()
     self:ShowTutorialBackground();
     self:ActivateHotkey();
     self:PrintTutorialMessage();
+    self:ActivateNextPageTrigger();
 end
 
 function Tutorial.Internal:Stop()
