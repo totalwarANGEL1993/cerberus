@@ -7,8 +7,7 @@ Lib.Register("module/trigger/Job");
 --- In addition functions can be directly passed instead of a string with
 --- a function name (but that is also possible).
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 Job = Job or {};

@@ -11,9 +11,7 @@ Lib.Register("module/ui/Clock");
 ---
 --- Can not be used in multiplayer!
 --- 
---- @require GetLanguage
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 Clock = Clock or {};

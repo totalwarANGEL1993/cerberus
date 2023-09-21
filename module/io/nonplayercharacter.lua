@@ -6,9 +6,7 @@ Lib.Register("module/io/NonPlayerCharacter");
 ---
 --- Implements an alternative to the vanilla NPC system.
 --- 
---- @require Interaction
---- @author totalwarANGEL
---- @version 1.1.0
+--- Version 1.1.0
 --- 
 
 NonPlayerCharacter = NonPlayerCharacter or {}

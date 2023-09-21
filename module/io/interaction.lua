@@ -4,9 +4,7 @@ Lib.Register("module/io/Interaction");
 --- 
 --- Internal interaction controller
 --- 
---- @require CreateNameForEntity
---- @author totalwarANGEL
---- @version 1.0.1
+--- Version 1.0.1
 --- 
 
 Interaction = Interaction or {}

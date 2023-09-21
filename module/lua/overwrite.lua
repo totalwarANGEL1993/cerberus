@@ -5,8 +5,7 @@ Lib.Register("module/lua/Overwrite");
 --- 
 --- Allows to overwrite any function directly in _G.
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 Overwrite = Overwrite or {};

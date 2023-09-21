@@ -12,14 +12,7 @@ Lib.Register("module/ui/Workplace");
 --- Enables the player to set the amount of workers in a workplace. The
 --- amount can be set to zero, half or full.
 --- 
---- @require GetLanguage
---- @require GetSeparatedTooltipText
---- @require IsBuildingBeingUpgraded
---- @require Job
---- @require Overwrite
---- @require Syncer
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 Workplace = Workplace or {};

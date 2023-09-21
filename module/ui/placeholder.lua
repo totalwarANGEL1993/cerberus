@@ -25,9 +25,7 @@ Lib.Register("module/ui/Placeholder");
 --- * {grey}    - Replaced with: @color:180,180,180
 --- * {none}    - Replaced with: @color:0,0,0,0
 --- 
---- @require GetLanguage
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 Placeholder = Placeholder or {}

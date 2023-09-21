@@ -15,11 +15,7 @@ Lib.Register("module/mp/BuyHero");
 --- * GetHeadquarters
 --- * Syncer
 ---
---- @require GetHeadquarters
---- @require GetCirclePosition
---- @require Syncer
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 ---
 
 BuyHero = BuyHero or {};

@@ -3,8 +3,7 @@ Lib.Register("module/quest/QuestConstants");
 --- 
 --- 
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 QuestState = {

@@ -14,8 +14,7 @@ Lib.Register("module/tutorial/Tutorial");
 --- While a tutorial is running messages can not be added to the screen unless
 --- GUI.AddStaticNote is used.
 ---
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.3
 ---
 
 Tutorial = Tutorial or {};

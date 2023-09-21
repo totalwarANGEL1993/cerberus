@@ -9,9 +9,7 @@ Lib.Register("module/entity/Treasure");
 --- Treasures can be placed on the map. The default chests can contain resources
 --- or technologies. But they can be configured to do more.
 --- 
---- @require Job
---- @author totalwarANGEL
---- @version 1.1.0
+--- Version 1.1.0
 --- 
 
 Treasure = Treasure or {

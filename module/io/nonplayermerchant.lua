@@ -10,9 +10,7 @@ Lib.Register("module/io/NonPlayerMerchant");
 ---
 --- Implements an alternative merchant to the vanilla system.
 --- 
---- @require Interaction
---- @author totalwarANGEL
---- @version 1.1.0
+--- Version 1.1.0
 --- 
 
 NonPlayerMerchant = NonPlayerMerchant or {
