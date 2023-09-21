@@ -8,8 +8,7 @@ Lib.Register("module/cinematic/SpectatableBriefing");
 --- This addition to the Briefing System allows to create briefings that other
 --- players can participate. But they can not change it's state.
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 SpectatableBriefing = SpectatableBriefing or {}

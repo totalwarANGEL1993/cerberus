@@ -12,8 +12,7 @@ Lib.Register("module/mp/Syncer");
 --- server and uses its API. If the server methods are not defined the script
 --- uses tributes and messages for synchronization.
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 ---
 
 Syncer = Syncer or {};

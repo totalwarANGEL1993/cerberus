@@ -5,7 +5,7 @@ Lib.Register("module/entity/SVLib");
 --- 
 --- Grants access to scripting values regardless if original game or HE.
 ---
---- @author schmeling65
+--- Author: schmeling65
 ---
 
 SVLib = {}

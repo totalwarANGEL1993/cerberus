@@ -6,8 +6,7 @@ Lib.Register("module/cinematic/Cinematic");
 --- This file is supposed to be used as dependency for other scripts. Only use
 --- the functions, if you know what you are doing!
 --- 
---- @author totalwarANGEL
---- @version 1.1.0
+--- Version 1.1.0
 --- 
 Cinematic = Cinematic or {}
 

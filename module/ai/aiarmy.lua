@@ -13,25 +13,27 @@ Lib.Register("module/ai/AiArmy");
 --- AI army script
 ---
 --- Creates an army that automatically attacks enemies in reach. It also tries
---- to not focus on a single target and makes use of max range attacks.
+--- to not focus on a single target and makes use of max range attacks if told
+--- to do so.
 ---
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.2.0
 ---
 
 AiArmy = AiArmy or {
+    --- States the army can be in.
+    ---
+    --- * `WAITING`  - Army is waiting for orders
+    --- * `ADVANCE`  - Army is walking to the target position
+    --- * `REGROUP`  - Army is gathering at the currend position
+    --- * `BATTLE`   - Army is batteling enemies around the anchor
+    --- * `REFILL`   - Army is waiting for full strength
+    --- * `FALLBACK` - Army is retreating home unorganized
     Behavior = {
-        -- Army is waiting for a command
         WAITING = 1,
-        -- Army is walking to the target position
         ADVANCE = 2,
-        -- Army is gathering at the currend position
         REGROUP = 3,
-        -- Army is batteling enemies around the anchor
         BATTLE = 4,
-        -- Army is waiting for full strength
         REFILL = 5,
-        -- 
         FALLBACK = 6,
     },
 };
@@ -68,6 +70,15 @@ end
 function AiArmy.Get(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         return AiArmyData_ArmyIdToArmyInstance[_ID];
+    end
+end
+
+--- Changes the owner of the army.
+--- @param _ID integer ID of army
+--- @param _PlayerID integer New owner
+function AiArmy.ChangePlayer(_ID, _PlayerID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:ChangePlayer(_PlayerID);
     end
 end
 
@@ -195,6 +206,14 @@ function AiArmy.GetArmyOfTroop(_ID)
     return 0;
 end
 
+--- Returns if the army is existing
+--- 
+--- @param _ID integer ID of army
+--- @return boolean Army Army is existing
+function AiArmy.IsExisting(_ID)
+    return AiArmyData_ArmyIdToArmyInstance[_ID] ~= nil;
+end
+
 --- Returns if the army is alive.
 --- 
 --- A Army is alive when it has troops. Add troops to a dead army and it will
@@ -302,6 +321,15 @@ end
 function AiArmy.GetLocation(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         return AiArmyData_ArmyIdToArmyInstance[_ID]:GetArmyPosition();
+    end
+end
+
+--- Returns the home position of the army.
+--- @param _ID integer    ID of army
+--- @return table? Home Home position of army
+function AiArmy.GetHomePosition(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID].HomePosition;
     end
 end
 
@@ -479,17 +507,17 @@ end
 --- - Always attack clostest enemy
 ---
 --- `AiArmyTargetingBehavior.Rational`
---- - Select enemies first troop is strong against
+--- - Select enemies first the troop is strong against
 --- - Otherwise attack clostest enemy
 ---
 --- `AiArmyTargetingBehavior.Clever`
---- - Select enemies first troop is strong against
+--- - Select enemies first the troop is strong against
 --- - Otherwise attack clostest enemy
 --- - Avoid enemies if the troop is weak to
 ---
 --- `AiArmyTargetingBehavior.Tactical`
 --- - Troops will snipe hostile heroes
---- - Select enemies first troop is strong against
+--- - Select enemies first the troop is strong against
 --- - Different levels of prioritization
 --- - Avoid enemies if the troop is weak to
 --- @param _ID integer ID of army
@@ -823,9 +851,10 @@ end
 --- * Enemies found
 ---   - Set behavior: AiArmy.Behavior.BATTLE
 ---   - Set anchor: Enemy position
+---   - Calls battle behavior immediately
 --- * Scattered while walking
 ---   - Set behavior: AiArmy.Behavior.REGROUP
----   - Call regroup behavior directly
+---   - Calls regroup behavior immediately
 --- * Move to positon
 ---   - Walk to position
 --- * Position reached
@@ -877,8 +906,8 @@ end
 ---   - Delete anchor
 --- * Battle the enemies
 ---   - Each troop searches enemies
----   - Move to anchor if to far apart
----   - Move to anchor if no enemy
+---   - Move troop to anchor if to far apart
+---   - Move troop to anchor if no enemy
 function AiArmy.Internal.Army:BattleBehavior()
     local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength);
     if not Enemies[1] then
@@ -945,6 +974,25 @@ function AiArmy.Internal.Army:RegroupBehavior()
 end
 
 -- -------------------------------------------------------------------------- --
+
+function AiArmy.Internal.Army:ChangePlayer(_PlayerID)
+    -- Change troops
+    local Troops = {};
+    for k,v in pairs(self.Troops) do
+        local ID = ChangePlayer(v, _PlayerID);
+        table.insert(Troops, ID);
+    end
+    self.Troops = Troops;
+    -- Change reinforcement
+    local Reinforcements = {};
+    for k,v in pairs(self.Troops) do
+        local ID = ChangePlayer(v, _PlayerID);
+        table.insert(Reinforcements, ID);
+    end
+    self.Reinforcements = Reinforcements;
+    -- Save player
+    self.PlayerID = _PlayerID;
+end
 
 function AiArmy.Internal.Army:ManageArmyMembers()
     -- Update reinforcements
@@ -1305,6 +1353,24 @@ end
 -- -------------------------------------------------------------------------- --
 -- Config
 
+--- Levels of targeting
+---
+--- `Dumb`
+--- * Target clostest enemy
+---
+--- `Rational`
+--- * Target enemies weak to unit first
+---
+--- `Clever`
+--- * Target enemies weak to unit first
+--- * Aviod enemies unit is weak to
+---
+--- `Tactical`
+--- * Snipe heroes first
+--- * Target enemies weak to unit first
+--- * Use different target priorities
+--- * Aviod enemies unit is weak to
+---
 AiArmyTargetingBehavior = {
     Dumb = {},
     Rational = {

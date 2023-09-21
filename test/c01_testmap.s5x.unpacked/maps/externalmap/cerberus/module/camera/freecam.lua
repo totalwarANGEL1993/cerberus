@@ -18,8 +18,7 @@ Lib.Register("module/camera/FreeCam");
 --- * CTRL + Y            Decrease FOV
 --- * CTRL + C            Increase FOV
 ---
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 ---
 
 FreeCam = FreeCam or {};

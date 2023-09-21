@@ -163,7 +163,7 @@ function CreateTestSpawnerOne()
             {Entities.PU_LeaderBow1, 3}
         }
     };
-    AiTroopSpawner.AddArmy(TestSpawnerID, TestArmyID, 30);
+    AiTroopSpawner.AddArmy(TestSpawnerID, TestArmyID);
 end
 
 function CreateMapEntities()

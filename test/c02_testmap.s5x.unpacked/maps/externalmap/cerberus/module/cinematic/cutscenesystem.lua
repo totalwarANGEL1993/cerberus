@@ -19,8 +19,7 @@ Lib.Register("module/cinematic/CutsceneSystem");
 --- - GameCallback_Logic_CutsceneFinished(_PlayerID, _Cutscene)
 ---   A cutscene finished for the player.
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 CutsceneSystem = CutsceneSystem or {}
 

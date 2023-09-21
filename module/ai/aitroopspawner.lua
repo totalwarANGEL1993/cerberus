@@ -10,8 +10,7 @@ Lib.Register("module/ai/AiTroopSpawner");
 --- Allows to create spawners that can supply multiple armies with new
 --- troops. The unit roster is the same for all armies.
 ---
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.1.0
 ---
 
 AiTroopSpawner = AiTroopSpawner or {
@@ -148,6 +147,13 @@ function AiTroopSpawner.GetSpawnersOfArmy(_ArmyID)
     return SpawnerIDs;
 end
 
+--- Returns all spawners the army is connected to.
+--- @param _ID integer ID of spawner
+--- @param _PlayerID integer New owner
+function AiTroopSpawner.ChangePlayer(_ID, _PlayerID)
+    return AiTroopSpawner.Internal:ChangePlayer(_ID, _PlayerID);
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -210,30 +216,55 @@ function AiTroopSpawner.Internal:DeleteSpawner(_ID)
     end
 end
 
-function AiTroopSpawner.Internal:AddArmy(_Index, _ArmyID)
-    if self.Data.Spawners[_Index] then
-        self:RemoveArmy(_Index, _ArmyID);
-        table.insert(self.Data.Spawners[_Index].Armies, _ArmyID);
+function AiTroopSpawner.Internal:GetIndex(_ID)
+    for i= table.getn(self.Data.Spawners), 1, -1 do
+        if self.Data.Spawners[i].ID == _ID then
+            return i;
+        end
+    end
+    return 0;
+end
+
+function AiTroopSpawner.Internal:ChangePlayer(_ID, _PlayerID)
+    local Index = self:GetIndex(_ID);
+    if self.Data.Spawners[Index] then
+        local Refilling = {};
+        for k,v in pairs(self.Data.Spawners[Index].Refilling) do
+            table.insert(Refilling, ChangePlayer(v, _PlayerID));
+        end
+        self.Data.Spawners[Index].Refilling = Refilling;
+
+        ChangePlayer(self.Data.Spawners[Index].ScriptName, _PlayerID);
     end
 end
 
-function AiTroopSpawner.Internal:RemoveArmy(_Index, _ArmyID)
-    if self.Data.Spawners[_Index] then
-        for i= table.getn(self.Data.Spawners[_Index].Armies), 1, -1 do
-            if self.Data.Spawners[_Index].Armies[i] == _ArmyID then
-                table.remove(self.Data.Spawners[_Index].Armies, i);
+function AiTroopSpawner.Internal:AddArmy(_ID, _ArmyID)
+    local Index = self:GetIndex(_ID);
+    if self.Data.Spawners[Index] then
+        self:RemoveArmy(Index, _ArmyID);
+        table.insert(self.Data.Spawners[Index].Armies, _ArmyID);
+    end
+end
+
+function AiTroopSpawner.Internal:RemoveArmy(_ID, _ArmyID)
+    local Index = self:GetIndex(_ID);
+    if self.Data.Spawners[Index] then
+        for i= table.getn(self.Data.Spawners[Index].Armies), 1, -1 do
+            if self.Data.Spawners[Index].Armies[i] == _ArmyID then
+                table.remove(self.Data.Spawners[Index].Armies, i);
             end
         end
     end
 end
 
-function AiTroopSpawner.Internal:AddTroop(_Index, _TroopID)
-    if self.Data.Spawners[_Index] then
+function AiTroopSpawner.Internal:AddTroop(_ID, _TroopID)
+    local Index = self:GetIndex(_ID);
+    if self.Data.Spawners[Index] then
         local Type = Logic.GetEntityType(_TroopID);
-        for i= 1, table.getn(self.Data.Spawners[_Index].AllowedTypes) do
-            if Type == self.Data.Spawners[_Index].AllowedTypes[i] then
-                self:RemoveTroop(_Index, _TroopID);
-                table.insert(self.Data.Spawners[_Index].Refilling, _TroopID);
+        for i= 1, table.getn(self.Data.Spawners[Index].AllowedTypes) do
+            if Type == self.Data.Spawners[Index].AllowedTypes[i] then
+                self:RemoveTroop(Index, _TroopID);
+                table.insert(self.Data.Spawners[Index].Refilling, _TroopID);
                 return true;
             end
         end
@@ -241,11 +272,12 @@ function AiTroopSpawner.Internal:AddTroop(_Index, _TroopID)
     return false;
 end
 
-function AiTroopSpawner.Internal:RemoveTroop(_Index, _TroopID)
-    if self.Data.Spawners[_Index] then
-        for i= table.getn(self.Data.Spawners[_Index].Refilling), 1, -1 do
-            if self.Data.Spawners[_Index].Refilling[i] == _TroopID then
-                table.remove(self.Data.Spawners[_Index].Refilling, i);
+function AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID)
+    local Index = self:GetIndex(_ID);
+    if self.Data.Spawners[Index] then
+        for i= table.getn(self.Data.Spawners[Index].Refilling), 1, -1 do
+            if self.Data.Spawners[Index].Refilling[i] == _TroopID then
+                table.remove(self.Data.Spawners[Index].Refilling, i);
             end
         end
     end

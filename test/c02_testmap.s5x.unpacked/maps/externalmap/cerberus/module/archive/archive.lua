@@ -12,8 +12,7 @@ Lib.Register("module/archive/Archive");
 --- Also some common functions that are both available in the original hook
 --- and in the community server API are provided.
 ---
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 ---
 
 Archive = Archive or {}

@@ -8,8 +8,7 @@ Lib.Register("module/lua/Extension");
 --- Adds some string and table functionality as known from languages such as
 --- Java or C#.
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 Extension = Extension or {};

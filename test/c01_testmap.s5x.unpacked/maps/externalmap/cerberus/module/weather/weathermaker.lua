@@ -11,8 +11,7 @@ Lib.Register("module/weather/WeatherMaker");
 ---
 --- Fixes weather sets for zoom factors up until 2.5 (more is just stupid).
 --- 
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 --- 
 
 WeatherMaker = WeatherMaker or {};

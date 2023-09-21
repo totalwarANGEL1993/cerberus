@@ -11,6 +11,7 @@ Lib.Register("module/ai/AiArmyManager");
 --- Army manager script
 ---
 --- A manager can handle offensive and defensive campaigns of an army.
+---
 --- * Offensive: Attacks target positions if enemies are there
 --- * Defensive: Patrols over targets and guards them
 ---
@@ -21,10 +22,13 @@ Lib.Register("module/ai/AiArmyManager");
 --- which targets the other managers attack or guard and will consider this
 --- for it's own decision making.
 ---
---- @author totalwarANGEL
---- @version 1.0.0
+--- * Offensive: Targets won't be selected twice. Synchronized armies will
+---   attack multiple targets if provided (or guard position if not).
+--- * Defensive: If an army is guarding a position and is attacked all other
+---   synchronized armies that are guarding and not fighting will assist.
 ---
-
+--- Version 1.2.0
+---
 AiArmyManager = AiArmyManager or {
     Campaign = {
         ATTACK = 1,
@@ -45,33 +49,90 @@ function AiArmyManager.Create(_ArmyID)
 end
 
 --- Deletes a manager.
---- @param _ID any ID of manager
+--- @param _ID integer ID of manager
 function AiArmyManager.Delete(_ID)
     AiArmyManager.Internal:DeleteManager(_ID);
 end
 
---- Synchronizes all the passed managers to each other.
+--- Returns the army managed by the manager
+--- @return integer ID ID of army
+function AiArmyManager.GetArmy(_ID)
+    if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
+        return AiArmyManagerData_ManagerIdToManagerInstance[_ID]:GetArmy(_ID);
+    end
+    return 0;
+end
+
+--- Removes the manager from all it associations.
+--- @param _ID integer ID of manager
+function AiArmyManager.PurgeSynchronization(_ID)
+    AiArmyManager.Internal:PurgeSynchronization(_ID);
+end
+
+--- Synchronizes the attacks of all passed manager IDs.
 --- @param ... integer List of managers
-function AiArmyManager.Synchronize(...)
+function AiArmyManager.SynchronizeOffence(...)
     for i= 1, table.getn(arg) do
         for j= 1, table.getn(arg) do
             if arg[i] ~= arg[j] then
-                AiArmyManager.Internal:Synchronize(arg[i], arg[j]);
+                AiArmyManager.Internal:SynchronizeOffence(arg[i], arg[j]);
             end
         end
     end
 end
 
---- Lifts the synchronization of the passed managers to another.
+--- Lifts the synchronization of attacks for the passed manager IDs.
 --- @param ... integer List of managers
-function AiArmyManager.Desynchronize(...)
+function AiArmyManager.DesynchronizeOffence(...)
     for i= 1, table.getn(arg) do
         for j= 1, table.getn(arg) do
             if arg[i] ~= arg[j] then
-                AiArmyManager.Internal:Desynchronize(arg[i], arg[j]);
+                AiArmyManager.Internal:DesynchronizeOffence(arg[i], arg[j]);
             end
         end
     end
+end
+
+--- Synchronizes the attacks of all passed manager IDs.
+--- @param ... integer List of managers
+function AiArmyManager.SynchronizeDefence(...)
+    for i= 1, table.getn(arg) do
+        for j= 1, table.getn(arg) do
+            if arg[i] ~= arg[j] then
+                AiArmyManager.Internal:SynchronizeDefence(arg[i], arg[j]);
+            end
+        end
+    end
+end
+
+--- Lifts the synchronization of attacks for the passed manager IDs.
+--- @param ... integer List of managers
+function AiArmyManager.DesynchronizeDefence(...)
+    for i= 1, table.getn(arg) do
+        for j= 1, table.getn(arg) do
+            if arg[i] ~= arg[j] then
+                AiArmyManager.Internal:DesynchronizeDefence(arg[i], arg[j]);
+            end
+        end
+    end
+end
+
+--- Synchronizes offence and defence of all passed manager IDs.
+--- @param ... integer List of managers
+function AiArmyManager.Synchronize(...)
+    --- @diagnostic disable-next-line: param-type-mismatch
+    AiArmyManager.SynchronizeOffence(unpack(arg));
+    --- @diagnostic disable-next-line: param-type-mismatch
+    AiArmyManager.SynchronizeDefence(unpack(arg));
+end
+
+--- Lifts offence and defence synchronization of all passed manager IDs.
+--- @param ... integer List of managers
+function AiArmyManager.Desynchronize(...)
+    --- @diagnostic disable-next-line: param-type-mismatch
+    AiArmyManager.DesynchronizeOffence(unpack(arg));
+    --- @diagnostic disable-next-line: param-type-mismatch
+    AiArmyManager.DesynchronizeDefence(unpack(arg));
 end
 
 --- Sets the time eath guard position is guarded.
@@ -119,6 +180,21 @@ function AiArmyManager.RemoveGuardPosition(_ID, _Target)
     AiArmyManager.Internal:RemoveGuardPosition(_ID, _Target);
 end
 
+--- Stops the current agenda of the manager.
+--- @param _ID integer ID of manager
+function AiArmyManager.EndCampaign(_ID)
+    AiArmyManager.Internal:EndCampaign(_ID);
+end
+
+--- Changes the player of the manager and it's army.
+---
+--- All synchronizations are cancelled automatically.
+--- @param _ID integer ID of manager
+--- @param _PlayerID integer New owner
+function AiArmyManager.ChangePlayer(_ID, _PlayerID)
+    AiArmyManager.Internal:ChangePlayer(_ID, _PlayerID);
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -135,7 +211,7 @@ function AiArmyManager.Internal:Install()
 
         self.ControllerJobID = Job.Second(function()
             for i= table.getn(self.Data.Managers), 1, -1 do
-                self:ControllManagers(i);
+                self:ControllManager(i);
             end
         end);
     end
@@ -151,7 +227,8 @@ function AiArmyManager.Internal:CreateManager(_Data)
         ArmyID         = _Data.ArmyID,
         GuardTime      = _Data.GuardTime or (3*60),
         Campaign       = {},
-        Synchronized   = {},
+        SyncOffence    = {},
+        SyncDefence    = {},
         AttackTargets  = _Data.AttackTargets or {},
         GuardPositions = _Data.GuardPositions or {},
     };
@@ -176,27 +253,28 @@ function AiArmyManager.Internal:DeleteManager(_ID)
     AiArmyManagerData_ManagerIdToManagerInstance[ID] = nil;
 end
 
+function AiArmyManager.Internal:ChangePlayer(_ID, _PlayerID)
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
+    AiArmy.ChangePlayer(AiArmyManagerData_ManagerIdToManagerInstance[_ID].ArmyID, _PlayerID);
+    self:PurgeSynchronization(_ID);
+end
+
 -- -------------------------------------------------------------------------- --
 
-function AiArmyManager.Internal:ControllManagers(_Index)
+function AiArmyManager.Internal:ControllManager(_Index)
     local Data = self.Data.Managers[_Index];
-    if Data then
-        local Army = AiArmy.Get(Data.ArmyID);
-        if not Army then
-            return;
-        end
-
+    if Data and AiArmy.IsExisting(Data.ArmyID) then
         -- Control attack campaign
         if Data.Campaign.Type == AiArmyManager.Campaign.ATTACK then
             -- Check army defeated
-            if Army.Behavior == AiArmy.Behavior.FALLBACK then
+            if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
                 self:EndCampaign(Data.ID);
                 return;
             end
             -- Control movement
             if Data.Campaign.Target.Index < table.getn(Data.Campaign.Target) then
                 local CurrentData = Data.Campaign.Target;
-                if GetDistance(CurrentData[CurrentData.Index], Army:GetArmyPosition()) < 1000 then
+                if GetDistance(CurrentData[CurrentData.Index], AiArmy.GetLocation(Data.ArmyID)) < 1000 then
                     self.Data.Managers[_Index].Campaign.Target.Index = Data.Campaign.Target.Index + 1;
                     AiArmy.Advance(Data.ArmyID, GetPosition(CurrentData[CurrentData.Index]));
                     return;
@@ -214,12 +292,13 @@ function AiArmyManager.Internal:ControllManagers(_Index)
         -- Control guard campaign
         elseif Data.Campaign.Type == AiArmyManager.Campaign.DEFEND then
             -- Check army defeated
-            if Army.Behavior == AiArmy.Behavior.FALLBACK then
+            if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
                 self:EndCampaign(Data.ID);
                 return;
             end
             -- Tick down guard time
-            if Army.Behavior ~= AiArmy.Behavior.BATTLE then
+            if  AiArmy.GetBehavior(Data.ArmyID) ~= AiArmy.Behavior.BATTLE
+            and AiArmy.GetBehavior(Data.ArmyID) ~= AiArmy.Behavior.ADVANCE then
                 self.Data.Managers[_Index].Campaign.Time = Data.Campaign.Time -1;
                 if Data.Campaign.Time == 0 then
                     self:EndCampaign(Data.ID);
@@ -227,10 +306,23 @@ function AiArmyManager.Internal:ControllManagers(_Index)
                     return;
                 end
             end
+            -- Help synchronized
+            if  AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
+                for i= table.getn(Data.SyncDefence), 1, -1 do
+                    if AiArmy.GetBehavior(Data.SyncDefence[i]) == AiArmy.Behavior.BATTLE then
+                        --- @diagnostic disable-next-line: param-type-mismatch
+                        AiArmy.Advance(Data.ArmyID, AiArmy.GetLocation(Data.SyncDefence[i]));
+                        return;
+                    end
+                end
+                if GetDistance(AiArmy.GetLocation(Data.ArmyID), Data.Campaign.Target) > 1000 then
+                    AiArmy.Advance(Data.ArmyID, GetPosition(Data.Campaign.Target));
+                end
+            end
 
         -- Assign new campaign
         else
-            if Army.Behavior == AiArmy.Behavior.WAITING then
+            if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
                 -- Get attack target
                 local AttackTarget = self:GetUnattendedAttackTarget(Data.ID, AiArmyManager.Campaign.ATTACK);
                 if AttackTarget ~= nil then
@@ -244,8 +336,9 @@ function AiArmyManager.Internal:ControllManagers(_Index)
                     self:BeginDefensiveCampaign(Data.ID, GuardTarget, Data.GuardTime);
                     AiArmy.Advance(Data.ArmyID, GetPosition(GuardTarget));
                 else
-                    self:BeginDefensiveCampaign(Data.ID, Army.HomePosition, Data.GuardTime);
-                    AiArmy.Advance(Data.ArmyID, Army.HomePosition);
+                    self:BeginDefensiveCampaign(Data.ID, AiArmy.GetHomePosition(Data.ArmyID), Data.GuardTime);
+                    --- @diagnostic disable-next-line: param-type-mismatch
+                    AiArmy.Advance(Data.ArmyID, AiArmy.GetHomePosition(Data.ArmyID));
                 end
             end
         end
@@ -264,8 +357,8 @@ function AiArmyManager.Internal:GetUnattendedAttackTarget(_ID, _CampaignType)
         end
 
         -- Remove targets processed by synchronized armies
-        for i= table.getn(Data.Synchronized), 1, -1 do
-            local Other = AiArmyManagerData_ManagerIdToManagerInstance[Data.Synchronized[i]];
+        for i= table.getn(Data.SyncOffence), 1, -1 do
+            local Other = AiArmyManagerData_ManagerIdToManagerInstance[Data.SyncOffence[i]];
             if Other then
                 for j= table.getn(Targets), 1, -1 do
                     local OtherTargets = Other.Campaign.Target;
@@ -303,14 +396,14 @@ function AiArmyManager.Internal:GetUnattendedDefendTarget(_ID, _CampaignType)
         -- Remove targets processed by synchronized armies
         local ExtraDataAmount = 0;
         local ExtraData = {};
-        for i= table.getn(Data.Synchronized), 1, -1 do
-            local Other = AiArmyManagerData_ManagerIdToManagerInstance[Data.Synchronized[i]];
+        for i= table.getn(Data.SyncDefence), 1, -1 do
+            local Other = AiArmyManagerData_ManagerIdToManagerInstance[Data.SyncDefence[i]];
             if Other then
                 for j= table.getn(Targets), 1, -1 do
                     if  Other.Campaign.Type == _CampaignType
                     and Other.Campaign.Target == Targets[j] then
                         ExtraDataAmount = ExtraDataAmount +1;
-                        ExtraData[Targets[j]] = {Data.Synchronized[i], Other.Campaign.Target, Other.Campaign.Time};
+                        ExtraData[Targets[j]] = {Data.SyncDefence[i], Other.Campaign.Target, Other.Campaign.Time};
                         table.remove(Targets, j);
                     end
                 end
@@ -447,30 +540,69 @@ function AiArmyManager.Internal:EndCampaign(_ID)
     };
 end
 
-function AiArmyManager.Internal:Synchronize(_ID1, _ID2)
-    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1]);
-    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2]);
+function AiArmyManager.Internal:PurgeSynchronization(_ID)
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
 
-    if not IsInTable(_ID2, AiArmyManagerData_ManagerIdToManagerInstance[_ID1].Synchronized) then
-        table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].Synchronized, _ID2);
+    for k,v in pairs(AiArmyManagerData_ManagerIdToManagerInstance[_ID].SyncOffence) do
+        self:DesynchronizeOffence(_ID, v);
     end
-    if not IsInTable(_ID1, AiArmyManagerData_ManagerIdToManagerInstance[_ID2].Synchronized) then
-        table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].Synchronized, _ID1);
+    for k,v in pairs(AiArmyManagerData_ManagerIdToManagerInstance[_ID].SyncDefence) do
+        self:DesynchronizeDefence(_ID, v);
     end
 end
 
-function AiArmyManager.Internal:Desynchronize(_ID1, _ID2)
+function AiArmyManager.Internal:SynchronizeOffence(_ID1, _ID2)
     assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1]);
     assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2]);
 
-    for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].Synchronized), 1, -1 do
-        if AiArmyManagerData_ManagerIdToManagerInstance[_ID1].Synchronized[i] == _ID2 then
-            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].Synchronized, i);
+    if not IsInTable(_ID2, AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncOffence) then
+        table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncOffence, _ID2);
+    end
+    if not IsInTable(_ID1, AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncOffence) then
+        table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncOffence, _ID1);
+    end
+end
+
+function AiArmyManager.Internal:DesynchronizeOffence(_ID1, _ID2)
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1]);
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2]);
+
+    for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncOffence), 1, -1 do
+        if AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncOffence[i] == _ID2 then
+            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncOffence, i);
         end
     end
-    for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].Synchronized), 1, -1 do
-        if AiArmyManagerData_ManagerIdToManagerInstance[_ID2].Synchronized[i] == _ID1 then
-            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].Synchronized, i);
+    for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncOffence), 1, -1 do
+        if AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncOffence[i] == _ID1 then
+            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncOffence, i);
+        end
+    end
+end
+
+function AiArmyManager.Internal:SynchronizeDefence(_ID1, _ID2)
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1]);
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2]);
+
+    if not IsInTable(_ID2, AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncDefence) then
+        table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncDefence, _ID2);
+    end
+    if not IsInTable(_ID1, AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncDefence) then
+        table.insert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncDefence, _ID1);
+    end
+end
+
+function AiArmyManager.Internal:DesynchronizeDefence(_ID1, _ID2)
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID1]);
+    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID2]);
+
+    for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncDefence), 1, -1 do
+        if AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncDefence[i] == _ID2 then
+            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID1].SyncDefence, i);
+        end
+    end
+    for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncDefence), 1, -1 do
+        if AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncDefence[i] == _ID1 then
+            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID2].SyncDefence, i);
         end
     end
 end

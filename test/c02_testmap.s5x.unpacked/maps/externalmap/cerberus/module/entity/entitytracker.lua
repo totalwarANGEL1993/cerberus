@@ -13,11 +13,7 @@ Lib.Register("module/entity/EntityTracker");
 --- GameCallback_GUI_SelectionChanged is called by code if an configured type
 --- is created/destroyed or an building upgrade is started/canceled.
 --- 
---- @require Syncer
---- @require GetUpgradeCategoryByEntityType
---- @require GetUpgradeLevelByEntityType
---- @author totalwarANGEL
---- @version 1.0.0
+--- Version 1.0.0
 ---
 
 EntityTracker = EntityTracker or {};

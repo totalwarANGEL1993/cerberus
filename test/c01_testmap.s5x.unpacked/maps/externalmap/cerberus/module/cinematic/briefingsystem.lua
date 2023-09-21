@@ -19,8 +19,7 @@ Lib.Register("module/cinematic/BriefingSystem");
 --- - GameCallback_Logic_BriefingFinished(_PlayerID, _Briefing)
 ---   A briefing finished for the player.
 --- 
---- @author totalwarANGEL
---- @version 1.2.0
+--- Version 1.2.0
 --- 
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,
@@ -310,10 +309,15 @@ function BriefingSystem.Internal:AddPages(_Briefing)
             DialogCamera = arg[5],
             Action       = arg[6],
         };
+        --- @diagnostic disable-next-line: inject-field
         Page.Explore   = 0;
+        --- @diagnostic disable-next-line: inject-field
         Page.MiniMap   = false;
+        --- @diagnostic disable-next-line: inject-field
         Page.RenderFoW = false;
+        --- @diagnostic disable-next-line: inject-field
         Page.RenderSky = true;
+        --- @diagnostic disable-next-line: inject-field
         Page.Signal    = false;
         return Page;
     end
@@ -347,13 +351,20 @@ function BriefingSystem.Internal:AddPages(_Briefing)
             Action       = arg[6],
             MC           = {}
         };
+        --- @diagnostic disable-next-line: inject-field
         Page.Explore   = 0;
+        --- @diagnostic disable-next-line: inject-field
         Page.MiniMap   = false;
+        --- @diagnostic disable-next-line: inject-field
         Page.RenderFoW = false;
+        --- @diagnostic disable-next-line: inject-field
         Page.RenderSky = true;
+        --- @diagnostic disable-next-line: inject-field
         Page.Signal    = false;
+
         local AnswerID = 1;
         for i= 7, table.getn(arg), 2 do
+            --- @diagnostic disable-next-line: undefined-field
             table.insert(Page.MC, {ID = AnswerID, arg[i], arg[i+1]});
             AnswerID = AnswerID +1;
         end
