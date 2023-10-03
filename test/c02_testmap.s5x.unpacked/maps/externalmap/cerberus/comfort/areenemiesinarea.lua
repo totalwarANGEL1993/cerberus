@@ -43,6 +43,7 @@ function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state)
                 "MilitaryBuilding",
                 "Hero",
                 "Leader",
+                "Cannon",
                 "Serf"
             ) == 1 then
                 return true;

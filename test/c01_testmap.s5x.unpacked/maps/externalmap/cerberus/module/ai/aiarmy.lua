@@ -623,16 +623,30 @@ end
 
 -- Checks for enemies in the area and removes not reachable.
 function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID)
+    local AreaSquared = _Area ^ 2;
     local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
     local Position = (_TroopID and GetPosition(_TroopID)) or _Position;
     local Enemies = GetEnemiesInArea(PlayerID, Position, _Area);
+
+    local NotDefendableBuilding = {};
     for i= table.getn(Enemies), 1, -1 do
-        if not IsValidEntity(Enemies[i])
-        or GetDistance(Position, Enemies[i]) > _Area then
-            table.remove(Enemies, i);
+        if Logic.IsEntityInCategory(Enemies[i], EntityCategories.DefendableBuilding) == 0 then
+            if IsValidEntity(Enemies[i]) and GetDistanceSquare(Position, Enemies[i]) <= AreaSquared then
+                table.insert(NotDefendableBuilding, Enemies[i]);
+            end
         end
     end
-    return Enemies;
+
+    local AllTargets = {};
+    for i= table.getn(Enemies), 1, -1 do
+        if IsValidEntity(Enemies[i]) and GetDistanceSquare(Position, Enemies[i]) <= AreaSquared then
+            table.insert(AllTargets, Enemies[i]);
+        end
+    end
+    if table.getn(NotDefendableBuilding) > 0 then
+        return NotDefendableBuilding;
+    end
+    return AllTargets;
 end
 
 -- Returns the best target for the troop from the target list.
@@ -873,7 +887,8 @@ function AiArmy.Internal.Army:AdvanceBehavior()
 
     if EncounteredEnemy ~= 0 then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
-        self:SetAnchor(GetPosition(EncounteredEnemy), self.RodeLength);
+        local Reachable = GetReachablePosition(self.Troops[1], EncounteredEnemy, self.Troops[1]);
+        self:SetAnchor(Reachable, self.RodeLength);
         self:BattleBehavior();
     else
         if self:IsScattered() then
@@ -1378,27 +1393,33 @@ AiArmyTargetingBehavior = {
             ["Rifle"] = 1.0,
             ["LongRange"] = 1.0,
             ["Spear"] = 1.0,
+            ["DefendableBuilding"] = 0,
         },
         Spear = {
             ["CavalryHeavy"] = 1.0,
+            ["DefendableBuilding"] = 0,
         },
         CavalryHeavy = {
             ["Cannon"] = 1.0,
             ["LongRange"] = 1.0,
             ["Rifle"] = 1.0,
+            ["DefendableBuilding"] = 0,
         },
         LongRange = {
             ["Cannon"] = 1.0,
             ["CavalryHeavy"] = 1.0,
             ["CavalryLight"] = 1.0,
+            ["DefendableBuilding"] = 0,
         },
         Rifle = {
             ["EvilLeader"] = 1.0,
             ["LongRange"] = 1.0,
+            ["DefendableBuilding"] = 0,
         },
         Cannon = {
             ["MilitaryBuilding"] = 1.0,
             ["LongRange"] = 1.0,
+            ["DefendableBuilding"] = 0,
         },
     },
     Clever = {
@@ -1406,6 +1427,7 @@ AiArmyTargetingBehavior = {
             ["Rifle"] = 1.0,
             ["LongRange"] = 1.0,
             ["Spear"] = 1.0,
+            ["DefendableBuilding"] = 0,
             ["CavalryHeavy"] = 0,
             ["CavalryLight"] = 0,
         },
@@ -1413,6 +1435,7 @@ AiArmyTargetingBehavior = {
             ["CavalryHeavy"] = 1.0,
             ["CavalryLight"] = 1.0,
             ["MilitaryBuilding"] = 1.0,
+            ["DefendableBuilding"] = 0,
             ["Sword"] = 0,
             ["Cannon"] = 0,
         },
@@ -1420,6 +1443,7 @@ AiArmyTargetingBehavior = {
             ["Cannon"] = 1.0,
             ["LongRange"] = 1.0,
             ["Sword"] = 1.0,
+            ["DefendableBuilding"] = 0,
             ["MilitaryBuilding"] = 0,
             ["Spear"] = 0,
         },
@@ -1427,6 +1451,7 @@ AiArmyTargetingBehavior = {
             ["Cannon"] = 1.0,
             ["CavalryHeavy"] = 1.0,
             ["Spear"] = 1.0,
+            ["DefendableBuilding"] = 0,
             ["Rifle"] = 0,
             ["Sword"] = 0,
         },
@@ -1434,12 +1459,14 @@ AiArmyTargetingBehavior = {
             ["EvilLeader"] = 1.0,
             ["LongRange"] = 1.0,
             ["Spear"] = 1.0,
+            ["DefendableBuilding"] = 0,
             ["MilitaryBuilding"] = 0,
         },
         Cannon = {
             ["MilitaryBuilding"] = 1.0,
             ["LongRange"] = 1.0,
             ["Rifle"] = 1.0,
+            ["DefendableBuilding"] = 0,
             ["CavalryLight"] = 1.0,
             ["CavalryHeavy"] = 0,
         },
@@ -1451,6 +1478,7 @@ AiArmyTargetingBehavior = {
             ["LongRange"] = 0.8,
             ["Cannon"] = 0.6,
             ["Spear"] = 0.4,
+            ["DefendableBuilding"] = 0,
             ["CavalryHeavy"] = 0,
             ["CavalryLight"] = 0,
         },
@@ -1459,6 +1487,7 @@ AiArmyTargetingBehavior = {
             ["CavalryHeavy"] = 0.9,
             ["CavalryLight"] = 0.8,
             ["MilitaryBuilding"] = 0.4,
+            ["DefendableBuilding"] = 0,
             ["Sword"] = 0,
             ["Cannon"] = 0,
         },
@@ -1469,6 +1498,7 @@ AiArmyTargetingBehavior = {
             ["LongRange"] = 0.8,
             ["Sword"] = 0.8,
             ["MilitaryBuilding"] = 0,
+            ["DefendableBuilding"] = 0,
             ["Spear"] = 0,
         },
         LongRange = {
@@ -1477,6 +1507,7 @@ AiArmyTargetingBehavior = {
             ["CavalryHeavy"] = 0.8,
             ["CavalryLight"] = 0.6,
             ["Spear"] = 0.6,
+            ["DefendableBuilding"] = 0,
             ["Rifle"] = 0,
             ["Sword"] = 0,
         },
@@ -1488,6 +1519,7 @@ AiArmyTargetingBehavior = {
             ["Spear"] = 0.7,
             ["CavalryHeavy"] = 0.4,
             ["Sword"] = 0.4,
+            ["DefendableBuilding"] = 0,
             ["MilitaryBuilding"] = 0,
         },
 
@@ -1502,6 +1534,7 @@ AiArmyTargetingBehavior = {
             ["Sword"] = 0.8,
             ["Cannon"] = 0.5,
             ["CavalryHeavy"] = 0.5,
+            ["DefendableBuilding"] = 0,
             ["MilitaryBuilding"] = 0,
         },
         [Entities.PV_Cannon2] = {
@@ -1510,6 +1543,7 @@ AiArmyTargetingBehavior = {
             ["Cannon"] = 0.5,
             ["EvilLeader"] = 0.3,
             ["LongRange"] = 0.3,
+            ["DefendableBuilding"] = 0,
             ["CavalryHeavy"] = 0,
             ["CavalryLight"] = 0,
             ["Sword"] = 0,
@@ -1524,6 +1558,7 @@ AiArmyTargetingBehavior = {
             ["Sword"] = 0.8,
             ["Cannon"] = 0.5,
             ["CavalryHeavy"] = 0.5,
+            ["DefendableBuilding"] = 0,
             ["MilitaryBuilding"] = 0,
         },
         [Entities.PV_Cannon4] = {
@@ -1532,6 +1567,7 @@ AiArmyTargetingBehavior = {
             ["Cannon"] = 0.5,
             ["EvilLeader"] = 0.3,
             ["LongRange"] = 0.3,
+            ["DefendableBuilding"] = 0,
             ["CavalryHeavy"] = 0,
             ["CavalryLight"] = 0,
             ["Sword"] = 0,
@@ -1544,6 +1580,7 @@ AiArmyTargetingBehavior = {
             ["Cannon"] = 0.5,
             ["EvilLeader"] = 0.3,
             ["LongRange"] = 0.3,
+            ["DefendableBuilding"] = 0,
             ["CavalryHeavy"] = 0,
             ["CavalryLight"] = 0,
             ["Sword"] = 0,

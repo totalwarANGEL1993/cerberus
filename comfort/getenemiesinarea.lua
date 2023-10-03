@@ -89,6 +89,7 @@ function GetEnemiesInArea_Helper_FillRelevantTypes()
             or Logic.IsEntityTypeInCategory(v, EntityCategories.DefendableBuilding) == 1
             or Logic.IsEntityTypeInCategory(v, EntityCategories.Hero) == 1
             or Logic.IsEntityTypeInCategory(v, EntityCategories.Leader) == 1
+            or Logic.IsEntityTypeInCategory(v, EntityCategories.Cannon) == 1
             or Logic.IsEntityTypeInCategory(v, EntityCategories.Serf) == 1 then
                 table.insert(GetEntitiesOfDiplomacyStateInArea_RelevantTypes, v);
             end
