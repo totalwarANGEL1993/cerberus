@@ -628,29 +628,25 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
     local Position = (_TroopID and GetPosition(_TroopID)) or _Position;
     local Enemies = GetEnemiesInArea(PlayerID, Position, _Area);
 
-    -- Select only units that are no civil buildings
-    local NoDefendableBuilding = {};
+    local NotDefendableBuilding = {};
     for i= table.getn(Enemies), 1, -1 do
         if Logic.IsEntityInCategory(Enemies[i], EntityCategories.DefendableBuilding) == 0 then
             if IsValidEntity(Enemies[i]) and GetDistanceSquare(Position, Enemies[i]) <= AreaSquared then
-                table.insert(NoDefendableBuilding, Enemies[i]);
+                table.insert(NotDefendableBuilding, Enemies[i]);
             end
         end
     end
-    -- Take all enemies including civil buildings
-    local WithDefendableBuilding = {};
+
+    local AllTargets = {};
     for i= table.getn(Enemies), 1, -1 do
         if IsValidEntity(Enemies[i]) and GetDistanceSquare(Position, Enemies[i]) <= AreaSquared then
-            table.insert(WithDefendableBuilding, Enemies[i]);
+            table.insert(AllTargets, Enemies[i]);
         end
     end
-
-    -- Return without defendable building first
-    if table.getn(NoDefendableBuilding) > 0 then
-        return NoDefendableBuilding;
+    if table.getn(NotDefendableBuilding) > 0 then
+        return NotDefendableBuilding;
     end
-    -- Otherwise return full list
-    return WithDefendableBuilding;
+    return AllTargets;
 end
 
 -- Returns the best target for the troop from the target list.
