@@ -10,13 +10,15 @@ Lib.Register("module/ai/AiTroopSpawner");
 --- Allows to create spawners that can supply multiple armies with new
 --- troops. The unit roster is the same for all armies.
 ---
---- Version 1.1.0
+--- Version 1.2.0
 ---
 
 AiTroopSpawner = AiTroopSpawner or {
     RefillDistance = 1500,
     NoEnemyDistance = 3500,
 };
+
+AiArmySpawnerData_SpawnerIdToSpawnerInstance = {};
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -47,16 +49,16 @@ end
 --- @param _Type integer Type of Leader
 --- @param _Exp integer  Experience points
 function AiTroopSpawner.AddAllowedTypes(_ID, _Type, _Exp)
-    if AiTroopSpawner.Internal.Data.Spawners[_ID] then
-        table.insert(AiTroopSpawner.Internal.Data.Spawners[_ID].AllowedTypes, {_Type, _Exp});
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes, {_Type, _Exp});
     end
 end
 
 --- Removes all allowed types from the unit roster.
 --- @param _ID integer ID of spawner
 function AiTroopSpawner.ClearAllowedTypes(_ID)
-    if AiTroopSpawner.Internal.Data.Spawners[_ID] then
-        AiTroopSpawner.Internal.Data.Spawners[_ID].AllowedTypes = {};
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes = {};
     end
 end
 
@@ -101,9 +103,9 @@ end
 --- @param _Time integer Time to respawn
 function AiTroopSpawner.SetSpawnTime(_ID, _Time)
     assert(_Time > 0, "Time must be larger than 0!");
-    if AiTroopSpawner.Internal.Data.Spawners[_ID] then
-        AiTroopSpawner.Internal.Data.Spawners[_ID].TimerMax = _Time;
-        AiTroopSpawner.Internal.Data.Spawners[_ID].Timer = _Time;
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].TimerMax = _Time;
+        AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Timer = _Time;
     end
 end
 
@@ -112,8 +114,8 @@ end
 --- @param _Amount integer Maximum quantity
 function AiTroopSpawner.SetSpawnAmount(_ID, _Amount)
     assert(_Amount > 0, "Amount must be larger than 0!");
-    if AiTroopSpawner.Internal.Data.Spawners[_ID] then
-        AiTroopSpawner.Internal.Data.Spawners[_ID].MaxSpawn = _Amount;
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].MaxSpawn = _Amount;
     end
 end
 
@@ -122,9 +124,9 @@ end
 --- @return table List of troops
 function AiTroopSpawner.DraftTroops(_ID)
     local Troops = {};
-    if AiTroopSpawner.Internal.Data.Spawners[_ID] then
-        for i= table.getn(AiTroopSpawner.Internal.Data.Spawners[_ID].Refilling), 1, -1 do
-            local ID = table.remove(AiTroopSpawner.Internal.Data.Spawners[_ID].Refilling, i);
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        for i= table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling), 1, -1 do
+            local ID = table.remove(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling, i);
             table.insert(Troops, ID);
         end
     end
@@ -147,7 +149,7 @@ function AiTroopSpawner.GetSpawnersOfArmy(_ArmyID)
     return SpawnerIDs;
 end
 
---- Returns all spawners the army is connected to.
+--- Changes the owner of the spawner.
 --- @param _ID integer ID of spawner
 --- @param _PlayerID integer New owner
 function AiTroopSpawner.ChangePlayer(_ID, _PlayerID)
@@ -181,6 +183,13 @@ function AiTroopSpawner.Internal:CreateSpawner(_Data)
     self.Data.SpawnerIdSequence = self.Data.SpawnerIdSequence +1;
     local ID = self.Data.SpawnerIdSequence;
 
+    local AllowedTypes = _Data.AllowedTypes or {};
+    for i= 1, table.getn(AllowedTypes) do
+        if type(AllowedTypes[i]) ~= "table" then
+            AllowedTypes[i] = {AllowedTypes[i], 0};
+        end
+    end
+
     local Spawner = {
         ID           = ID,
         ScriptName   = _Data.ScriptName,
@@ -188,7 +197,7 @@ function AiTroopSpawner.Internal:CreateSpawner(_Data)
         MaxSpawn     = _Data.SpawnAmount or 1,
         Timer        = _Data.SpawnTimer or 60,
         TimerMax     = _Data.SpawnTimer or 60,
-        AllowedTypes = _Data.AllowedTypes or {},
+        AllowedTypes = AllowedTypes,
         Refilling    = {},
         Armies       = {},
     }
@@ -204,6 +213,7 @@ function AiTroopSpawner.Internal:CreateSpawner(_Data)
         Logic.SetEntityName(EntityID, Spawner.SpawnPoint);
     end
     Spawner.AllowedTypes.Index = 0;
+    AiArmySpawnerData_SpawnerIdToSpawnerInstance[ID] = Spawner;
     table.insert(self.Data.Spawners, Spawner);
     return ID;
 end
@@ -216,55 +226,43 @@ function AiTroopSpawner.Internal:DeleteSpawner(_ID)
     end
 end
 
-function AiTroopSpawner.Internal:GetIndex(_ID)
-    for i= table.getn(self.Data.Spawners), 1, -1 do
-        if self.Data.Spawners[i].ID == _ID then
-            return i;
-        end
-    end
-    return 0;
-end
-
 function AiTroopSpawner.Internal:ChangePlayer(_ID, _PlayerID)
-    local Index = self:GetIndex(_ID);
-    if self.Data.Spawners[Index] then
+    local Spawner = AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID];
+    if Spawner then
         local Refilling = {};
-        for k,v in pairs(self.Data.Spawners[Index].Refilling) do
+        for k,v in pairs(Spawner.Refilling) do
             table.insert(Refilling, ChangePlayer(v, _PlayerID));
         end
-        self.Data.Spawners[Index].Refilling = Refilling;
+        Spawner.Refilling = Refilling;
 
-        ChangePlayer(self.Data.Spawners[Index].ScriptName, _PlayerID);
+        ChangePlayer(Spawner.ScriptName, _PlayerID);
     end
 end
 
 function AiTroopSpawner.Internal:AddArmy(_ID, _ArmyID)
-    local Index = self:GetIndex(_ID);
-    if self.Data.Spawners[Index] then
-        self:RemoveArmy(Index, _ArmyID);
-        table.insert(self.Data.Spawners[Index].Armies, _ArmyID);
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        self:RemoveArmy(_ID, _ArmyID);
+        table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Armies, _ArmyID);
     end
 end
 
 function AiTroopSpawner.Internal:RemoveArmy(_ID, _ArmyID)
-    local Index = self:GetIndex(_ID);
-    if self.Data.Spawners[Index] then
-        for i= table.getn(self.Data.Spawners[Index].Armies), 1, -1 do
-            if self.Data.Spawners[Index].Armies[i] == _ArmyID then
-                table.remove(self.Data.Spawners[Index].Armies, i);
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        for i= table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Armies), 1, -1 do
+            if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Armies[i] == _ArmyID then
+                table.remove(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Armies, i);
             end
         end
     end
 end
 
 function AiTroopSpawner.Internal:AddTroop(_ID, _TroopID)
-    local Index = self:GetIndex(_ID);
-    if self.Data.Spawners[Index] then
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
         local Type = Logic.GetEntityType(_TroopID);
-        for i= 1, table.getn(self.Data.Spawners[Index].AllowedTypes) do
-            if Type == self.Data.Spawners[Index].AllowedTypes[i] then
-                self:RemoveTroop(Index, _TroopID);
-                table.insert(self.Data.Spawners[Index].Refilling, _TroopID);
+        for i= 1, table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes) do
+            if Type == AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes[i] then
+                self:RemoveTroop(_ID, _TroopID);
+                table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling, _TroopID);
                 return true;
             end
         end
@@ -273,11 +271,10 @@ function AiTroopSpawner.Internal:AddTroop(_ID, _TroopID)
 end
 
 function AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID)
-    local Index = self:GetIndex(_ID);
-    if self.Data.Spawners[Index] then
-        for i= table.getn(self.Data.Spawners[Index].Refilling), 1, -1 do
-            if self.Data.Spawners[Index].Refilling[i] == _TroopID then
-                table.remove(self.Data.Spawners[Index].Refilling, i);
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        for i= table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling), 1, -1 do
+            if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling[i] == _TroopID then
+                table.remove(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling, i);
             end
         end
     end
@@ -288,9 +285,9 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
     if Spawner then
         if IsExisting(Spawner.ScriptName) then
             -- Clear invalid armies
-            for i= table.getn(self.Data.Spawners[_Index].Armies), 1, -1 do
-                if not AiArmy.Get(self.Data.Spawners[_Index].Armies[i]) then
-                    table.remove(self.Data.Spawners[_Index].Armies, i);
+            for i= table.getn(Spawner.Armies), 1, -1 do
+                if not AiArmy.Get(Spawner.Armies[i]) then
+                    table.remove(Spawner.Armies, i);
                 end
             end
 
