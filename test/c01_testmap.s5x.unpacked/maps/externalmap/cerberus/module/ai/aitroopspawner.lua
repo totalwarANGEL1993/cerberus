@@ -44,6 +44,13 @@ function AiTroopSpawner.Delete(_ID)
     AiTroopSpawner.Internal:DeleteSpawner(_ID);
 end
 
+--- Returns the spawner ID by the entity.
+--- @param _Entity any ID or Scriptname
+--- @return integer ID ID of spawner
+function AiTroopSpawner.Get(_Entity)
+    return AiTroopSpawner.Internal:GetByEntity(_Entity);
+end
+
 --- Adds a new allowed type to the unit roster.
 --- @param _ID integer   ID of spawner
 --- @param _Type integer Type of Leader
@@ -224,6 +231,16 @@ function AiTroopSpawner.Internal:DeleteSpawner(_ID)
             table.remove(self.Data.Spawners, i);
         end
     end
+end
+
+function AiTroopSpawner.Internal:GetByEntity(_Entity)
+    local EntityID = GetID(_Entity);
+    for i= table.getn(self.Data.Spawners), 1, -1 do
+        if GetID(self.Data.Spawners[i].ScriptName) == EntityID then
+            return self.Data.Spawners[i].ID;
+        end
+    end
+    return 0;
 end
 
 function AiTroopSpawner.Internal:ChangePlayer(_ID, _PlayerID)

@@ -1,4 +1,4 @@
-Lib.Require("module/ai/AiArmyRefiller");
+Lib.Require("module/ai/AiTroopSpawner");
 Lib.Require("module/ai/AiTroopTrainer");
 Lib.Register("module/ai/AiArmyRefiller");
 
@@ -35,6 +35,8 @@ AiArmyRefiller = AiArmyRefiller or {};
 --- @param _Data table Troop Spawner definition
 --- @return integer ID ID of spawner
 function AiArmyRefiller.CreateSpawner(_Data)
+    assert(AiTroopSpawner.Get(_Data.ScriptName) == 0);
+    assert(AiTroopTrainer.Get(_Data.ScriptName) == 0);
     return AiArmyRefiller.Internal:CreateSpawner(_Data);
 end
 
@@ -48,12 +50,14 @@ end
 --- @param _Data table Troop Trainer definition
 --- @return integer ID ID of trainer
 function AiArmyRefiller.CreateTrainer(_Data)
+    assert(AiTroopSpawner.Get(_Data.ScriptName) == 0);
+    assert(AiTroopTrainer.Get(_Data.ScriptName) == 0);
     return AiArmyRefiller.Internal:CreateTrainer(_Data);
 end
 
 --- Deletes a refiller.
 --- @param _ID integer ID of refiller
-function AiTroopSpawner.DeleteRefiller(_ID)
+function AiArmyRefiller.DeleteRefiller(_ID)
     local SpawnerID = AiArmyRefiller.Internal:GetSpawnerID(_ID);
     if SpawnerID ~= 0 then
         AiTroopSpawner.Delete(SpawnerID);
@@ -62,6 +66,13 @@ function AiTroopSpawner.DeleteRefiller(_ID)
     if TrainerID ~= 0 then
         AiTroopTrainer.Delete(TrainerID);
     end
+end
+
+--- Returns the refiller ID by the entity.
+--- @param _Entity any ID or Scriptname
+--- @return integer ID ID of refiller
+function AiArmyRefiller.Get(_Entity)
+    return AiArmyRefiller.Internal:GetByEntity(_Entity);
 end
 
 --- Returns the ID of the internal spawner or 0 if not a spawner.
@@ -201,6 +212,14 @@ function AiArmyRefiller.RemoveTroop(_ID, _TroopID)
     end
 end
 
+--- Returns the refiller IDs of all mapped spawners and refillers. Rouge ones
+--- not known to this facade are not returned.
+--- @param _ArmyID integer ID of army
+--- @return table IdList List of Spawner IDs
+function AiArmyRefiller.GetRefillersOfArmy(_ArmyID)
+    return AiArmyRefiller.Internal:GetRefillersOfArmy(_ArmyID);
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -223,8 +242,8 @@ end
 function AiArmyRefiller.Internal:CreateSpawner(_Data)
     self:Install();
 
-    self.Data.SpawnerIdSequence = self.Data.SpawnerIdSequence +1;
-    local ID = self.Data.SpawnerIdSequence;
+    self.Data.RefillerIdSequence = self.Data.RefillerIdSequence +1;
+    local ID = self.Data.RefillerIdSequence;
 
     local SpawnerID = AiTroopSpawner.Create(_Data);
     self.Data.Refillers.Spawner[ID] = {SpawnerID};
@@ -234,8 +253,8 @@ end
 function AiArmyRefiller.Internal:CreateTrainer(_Data)
     self:Install();
 
-    self.Data.SpawnerIdSequence = self.Data.SpawnerIdSequence +1;
-    local ID = self.Data.SpawnerIdSequence;
+    self.Data.RefillerIdSequence = self.Data.RefillerIdSequence +1;
+    local ID = self.Data.RefillerIdSequence;
 
     local TrainerID = AiTroopTrainer.Create(_Data);
     self.Data.Refillers.Trainer[ID] = {TrainerID};
@@ -244,14 +263,51 @@ end
 
 function AiArmyRefiller.Internal:GetSpawnerID(_ID)
     if self.Data.Refillers.Spawner[_ID] then
-        return self.Data.Refillers.Spawner[_ID];
+        return self.Data.Refillers.Spawner[_ID][1];
     end
     return 0;
 end
 
 function AiArmyRefiller.Internal:GetTrainerID(_ID)
     if self.Data.Refillers.Trainer[_ID] then
-        return self.Data.Refillers.Trainer[_ID];
+        return self.Data.Refillers.Trainer[_ID][1];
+    end
+    return 0;
+end
+
+function AiArmyRefiller.Internal:GetRefillersOfArmy(_ArmyID)
+    local RefillerIDs = {};
+    local SpawnerIDs = AiTroopSpawner.GetSpawnersOfArmy(_ArmyID);
+    for i= table.getn(SpawnerIDs), 1, -1 do
+        for k, v in pairs(self.Data.Refillers.Spawner) do
+            if v[1] == SpawnerIDs[i] then
+                table.insert(RefillerIDs, k);
+            end
+        end
+    end
+    local TrainerIDs = AiTroopTrainer.GetTrainersOfArmy(_ArmyID);
+    for i= table.getn(TrainerIDs), 1, -1 do
+        for k, v in pairs(self.Data.Refillers.Trainer) do
+            if v[1] == TrainerIDs[i] then
+                table.insert(RefillerIDs, k);
+            end
+        end
+    end
+    return RefillerIDs;
+end
+
+function AiArmyRefiller.Internal:GetByEntity(_Entity)
+    for k, v in pairs(self.Data.Refillers.Spawner) do
+        local SpawnerID = AiTroopSpawner.Get(v[1]);
+        if SpawnerID ~= 0 and AiTroopSpawner.Get(_Entity) == SpawnerID then
+            return k;
+        end
+    end
+    for k, v in pairs(self.Data.Refillers.Trainer) do
+        local TrainerID = AiTroopTrainer.Get(v[1]);
+        if TrainerID ~= 0 and AiTroopTrainer.Get(_Entity) == TrainerID then
+            return k;
+        end
     end
     return 0;
 end
