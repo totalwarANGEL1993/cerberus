@@ -628,25 +628,29 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
     local Position = (_TroopID and GetPosition(_TroopID)) or _Position;
     local Enemies = GetEnemiesInArea(PlayerID, Position, _Area);
 
-    local NotDefendableBuilding = {};
+    -- Select only units that are no civil buildings
+    local NoDefendableBuilding = {};
     for i= table.getn(Enemies), 1, -1 do
         if Logic.IsEntityInCategory(Enemies[i], EntityCategories.DefendableBuilding) == 0 then
             if IsValidEntity(Enemies[i]) and GetDistanceSquare(Position, Enemies[i]) <= AreaSquared then
-                table.insert(NotDefendableBuilding, Enemies[i]);
+                table.insert(NoDefendableBuilding, Enemies[i]);
             end
         end
     end
-
-    local AllTargets = {};
+    -- Take all enemies including civil buildings
+    local WithDefendableBuilding = {};
     for i= table.getn(Enemies), 1, -1 do
         if IsValidEntity(Enemies[i]) and GetDistanceSquare(Position, Enemies[i]) <= AreaSquared then
-            table.insert(AllTargets, Enemies[i]);
+            table.insert(WithDefendableBuilding, Enemies[i]);
         end
     end
-    if table.getn(NotDefendableBuilding) > 0 then
-        return NotDefendableBuilding;
+
+    -- Return without defendable building first
+    if table.getn(NoDefendableBuilding) > 0 then
+        return NoDefendableBuilding;
     end
-    return AllTargets;
+    -- Otherwise return full list
+    return WithDefendableBuilding;
 end
 
 -- Returns the best target for the troop from the target list.
@@ -835,6 +839,10 @@ function AiArmy.Internal.Army:FallbackBehavior()
             end
         end
     else
+        for j= 1, table.getn(self.Troops) do
+            --- @diagnostic disable-next-line: undefined-field
+            Logic.MoveSettler(self.Troops[j], self.HomePosition.X, self.HomePosition.Y);
+        end
         self:SetBehavior(AiArmy.Behavior.REFILL);
     end
 end
@@ -856,6 +864,54 @@ function AiArmy.Internal.Army:RefillBehavior()
     else
         if self:GetCurrentStregth() >= 1 then
             self:SetBehavior(AiArmy.Behavior.WAITING);
+        else
+            for i= table.getn(self.Troops), 1, -1 do
+                -- Move to home position
+                if  Logic.IsEntityMoving(self.Troops[i]) == false
+                and GetDistance(self.Troops[i], self.HomePosition) > 1000 then
+                    --- @diagnostic disable-next-line: undefined-field
+                    Logic.MoveSettler(self.Troops[i], self.HomePosition.X, self.HomePosition.Y);
+                end
+                -- Respawn soldiers
+                if not IsFighting(self.Troops[i])
+                and GetDistance(self.Troops[i], self.HomePosition) <= 1000 then
+                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
+                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
+                    if MaxAmount > CurAmount then
+                        Tools.CreateSoldiersForLeader(self.Troops[i], 1);
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+
+function AiArmy.Internal:ControlTroopRefilling(_Index)
+    
+    
+    local Spawner = self.Data.Spawners[_Index];
+    for i= table.getn(Spawner.Refilling), 1, -1 do
+        local TroopID = Spawner.Refilling[i];
+        if not IsExisting(Spawner.Refilling[i]) then
+            table.remove(self.Data.Spawners[_Index].Refilling, i);
+        else
+            local PlayerID = Logic.EntityGetPlayer(TroopID);
+            local SpawnPos = GetPosition(Spawner.SpawnPoint);
+            if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
+                Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
+            else
+                if not AreEnemiesInArea(Logic.EntityGetPlayer(TroopID), SpawnPos, AiTroopSpawner.NoEnemyDistance) then
+                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
+                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
+                    if MaxAmount > CurAmount then
+                        local SoldierType = Logic.LeaderGetSoldiersType(ID);
+                        Logic.CreateEntity(SoldierType, SpawnPos.X, SpawnPos.Y, 0, PlayerID);
+                        Tools.AttachSoldiersToLeader(ID, 1);
+                    end
+                end
+            end
         end
     end
 end
@@ -1090,7 +1146,9 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
             AiArmyData_TroopIdToArmyId[_ID] = self.ID;
             table.insert(self.Troops, _ID);
         end
-        self:SetInitalized(self:GetCurrentStregth(true) >= 1);
+        if not self:IsInitalized() then
+            self:SetInitalized(self:GetCurrentStregth(true) >= 1);
+        end
         return true;
     end
     return false;

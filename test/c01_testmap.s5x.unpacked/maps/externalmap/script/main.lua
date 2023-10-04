@@ -38,7 +38,7 @@ function CreateTroopSpawnersTest()
     P6BarracksSpawner = AiTroopSpawner.Create {
         ScriptName = "P6barracks1",
         SpawnPoint = "P6barracks1Spawn",
-        SpawnAmount = 4,
+        SpawnAmount = 1,
         AllowedTypes = {
             {Entities.PU_LeaderPoleArm1, 3},
             {Entities.PU_LeaderSword1, 3},

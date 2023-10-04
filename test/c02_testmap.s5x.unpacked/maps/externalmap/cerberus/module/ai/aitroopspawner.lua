@@ -331,7 +331,6 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
         if not IsExisting(Spawner.Refilling[i]) then
             table.remove(self.Data.Spawners[_Index].Refilling, i);
         else
-            local PlayerID = Logic.EntityGetPlayer(TroopID);
             local SpawnPos = GetPosition(Spawner.SpawnPoint);
             if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
                 Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
@@ -340,9 +339,7 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
                     local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                     local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
                     if MaxAmount > CurAmount then
-                        local SoldierType = Logic.LeaderGetSoldiersType(ID);
-                        Logic.CreateEntity(SoldierType, SpawnPos.X, SpawnPos.Y, 0, PlayerID);
-                        Tools.AttachSoldiersToLeader(ID, 1);
+                        Tools.CreateSoldiersForLeader(ID, 1);
                     end
                 end
             end
