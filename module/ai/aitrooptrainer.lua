@@ -39,6 +39,13 @@ function AiTroopTrainer.Delete(_ID)
     AiTroopTrainer.Internal:DeleteTrainer(_ID);
 end
 
+--- Returns the trainer ID by the entity.
+--- @param _Entity any ID or Scriptname
+--- @return integer ID ID of trainer
+function AiTroopTrainer.Get(_Entity)
+    return AiTroopTrainer.Internal:GetByEntity(_Entity);
+end
+
 --- Adds a new allowed type to the unit roster.
 --- @param _ID integer   ID of spawner
 --- @param _Type integer Upgrade category of Leader
@@ -110,7 +117,7 @@ end
 --- Returns all trainers the army is connected to.
 --- @param _ArmyID integer ID of army
 --- @return table IdList List of Spawner IDs
-function AiTroopTrainer.GetSpawnersOfArmy(_ArmyID)
+function AiTroopTrainer.GetTrainersOfArmy(_ArmyID)
     local SpawnerIDs = {};
     for i= 1, table.getn(AiTroopTrainer.Internal.Data.Trainers) do
         local Spawner = AiTroopTrainer.Internal.Data.Trainers[i];
@@ -162,6 +169,8 @@ function AiTroopTrainer.Internal:CreateTrainer(_Data)
     self.Data.TrainerIdSequence = self.Data.TrainerIdSequence +1;
     local ID = self.Data.TrainerIdSequence;
 
+    assert(Logic.EntityGetPlayer(GetID(_Data.ScriptName)) > 0);
+
     local AllowedTypes = _Data.AllowedTypes or {};
     for i= 1, table.getn(AllowedTypes) do
         if type(AllowedTypes[i]) ~= "table" then
@@ -204,6 +213,16 @@ function AiTroopTrainer.Internal:DeleteTrainer(_ID)
     AiArmyTrainerData_TrainerIdToTrainerInstance[_ID] = nil;
 end
 
+function AiTroopTrainer.Internal:GetByEntity(_Entity)
+    local EntityID = GetID(_Entity);
+    for i= table.getn(self.Data.Trainers), 1, -1 do
+        if GetID(self.Data.Trainers[i].ScriptName) == EntityID then
+            return self.Data.Trainers[i].ID;
+        end
+    end
+    return 0;
+end
+
 function AiTroopTrainer.Internal:ChangePlayer(_ID, _PlayerID)
     if AiArmyTrainerData_TrainerIdToTrainerInstance[_ID] then
         local EntityID = GetID(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].ScriptName);
@@ -217,13 +236,13 @@ function AiTroopTrainer.Internal:ChangePlayer(_ID, _PlayerID)
             DestroyEntity(LeaderID);
             LeaderID = Logic.GetLeaderTrainingAtBuilding(EntityID);
         end
-
+        -- Change player of all refilling leaders
         local Refilling = {};
         for k,v in pairs(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Refilling) do
             table.insert(Refilling, ChangePlayer(v, _PlayerID));
         end
         AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Refilling = Refilling;
-
+        -- Finally change player of building
         ChangePlayer(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].ScriptName, _PlayerID);
         AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].PlayerID = _PlayerID;
     end
@@ -336,9 +355,7 @@ function AiTroopTrainer.Internal:ControlTroopRefilling(_ID)
                             local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                             local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
                             if MaxAmount > CurAmount then
-                                local SoldierType = Logic.LeaderGetSoldiersType(ID);
-                                Logic.CreateEntity(SoldierType, SpawnPos.X, SpawnPos.Y, 0, PlayerID);
-                                Tools.AttachSoldiersToLeader(ID, 1);
+                                Tools.CreateSoldiersForLeader(ID, 1);
                             end
                         end
                     end
