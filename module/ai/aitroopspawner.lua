@@ -44,6 +44,13 @@ function AiTroopSpawner.Delete(_ID)
     AiTroopSpawner.Internal:DeleteSpawner(_ID);
 end
 
+--- Returns the spawner ID by the entity.
+--- @param _Entity any ID or Scriptname
+--- @return integer ID ID of spawner
+function AiTroopSpawner.Get(_Entity)
+    return AiTroopSpawner.Internal:GetByEntity(_Entity);
+end
+
 --- Adds a new allowed type to the unit roster.
 --- @param _ID integer   ID of spawner
 --- @param _Type integer Type of Leader
@@ -226,6 +233,16 @@ function AiTroopSpawner.Internal:DeleteSpawner(_ID)
     end
 end
 
+function AiTroopSpawner.Internal:GetByEntity(_Entity)
+    local EntityID = GetID(_Entity);
+    for i= table.getn(self.Data.Spawners), 1, -1 do
+        if GetID(self.Data.Spawners[i].ScriptName) == EntityID then
+            return self.Data.Spawners[i].ID;
+        end
+    end
+    return 0;
+end
+
 function AiTroopSpawner.Internal:ChangePlayer(_ID, _PlayerID)
     local Spawner = AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID];
     if Spawner then
@@ -331,7 +348,6 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
         if not IsExisting(Spawner.Refilling[i]) then
             table.remove(self.Data.Spawners[_Index].Refilling, i);
         else
-            local PlayerID = Logic.EntityGetPlayer(TroopID);
             local SpawnPos = GetPosition(Spawner.SpawnPoint);
             if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
                 Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
@@ -340,9 +356,7 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
                     local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                     local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
                     if MaxAmount > CurAmount then
-                        local SoldierType = Logic.LeaderGetSoldiersType(ID);
-                        Logic.CreateEntity(SoldierType, SpawnPos.X, SpawnPos.Y, 0, PlayerID);
-                        Tools.AttachSoldiersToLeader(ID, 1);
+                        Tools.CreateSoldiersForLeader(ID, 1);
                     end
                 end
             end

@@ -4,13 +4,15 @@ Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/IsInTable");
 Lib.Require("module/trigger/Job");
 Lib.Require("module/ai/AiArmy");
-Lib.Require("module/ai/AiTroopSpawner");
+Lib.Require("module/ai/AiArmyRefiller");
 Lib.Register("module/ai/AiArmyManager");
 
 ---
 --- Army manager script
 ---
---- A manager can handle offensive and defensive campaigns of an army.
+--- Managers are pre-made controller scripts for armies that implement basic
+--- behaviors in a "campaign". A manager can handle offensive and defensive
+--- campaigns of the attached army.
 ---
 --- * Offensive: Attacks target positions if enemies are there
 --- * Defensive: Patrols over targets and guards them
@@ -18,16 +20,21 @@ Lib.Register("module/ai/AiArmyManager");
 --- Attacking always has the priority over defending. When a manager has targets
 --- and there are enemies present it will send out it's army.
 ---
+--- A manager can only control one army but managers can be synchronized.
 --- Synchronizing two or more manager with another means that they will know
---- which targets the other managers attack or guard and will consider this
---- for it's own decision making.
+--- which targets the other managers attack or guard and this will have an
+--- influence on selecting targets.
 ---
 --- * Offensive: Targets won't be selected twice. Synchronized armies will
----   attack multiple targets if provided (or guard position if not).
+---   attack one target each if provided (or guard position if not).
 --- * Defensive: If an army is guarding a position and is attacked all other
 ---   synchronized armies that are guarding and not fighting will assist.
 ---
---- Version 1.2.0
+--- A manager runs each second. All managers are scheduled so that each turn
+--- of a second is used to run a subset of the managers. Still, each manager
+--- is run only once per second.
+---
+--- Version 1.3.0
 ---
 AiArmyManager = AiArmyManager or {
     Campaign = {
@@ -42,10 +49,25 @@ AiArmyManagerData_ManagerIdToManagerInstance = {};
 -- API
 
 --- Creates a manager for the army.
---- @param _ArmyID integer ID of army
+--- @param _ArmyID integer  ID of army
 --- @return integer ManagerID ID of manager
 function AiArmyManager.Create(_ArmyID)
     return AiArmyManager.Internal:CreateManager {ArmyID = _ArmyID};
+end
+
+--- Creates a custom manager for the army.
+---
+--- The manager is not bound to the default behavior and can be programmed
+--- freely. The action receives the ID of the manager and the ID of the army
+--- that is controlled by the manager.
+--- @param _ArmyID integer  ID of army
+--- @param _Action function Custom army controller
+--- @return integer ManagerID ID of manager
+function AiArmyManager.CreateCustom(_ArmyID, _Action)
+    return AiArmyManager.Internal:CreateManager {
+        ArmyID = _ArmyID,
+        Action = _Action,
+    };
 end
 
 --- Deletes a manager.
@@ -63,7 +85,7 @@ function AiArmyManager.GetArmy(_ID)
     return 0;
 end
 
---- Removes the manager from all it associations.
+--- Removes all associations from the manager.
 --- @param _ID integer ID of manager
 function AiArmyManager.PurgeSynchronization(_ID)
     AiArmyManager.Internal:PurgeSynchronization(_ID);
@@ -93,7 +115,7 @@ function AiArmyManager.DesynchronizeOffence(...)
     end
 end
 
---- Synchronizes the attacks of all passed manager IDs.
+--- Synchronizes the defence of all passed manager IDs.
 --- @param ... integer List of managers
 function AiArmyManager.SynchronizeDefence(...)
     for i= 1, table.getn(arg) do
@@ -105,7 +127,7 @@ function AiArmyManager.SynchronizeDefence(...)
     end
 end
 
---- Lifts the synchronization of attacks for the passed manager IDs.
+--- Lifts the synchronization of defence for the passed manager IDs.
 --- @param ... integer List of managers
 function AiArmyManager.DesynchronizeDefence(...)
     for i= 1, table.getn(arg) do
@@ -180,7 +202,7 @@ function AiArmyManager.RemoveGuardPosition(_ID, _Target)
     AiArmyManager.Internal:RemoveGuardPosition(_ID, _Target);
 end
 
---- Stops the current agenda of the manager.
+--- Stops the current cempaign of the manager.
 --- @param _ID integer ID of manager
 function AiArmyManager.EndCampaign(_ID)
     AiArmyManager.Internal:EndCampaign(_ID);
@@ -193,6 +215,31 @@ end
 --- @param _PlayerID integer New owner
 function AiArmyManager.ChangePlayer(_ID, _PlayerID)
     AiArmyManager.Internal:ChangePlayer(_ID, _PlayerID);
+end
+
+--- Obtains the custom data of the manager.
+--- @param _ID integer ID of manager
+--- @return table Data Data of manager
+function AiArmyManager.GetCustomData(_ID)
+    return AiArmyManagerData_ManagerIdToManagerInstance[_ID].Data;
+end
+
+--- Updates the custom data of the manager.
+--- @param _ID integer ID of manager
+--- @param _Data table Data of manager
+function AiArmyManager.SetCustomData(_ID, _Data)
+    AiArmyManagerData_ManagerIdToManagerInstance[_ID].Data = _Data or {};
+end
+
+--- Removes all weakened troops from the army and attaches them to refillers.
+--- Then the IDs of the troops are returned.
+--- 
+--- If there are no refillers add to an army the troops are just removed from
+--- the army and returned.
+--- @param _ID integer ID of manager
+--- @return table Troops List of troops
+function AiArmyManager.DispatchTroopsToRefiller(_ID)
+    return AiArmyManager.Internal:DispatchTroopsToSpawner(_ID);
 end
 
 -- -------------------------------------------------------------------------- --
@@ -209,9 +256,11 @@ function AiArmyManager.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        self.ControllerJobID = Job.Second(function()
+        self.ControllerJobID = Job.Turn(function()
             for i= table.getn(self.Data.Managers), 1, -1 do
-                self:ControllManager(i);
+                if math.mod(Logic.GetCurrentTurn(), 10) == i then
+                    self:ControllManager(i);
+                end
             end
         end);
     end
@@ -224,6 +273,8 @@ function AiArmyManager.Internal:CreateManager(_Data)
 
     local Manager = {
         ID             = ID,
+        Data           = {},
+        Action         = _Data.Action,
         ArmyID         = _Data.ArmyID,
         GuardTime      = _Data.GuardTime or (3*60),
         Campaign       = {},
@@ -264,81 +315,85 @@ end
 function AiArmyManager.Internal:ControllManager(_Index)
     local Data = self.Data.Managers[_Index];
     if Data and AiArmy.IsExisting(Data.ArmyID) then
-        -- Control attack campaign
-        if Data.Campaign.Type == AiArmyManager.Campaign.ATTACK then
-            -- Check army defeated
-            if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
-                self:EndCampaign(Data.ID);
-                return;
-            end
-            -- Control movement
-            if Data.Campaign.Target.Index < table.getn(Data.Campaign.Target) then
-                local CurrentData = Data.Campaign.Target;
-                if GetDistance(CurrentData[CurrentData.Index], AiArmy.GetLocation(Data.ArmyID)) < 1000 then
-                    self.Data.Managers[_Index].Campaign.Target.Index = Data.Campaign.Target.Index + 1;
-                    AiArmy.Advance(Data.ArmyID, GetPosition(CurrentData[CurrentData.Index]));
+        if Data.Action then
+            Data.Action(Data.ID, Data.ArmyID);
+        else
+            -- Control attack campaign
+            if Data.Campaign.Type == AiArmyManager.Campaign.ATTACK then
+                -- Check army defeated
+                if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
+                    self:EndCampaign(Data.ID);
                     return;
                 end
-            end
-            -- Check enemies defeated
-            local Target = Data.Campaign.Target[table.getn(Data.Campaign.Target)];
-            local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Target));
-            if not Enemies[1] then
-                self:EndCampaign(Data.ID);
-                AiArmy.Retreat(Data.ArmyID);
-                return;
-            end
-
-        -- Control guard campaign
-        elseif Data.Campaign.Type == AiArmyManager.Campaign.DEFEND then
-            -- Check army defeated
-            if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
-                self:EndCampaign(Data.ID);
-                return;
-            end
-            -- Tick down guard time
-            if  AiArmy.GetBehavior(Data.ArmyID) ~= AiArmy.Behavior.BATTLE
-            and AiArmy.GetBehavior(Data.ArmyID) ~= AiArmy.Behavior.ADVANCE then
-                self.Data.Managers[_Index].Campaign.Time = Data.Campaign.Time -1;
-                if Data.Campaign.Time == 0 then
+                -- Control movement
+                if Data.Campaign.Target.Index < table.getn(Data.Campaign.Target) then
+                    local CurrentData = Data.Campaign.Target;
+                    if GetDistance(CurrentData[CurrentData.Index], AiArmy.GetLocation(Data.ArmyID)) < 1000 then
+                        self.Data.Managers[_Index].Campaign.Target.Index = Data.Campaign.Target.Index + 1;
+                        AiArmy.Advance(Data.ArmyID, GetPosition(CurrentData[CurrentData.Index]));
+                        return;
+                    end
+                end
+                -- Check enemies defeated
+                local Target = Data.Campaign.Target[table.getn(Data.Campaign.Target)];
+                local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Target));
+                if not Enemies[1] then
                     self:EndCampaign(Data.ID);
                     AiArmy.Retreat(Data.ArmyID);
                     return;
                 end
-            end
-            -- Help synchronized
-            if  AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
-                for i= table.getn(Data.SyncDefence), 1, -1 do
-                    if AiArmy.GetBehavior(Data.SyncDefence[i]) == AiArmy.Behavior.BATTLE then
-                        --- @diagnostic disable-next-line: param-type-mismatch
-                        AiArmy.Advance(Data.ArmyID, AiArmy.GetLocation(Data.SyncDefence[i]));
+
+            -- Control guard campaign
+            elseif Data.Campaign.Type == AiArmyManager.Campaign.DEFEND then
+                -- Check army defeated
+                if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
+                    self:EndCampaign(Data.ID);
+                    return;
+                end
+                -- Tick down guard time
+                if  AiArmy.GetBehavior(Data.ArmyID) ~= AiArmy.Behavior.BATTLE
+                and AiArmy.GetBehavior(Data.ArmyID) ~= AiArmy.Behavior.ADVANCE then
+                    self.Data.Managers[_Index].Campaign.Time = Data.Campaign.Time -1;
+                    if Data.Campaign.Time == 0 then
+                        self:EndCampaign(Data.ID);
+                        AiArmy.Retreat(Data.ArmyID);
                         return;
                     end
                 end
-                if GetDistance(AiArmy.GetLocation(Data.ArmyID), Data.Campaign.Target) > 1000 then
-                    AiArmy.Advance(Data.ArmyID, GetPosition(Data.Campaign.Target));
+                -- Help synchronized
+                if  AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
+                    for i= table.getn(Data.SyncDefence), 1, -1 do
+                        if AiArmy.GetBehavior(Data.SyncDefence[i]) == AiArmy.Behavior.BATTLE then
+                            --- @diagnostic disable-next-line: param-type-mismatch
+                            AiArmy.Advance(Data.ArmyID, AiArmy.GetLocation(Data.SyncDefence[i]));
+                            return;
+                        end
+                    end
+                    if GetDistance(AiArmy.GetLocation(Data.ArmyID), Data.Campaign.Target) > 1000 then
+                        AiArmy.Advance(Data.ArmyID, GetPosition(Data.Campaign.Target));
+                    end
                 end
-            end
 
-        -- Assign new campaign
-        else
-            if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
-                -- Get attack target
-                local AttackTarget = self:GetUnattendedAttackTarget(Data.ID, AiArmyManager.Campaign.ATTACK);
-                if AttackTarget ~= nil then
-                    self:BeginOffensiveCampaign(Data.ID, AttackTarget);
-                    AiArmy.Advance(Data.ArmyID, GetPosition(AttackTarget[AttackTarget.Index]));
-                    return;
-                end
-                -- Get guard target
-                local GuardTarget = self:GetUnattendedDefendTarget(Data.ID, AiArmyManager.Campaign.DEFEND);
-                if GuardTarget ~= nil then
-                    self:BeginDefensiveCampaign(Data.ID, GuardTarget, Data.GuardTime);
-                    AiArmy.Advance(Data.ArmyID, GetPosition(GuardTarget));
-                else
-                    self:BeginDefensiveCampaign(Data.ID, AiArmy.GetHomePosition(Data.ArmyID), Data.GuardTime);
-                    --- @diagnostic disable-next-line: param-type-mismatch
-                    AiArmy.Advance(Data.ArmyID, AiArmy.GetHomePosition(Data.ArmyID));
+            -- Assign new campaign
+            else
+                if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
+                    -- Get attack target
+                    local AttackTarget = self:GetUnattendedAttackTarget(Data.ID, AiArmyManager.Campaign.ATTACK);
+                    if AttackTarget ~= nil then
+                        self:BeginOffensiveCampaign(Data.ID, AttackTarget);
+                        AiArmy.Advance(Data.ArmyID, GetPosition(AttackTarget[AttackTarget.Index]));
+                        return;
+                    end
+                    -- Get guard target
+                    local GuardTarget = self:GetUnattendedDefendTarget(Data.ID, AiArmyManager.Campaign.DEFEND);
+                    if GuardTarget ~= nil then
+                        self:BeginDefensiveCampaign(Data.ID, GuardTarget, Data.GuardTime);
+                        AiArmy.Advance(Data.ArmyID, GetPosition(GuardTarget));
+                    else
+                        self:BeginDefensiveCampaign(Data.ID, AiArmy.GetHomePosition(Data.ArmyID), Data.GuardTime);
+                        --- @diagnostic disable-next-line: param-type-mismatch
+                        AiArmy.Advance(Data.ArmyID, AiArmy.GetHomePosition(Data.ArmyID));
+                    end
                 end
             end
         end
@@ -611,17 +666,24 @@ function AiArmyManager.Internal:DispatchTroopsToSpawner(_ID)
     assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
 
     local ArmyID = AiArmyManagerData_ManagerIdToManagerInstance[_ID].ArmyID;
-    local SpawnerIDs = AiTroopSpawner.GetSpawnersOfArmy(ArmyID);
+    local SpawnerIDs = AiArmyRefiller.GetRefillersOfArmy(ArmyID);
     local Weakened = AiArmy.GetWeakenedTroops(ArmyID);
-    for i= table.getn(Weakened), 1, -1 do
-        local Success = false;
-        for j= 1, table.getn(SpawnerIDs) do
-            Success = AiTroopSpawner.AddTroop(SpawnerIDs[j], Weakened[i]);
-            if Success == true then
-                AiArmy.RemoveTroop(ArmyID, Weakened[i]);
-                break;
+    if table.getn(SpawnerIDs) > 0 then
+        for i= table.getn(Weakened), 1, -1 do
+            local Success = false;
+            for j= 1, table.getn(SpawnerIDs) do
+                Success = AiTroopSpawner.AddTroop(SpawnerIDs[j], Weakened[i]);
+                if Success == true then
+                    AiArmy.RemoveTroop(ArmyID, Weakened[i]);
+                    break;
+                end
             end
         end
+    else
+        for i= table.getn(Weakened), 1, -1 do
+            AiArmy.RemoveTroop(ArmyID, Weakened[i]);
+        end
     end
+    return Weakened;
 end
 

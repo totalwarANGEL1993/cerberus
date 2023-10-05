@@ -14,9 +14,12 @@ Lib.Register("module/ai/AiArmy");
 ---
 --- Creates an army that automatically attacks enemies in reach. It also tries
 --- to not focus on a single target and makes use of max range attacks if told
---- to do so.
+--- to do so via the targeting behavior.
 ---
---- Version 1.2.0
+--- Everything else is very similar to what default armies are doing. A higher
+--- instance of controller is advised but not explicitly required.
+---
+--- Version 1.3.1
 ---
 
 AiArmy = AiArmy or {
@@ -55,7 +58,7 @@ end
 
 --- Deletes an army.
 ---
---- Remaining members are not deleted. Their leader ai is reactivated.
+--- Remaining members are not deleted.
 ---
 --- @param _ID integer ID of army
 function AiArmy.Delete(_ID)
@@ -623,12 +626,12 @@ end
 
 -- Checks for enemies in the area and removes not reachable.
 function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID)
+    local AreaSquared = _Area ^ 2;
     local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
     local Position = (_TroopID and GetPosition(_TroopID)) or _Position;
     local Enemies = GetEnemiesInArea(PlayerID, Position, _Area);
     for i= table.getn(Enemies), 1, -1 do
-        if not IsValidEntity(Enemies[i])
-        or GetDistance(Position, Enemies[i]) > _Area then
+        if not IsValidEntity(Enemies[i]) or GetDistanceSquare(Position, Enemies[i]) > AreaSquared then
             table.remove(Enemies, i);
         end
     end
@@ -821,12 +824,18 @@ function AiArmy.Internal.Army:FallbackBehavior()
             end
         end
     else
+        for j= 1, table.getn(self.Troops) do
+            --- @diagnostic disable-next-line: undefined-field
+            Logic.MoveSettler(self.Troops[j], self.HomePosition.X, self.HomePosition.Y);
+        end
         self:SetBehavior(AiArmy.Behavior.REFILL);
     end
 end
 
 --- Army is waiting to be refilled.
 ---
+--- Soldiers of weakened troops will be refilled at the home position.
+--- 
 --- * Enemies found
 ---   - Set behavior: AiArmy.Behavior.BATTLE
 ---   - Set anchor: Enemy position
@@ -842,6 +851,24 @@ function AiArmy.Internal.Army:RefillBehavior()
     else
         if self:GetCurrentStregth() >= 1 then
             self:SetBehavior(AiArmy.Behavior.WAITING);
+        else
+            for i= table.getn(self.Troops), 1, -1 do
+                -- Move to home position
+                if  Logic.IsEntityMoving(self.Troops[i]) == false
+                and GetDistance(self.Troops[i], self.HomePosition) > 1000 then
+                    --- @diagnostic disable-next-line: undefined-field
+                    Logic.MoveSettler(self.Troops[i], self.HomePosition.X, self.HomePosition.Y);
+                end
+                -- Respawn soldiers
+                if not IsFighting(self.Troops[i])
+                and GetDistance(self.Troops[i], self.HomePosition) <= 1000 then
+                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
+                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
+                    if MaxAmount > CurAmount then
+                        Tools.CreateSoldiersForLeader(self.Troops[i], 1);
+                    end
+                end
+            end
         end
     end
 end
@@ -873,7 +900,8 @@ function AiArmy.Internal.Army:AdvanceBehavior()
 
     if EncounteredEnemy ~= 0 then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
-        self:SetAnchor(GetPosition(EncounteredEnemy), self.RodeLength);
+        local Reachable = GetReachablePosition(self.Troops[1], EncounteredEnemy, self.Troops[1]);
+        self:SetAnchor(Reachable, self.RodeLength);
         self:BattleBehavior();
     else
         if self:IsScattered() then
@@ -947,7 +975,7 @@ end
 ---   - Set anchor: Position of enemy
 --- * Army is scattered
 ---   - Move troops to army center
---- * Army has reformated
+--- * Army in formation
 ---   - If army has position --> AiArmy.Behavior.ADVANCE
 ---   - If not --> AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:RegroupBehavior()
@@ -1061,7 +1089,7 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
         end
 
         if AiArmy.Internal:IsTroopAlive(_ID) then
-            AI.Army_EnableLeaderAi(_ID, 0);
+            -- AI.Army_EnableLeaderAi(_ID, 0);
             if self.FormationController then
                 self:FormationController(_ID);
             else
@@ -1075,7 +1103,9 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
             AiArmyData_TroopIdToArmyId[_ID] = self.ID;
             table.insert(self.Troops, _ID);
         end
-        self:SetInitalized(self:GetCurrentStregth(true) >= 1);
+        if not self:IsInitalized() then
+            self:SetInitalized(self:GetCurrentStregth(true) >= 1);
+        end
         return true;
     end
     return false;
@@ -1084,18 +1114,18 @@ end
 function AiArmy.Internal.Army:RemoveTroop(_ID)
     for i= table.getn(self.Reinforcements), 1, -1 do
         if self.Reinforcements[i] == _ID then
-            if AiArmy.Internal:IsTroopAlive(_ID) then
-                AI.Army_EnableLeaderAi(_ID, 1);
-            end
+            -- if AiArmy.Internal:IsTroopAlive(_ID) then
+            --     AI.Army_EnableLeaderAi(_ID, 1);
+            -- end
             AiArmyData_ReinforcementIdToArmyId[_ID] = nil;
             return table.remove(self.Troops, i);
         end
     end
     for i= table.getn(self.Troops), 1, -1 do
         if self.Troops[i] == _ID then
-            if AiArmy.Internal:IsTroopAlive(_ID) then
-                AI.Army_EnableLeaderAi(_ID, 1);
-            end
+            -- if AiArmy.Internal:IsTroopAlive(_ID) then
+            --     AI.Army_EnableLeaderAi(_ID, 1);
+            -- end
             AiArmyData_TroopIdToArmyId[_ID] = nil;
             return table.remove(self.Troops, i);
         end
