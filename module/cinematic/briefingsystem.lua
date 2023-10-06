@@ -87,11 +87,15 @@ function BriefingSystem.SetMCButtonCount(_Amount)
 end
 
 --- Returns the selected answer from the page.
---- @param _Page table Page table
+--- @param _PageName string Page name
+--- @param _PlayerID number ID of player
 --- @return number Index Selected answer index
-function BriefingSystem.GetSelectedAnswer(_Page)
-    if _Page.MC and _Page.MC.Selected then
-        return _Page.MC.Selected;
+function BriefingSystem.GetSelectedAnswer(_PageName, _PlayerID)
+    _PlayerID = _PlayerID or 1;
+    local PageID = BriefingSystem.Internal:GetPageID(_PageName, _PlayerID)
+    local Page = BriefingSystem.Internal.Data.Book[_PlayerID][PageID];
+    if Page and Page.MC and Page.MC.Selected then
+        return Page.MC.Selected;
     end
     return 0;
 end
