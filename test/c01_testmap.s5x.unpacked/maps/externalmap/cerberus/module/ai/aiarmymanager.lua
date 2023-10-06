@@ -202,6 +202,20 @@ function AiArmyManager.RemoveGuardPosition(_ID, _Target)
     AiArmyManager.Internal:RemoveGuardPosition(_ID, _Target);
 end
 
+--- Forbid the manager to send it's army to attack
+--- @param _ID integer ID of manager
+--- @param _Flag boolean Attacking is forbidden
+function AiArmyManager.ForbidAttacking(_ID, _Flag)
+    AiArmyManager.Internal:ForbidAttacking(_ID, _Flag);
+end
+
+--- Forbid the manager to send it's army to guard duty.
+--- @param _ID integer ID of manager
+--- @param _Flag boolean Defending is forbidden
+function AiArmyManager.ForbidDefending(_ID, _Flag)
+    AiArmyManager.Internal:ForbidDefending(_ID, _Flag);
+end
+
 --- Stops the current cempaign of the manager.
 --- @param _ID integer ID of manager
 function AiArmyManager.EndCampaign(_ID)
@@ -378,21 +392,25 @@ function AiArmyManager.Internal:ControllManager(_Index)
             else
                 if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
                     -- Get attack target
-                    local AttackTarget = self:GetUnattendedAttackTarget(Data.ID, AiArmyManager.Campaign.ATTACK);
-                    if AttackTarget ~= nil then
-                        self:BeginOffensiveCampaign(Data.ID, AttackTarget);
-                        AiArmy.Advance(Data.ArmyID, GetPosition(AttackTarget[AttackTarget.Index]));
-                        return;
+                    if not Data.ForbidAttack then
+                        local AttackTarget = self:GetUnattendedAttackTarget(Data.ID, AiArmyManager.Campaign.ATTACK);
+                        if AttackTarget ~= nil then
+                            self:BeginOffensiveCampaign(Data.ID, AttackTarget);
+                            AiArmy.Advance(Data.ArmyID, GetPosition(AttackTarget[AttackTarget.Index]));
+                            return;
+                        end
                     end
                     -- Get guard target
-                    local GuardTarget = self:GetUnattendedDefendTarget(Data.ID, AiArmyManager.Campaign.DEFEND);
-                    if GuardTarget ~= nil then
-                        self:BeginDefensiveCampaign(Data.ID, GuardTarget, Data.GuardTime);
-                        AiArmy.Advance(Data.ArmyID, GetPosition(GuardTarget));
-                    else
-                        self:BeginDefensiveCampaign(Data.ID, AiArmy.GetHomePosition(Data.ArmyID), Data.GuardTime);
-                        --- @diagnostic disable-next-line: param-type-mismatch
-                        AiArmy.Advance(Data.ArmyID, AiArmy.GetHomePosition(Data.ArmyID));
+                    if not Data.ForbidDefend then
+                        local GuardTarget = self:GetUnattendedDefendTarget(Data.ID, AiArmyManager.Campaign.DEFEND);
+                        if GuardTarget ~= nil then
+                            self:BeginDefensiveCampaign(Data.ID, GuardTarget, Data.GuardTime);
+                            AiArmy.Advance(Data.ArmyID, GetPosition(GuardTarget));
+                        else
+                            self:BeginDefensiveCampaign(Data.ID, AiArmy.GetHomePosition(Data.ArmyID), Data.GuardTime);
+                            --- @diagnostic disable-next-line: param-type-mismatch
+                            AiArmy.Advance(Data.ArmyID, AiArmy.GetHomePosition(Data.ArmyID));
+                        end
                     end
                 end
             end
@@ -494,6 +512,18 @@ end
 function AiArmyManager.Internal:SetArmyID(_ID, _ArmyID)
     if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
         AiArmyManagerData_ManagerIdToManagerInstance[_ID].ArmyID = _ArmyID;
+    end
+end
+
+function AiArmyManager.Internal:ForbidAttacking(_ID, _Flag)
+    if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
+        AiArmyManagerData_ManagerIdToManagerInstance[_ID].ForbidAttack = _Flag == true;
+    end
+end
+
+function AiArmyManager.Internal:ForbidDefending(_ID, _Flag)
+    if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
+        AiArmyManagerData_ManagerIdToManagerInstance[_ID].ForbidDefend = _Flag == true;
     end
 end
 

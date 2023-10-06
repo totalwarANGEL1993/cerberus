@@ -202,17 +202,19 @@ function Cinematic.Internal:EnableCinematicMode(_PlayerID, _RestoreCamera, _Rest
     GUIAction_GoBackFromHawkViewInNormalView();
     Interface_SetCinematicMode(1);
     LocalMusic.SongLength = 0;
+    gvInterfaceCinematicFlag = 1;
 
     Camera.StopCameraFlight();
     Camera.ScrollUpdateZMode(0);
     Camera.RotSetAngle(-45);
+    Camera.SetControlMode(1);
     Display.SetRenderFogOfWar(0);
     Display.SetRenderSky(1);
     GUI.ClearSelection();
     GUI.EnableBattleSignals(false);
     GUI.MiniMap_SetRenderFogOfWar(1);
     GUI.SetFeedbackSoundOutputState(0);
-    Input.CutsceneMode();
+    GUI.ActivateCutSceneState();
     Sound.PlayFeedbackSound(0,0);
 
     XGUIEng.ShowWidget("Cinematic",1);
@@ -267,21 +269,21 @@ function Cinematic.Internal:DisableCinematicMode(_PlayerID)
 
     Interface_SetCinematicMode(0);
     LocalMusic.SongLength = 0;
+    gvInterfaceCinematicFlag = 0;
 
     Camera.FollowEntity(0);
+    Camera.SetControlMode(0);
     Display.SetRenderFogOfWar(1);
     Display.SetRenderSky(0);
-    GUI.EnableBattleSignals(true);
-    GUI.ActivateSelectionState();
-    GUI.SetFeedbackSoundOutputState(1);
-    Input.GameMode();
     Stream.Stop();
+    GUI.EnableBattleSignals(true);
+    GUI.SetFeedbackSoundOutputState(1);
+    GUI.ActivateSelectionState();
 
     XGUIEng.ShowWidget("Cinematic",0);
     XGUIEng.ShowWidget("CinematicMiniMapContainer",0);
 
     XGUIEng.ShowWidget("Normal",1);
-    XGUIEng.ShowWidget("3dWorldView",1);
     XGUIEng.ShowWidget("Windows",1);
     XGUIEng.ShowWidget("Top",1);
     XGUIEng.ShowWidget("ResourceView",1);
@@ -332,10 +334,10 @@ end
 
 function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
     local size = {GUI.GetScreenSize()};
-    local choiceHeight = 46;
-    local choiceWidth  = 824;
-    local choicePosX   = 112;
-    local choicePosY   = Round((size[2]/2) - ((_MCAmount/2)*(choiceHeight+10)));
+    local choiceHeight = 40;
+    local choiceWidth  = 500;
+    local choicePosX   = 274;
+    local choicePosY   = Round((size[2]/2) - ((_MCAmount/2)*(choiceHeight+5)));
 
     -- Set widget apperance
     XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);

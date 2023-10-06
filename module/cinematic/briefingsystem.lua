@@ -83,7 +83,7 @@ end
 --- (More than 2 buttons must be created inside the GUI XML!)
 --- @param _Amount number Amount of buttons
 function BriefingSystem.SetMCButtonCount(_Amount)
-    BriefingSystem.Internal.MCButtonAmount = _Amount;
+    BriefingSystem.MCButtonAmount = _Amount;
 end
 
 --- Returns the selected answer from the page.
@@ -406,7 +406,9 @@ end
 
 function BriefingSystem.Internal:EndBriefing(_PlayerID)
     -- Disable cinematic mode
-    Cinematic.Hide(_PlayerID);
+    for i= 1, BriefingSystem.MCButtonAmount, 1 do
+        XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
+    end
     -- Destroy explorations
     for k, v in pairs(self.Data.Book[_PlayerID].Exploration) do
         DestroyEntity(v);
@@ -422,9 +424,11 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID)
     -- Invalidate briefing
     self.Data.Book[_PlayerID] = nil;
     -- Dequeue next briefing
-    if self.Data.Queue[_PlayerID] and table.getn(self.Data.Queue[_PlayerID]) > 0 then
-        local NewBriefing = table.remove(self.Data.Queue[_PlayerID], 1);
-        self:StartBriefing(NewBriefing[1], NewBriefing[2], _PlayerID);
+    if BriefingSystem.Internal.Data.Queue[_PlayerID] and table.getn(BriefingSystem.Internal.Data.Queue[_PlayerID]) > 0 then
+        local NewBriefing = table.remove(BriefingSystem.Internal.Data.Queue[_PlayerID], 1);
+        BriefingSystem.Internal:StartBriefing(_PlayerID, NewBriefing[1], NewBriefing[2]);
+    else
+        Cinematic.Hide(_PlayerID);
     end
 end
 
@@ -470,7 +474,9 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     -- Call game callback
     GameCallback_Logic_BriefingStarted(_PlayerID, self.Data.Book[_PlayerID]);
     -- Show cinematic
-    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
+    if XGUIEng.IsWidgetShown("Cinematic") == 0 then
+        Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
+    end
     -- Show nex page
     self:NextPage(_PlayerID, true);
 end
@@ -502,6 +508,8 @@ function BriefingSystem.Internal:NextPage(_PlayerID, _FirstPage)
         Logic.SetEntityExplorationRange(ID, math.ceil(Page.Explore/100));
         table.insert(self.Data.Book[_PlayerID].Exploration, ID);
     end
+    -- Stop Speech
+    Stream.Stop();
     -- Start Fader
     self:InitalizeFaderForBriefingPage(_PlayerID, Page);
     -- Render the page
@@ -602,10 +610,6 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     Display.SetRenderSky(RenderSky);
     Camera.ScrollUpdateZMode(0);
     Camera.FollowEntity(0);
-    -- Because Mouse.CursorHide does not work...
-    XGUIEng.ShowWidget("3dWorldView", 1);
-    GUI.CancelState();
-    GUI.ActivateCutSceneState();
 
     if Page.Target then
         local EntityID = GetID(Page.Target);
@@ -703,28 +707,32 @@ end
 function BriefingSystem.Internal:ControlBriefing()
     for i= 1, table.getn(Score.Player) do
         if self.Data.Book[i] then
-            if self.Data.Book[i] then
-                -- Check page exists
-                local PageID = self.Data.Book[i].Page;
-                if not self.Data.Book[i][PageID] then
-                    return false;
-                end
-                -- Stop briefing
-                if type(self.Data.Book[i][PageID]) == nil then
-                    self:EndBriefing(i);
-                    return false;
-                end
-                -- Jump to page
-                if type(self.Data.Book[i][PageID]) ~= "table" then
-                    self.Data.Book[i].Page = self:GetPageID(self.Data.Book[i][PageID], i) -1;
-                    self:NextPage(i, self.Data.Book[i].Page > 0);
-                    return false;
-                end
-                -- Next page after duration is up
-                local TimePassed = (Logic.GetTime() * 10) - self.Data.Book[i][PageID].StartTime;
-                if not self.Data.Book[i][PageID].MC and TimePassed > self.Data.Book[i][PageID].Duration then
-                    self:NextPage(i, false);
-                end
+            -- Check page exists
+            local PageID = self.Data.Book[i].Page;
+            if not self.Data.Book[i][PageID] then
+                return false;
+            end
+            -- Stop briefing
+            if type(self.Data.Book[i][PageID]) == nil then
+                self:EndBriefing(i);
+                return false;
+            end
+            -- HACK: set cursor
+            if self.Data.Book[i][PageID].MC then
+                GUI.ActivateBuySoldierState();
+            else
+                GUI.ActivateCutSceneState();
+            end
+            -- Jump to page
+            if type(self.Data.Book[i][PageID]) ~= "table" then
+                self.Data.Book[i].Page = self:GetPageID(self.Data.Book[i][PageID], i) -1;
+                self:NextPage(i, self.Data.Book[i].Page > 0);
+                return false;
+            end
+            -- Next page after duration is up
+            local TimePassed = (Logic.GetTime() * 10) - self.Data.Book[i][PageID].StartTime;
+            if not self.Data.Book[i][PageID].MC and TimePassed > self.Data.Book[i][PageID].Duration then
+                self:NextPage(i, false);
             end
         end
     end
@@ -833,11 +841,6 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                 end
             end
         else
-            -- Because Mouse.CursorShow does not work...
-            XGUIEng.ShowWidget("3dWorldView", 0);
-            GUI.CancelState();
-            GUI.ActivateSelectionState();
-
             -- Display choices normally
             for i= 1, table.getn(_Page.MC), 1 do
                 if BriefingSystem.MCButtonAmount >= i then
@@ -861,6 +864,7 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                 end
             end
         end
+    else
     end
 end
 
