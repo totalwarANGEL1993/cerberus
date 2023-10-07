@@ -35,7 +35,7 @@ function OnMapStart()
 end
 
 function CreateTroopSpawnersTest()
-    P6BarracksSpawner = AiTroopSpawner.Create {
+    P6BarracksSpawner = AiArmyRefiller.CreateSpawner {
         ScriptName = "P6barracks1",
         SpawnPoint = "P6barracks1Spawn",
         SpawnAmount = 1,
@@ -45,7 +45,7 @@ function CreateTroopSpawnersTest()
         }
     }
 
-    P6ArcherySpawner = AiTroopSpawner.Create {
+    P6ArcherySpawner = AiArmyRefiller.CreateSpawner {
         ScriptName = "P6archery1",
         SpawnPoint = "P6archery1Spawn",
         SpawnAmount = 2,
@@ -54,7 +54,7 @@ function CreateTroopSpawnersTest()
         }
     }
 
-    P6StableSpawner = AiTroopSpawner.Create {
+    P6StableSpawner = AiArmyRefiller.CreateSpawner {
         ScriptName = "P6stable1",
         SpawnPoint = "P6stable1Spawn",
         SpawnAmount = 1,
@@ -63,7 +63,7 @@ function CreateTroopSpawnersTest()
         }
     }
 
-    P6FoundrySpawner = AiTroopSpawner.Create {
+    P6FoundrySpawner = AiArmyRefiller.CreateSpawner {
         ScriptName = "P6foundry1",
         SpawnPoint = "P6foundry1Spawn",
         SpawnAmount = 1,
@@ -71,6 +71,22 @@ function CreateTroopSpawnersTest()
             {Entities.PV_Cannon1, 0},
         }
     }
+end
+
+function WeakenTestArmies()
+    for k= 1, 3 do
+        for i= table.getn(AiArmy.Get(k).Troops), 1, -1 do
+            local ID = AiArmy.Get(k).Troops[i];
+            if i > 3 then
+                local Soldiers = {Logic.GetSoldiersAttachedToLeader(ID)};
+                for j= 2, Soldiers[1] +1 do
+                    DestroyEntity(Soldiers[j]);
+                end
+            else
+                DestroyEntity(ID);
+            end
+        end
+    end
 end
 
 function CreateAttackArmiesTest()

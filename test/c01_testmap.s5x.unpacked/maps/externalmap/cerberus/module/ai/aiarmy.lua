@@ -861,7 +861,7 @@ function AiArmy.Internal.Army:RefillBehavior()
                 end
                 -- Respawn soldiers
                 if not IsFighting(self.Troops[i])
-                and GetDistance(self.Troops[i], self.HomePosition) <= 1000 then
+                and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
                     local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
                     local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
                     if MaxAmount > CurAmount then

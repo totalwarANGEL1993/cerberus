@@ -272,6 +272,7 @@ function AiArmyManager.Internal:Install()
 
         self.ControllerJobID = Job.Turn(function()
             for i= table.getn(self.Data.Managers), 1, -1 do
+                --- @diagnostic disable-next-line: undefined-field
                 if math.mod(Logic.GetCurrentTurn(), 10) == self.Data.Managers[i].Tick then
                     self:ControllManager(i);
                 end
@@ -287,6 +288,7 @@ function AiArmyManager.Internal:CreateManager(_Data)
 
     local Manager = {
         ID             = ID,
+        --- @diagnostic disable-next-line: undefined-field
         Tick           = math.mod(ID, 10);
         Data           = {},
         Action         = _Data.Action,
@@ -376,12 +378,15 @@ function AiArmyManager.Internal:ControllManager(_Index)
                     end
                 end
                 -- Help synchronized
-                if  AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
+                if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.WAITING then
                     for i= table.getn(Data.SyncDefence), 1, -1 do
-                        if AiArmy.GetBehavior(Data.SyncDefence[i]) == AiArmy.Behavior.BATTLE then
-                            --- @diagnostic disable-next-line: param-type-mismatch
-                            AiArmy.Advance(Data.ArmyID, AiArmy.GetLocation(Data.SyncDefence[i]));
-                            return;
+                        local Manager = AiArmyManagerData_ManagerIdToManagerInstance[Data.SyncDefence[i]];
+                        if Manager.Campaign and Manager.Campaign.Type == AiArmyManager.Campaign.DEFEND then
+                            if AiArmy.GetBehavior(Manager.ArmyID) == AiArmy.Behavior.BATTLE then
+                                --- @diagnostic disable-next-line: param-type-mismatch
+                                AiArmy.Advance(Data.ArmyID, AiArmy.GetLocation(Manager.ArmyID));
+                                return;
+                            end
                         end
                     end
                     if GetDistance(AiArmy.GetLocation(Data.ArmyID), Data.Campaign.Target) > 1000 then
@@ -697,16 +702,32 @@ function AiArmyManager.Internal:DispatchTroopsToSpawner(_ID)
     assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
 
     local ArmyID = AiArmyManagerData_ManagerIdToManagerInstance[_ID].ArmyID;
-    local SpawnerIDs = AiArmyRefiller.GetRefillersOfArmy(ArmyID);
+    local RefillerIDs = AiArmyRefiller.GetRefillersOfArmy(ArmyID);
     local Weakened = AiArmy.GetWeakenedTroops(ArmyID);
-    if table.getn(SpawnerIDs) > 0 then
+    if table.getn(RefillerIDs) > 0 then
         for i= table.getn(Weakened), 1, -1 do
+            -- Get possible refillers
+            local PossibleRefillerIDs = {};
+            for j= table.getn(RefillerIDs), 1, -1 do
+                if AiArmyRefiller.CanTroopBeAdded(RefillerIDs[j], Weakened[i]) then
+                    table.insert(PossibleRefillerIDs, RefillerIDs[j]);
+                end
+            end
+            -- Distribute randomly
             local Success = false;
-            for j= 1, table.getn(SpawnerIDs) do
-                Success = AiTroopSpawner.AddTroop(SpawnerIDs[j], Weakened[i]);
-                if Success == true then
-                    AiArmy.RemoveTroop(ArmyID, Weakened[i]);
-                    break;
+            local RefillerAmount = table.getn(PossibleRefillerIDs);
+            if RefillerAmount > 0 then
+                if RefillerAmount == 1 then
+                    Success = AiArmyRefiller.AddTroop(PossibleRefillerIDs[1], Weakened[i]);
+                    if Success == true then
+                        AiArmy.RemoveTroop(ArmyID, Weakened[i]);
+                    end
+                else
+                    local Index = math.random(1, RefillerAmount);
+                    Success = AiArmyRefiller.AddTroop(PossibleRefillerIDs[Index], Weakened[i]);
+                    if Success == true then
+                        AiArmy.RemoveTroop(ArmyID, Weakened[i]);
+                    end
                 end
             end
         end

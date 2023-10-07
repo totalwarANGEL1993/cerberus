@@ -126,11 +126,11 @@ end
 function AiArmyRefiller.AddAllowedType(_ID, _Type, _Exp)
     local SpawnerID = AiArmyRefiller.Internal:GetSpawnerID(_ID);
     if SpawnerID ~= 0 then
-        AiTroopSpawner.AddAllowedTypes(SpawnerID, _Type, _Exp);
+        AiTroopSpawner.AddAllowedType(SpawnerID, _Type, _Exp);
     end
     local TrainerID = AiArmyRefiller.Internal:GetTrainerID(_ID);
     if TrainerID ~= 0 then
-        AiTroopTrainer.AddAllowedTypes(TrainerID, _Type, _Exp);
+        AiTroopTrainer.AddAllowedType(TrainerID, _Type, _Exp);
     end
 end
 
@@ -194,6 +194,22 @@ function AiArmyRefiller.AddTroop(_ID, _TroopID)
     local TrainerID = AiArmyRefiller.Internal:GetTrainerID(_ID);
     if TrainerID ~= 0 then
         return AiTroopTrainer.AddTroop(TrainerID, _TroopID);
+    end
+    return false;
+end
+
+--- Checks if a troop can be added to a refiller.
+--- @param _ID integer      ID of refiller
+--- @param _TroopID integer ID of troop
+--- @return boolean Addable Troop can be added
+function AiArmyRefiller.CanTroopBeAdded(_ID, _TroopID)
+    local SpawnerID = AiArmyRefiller.Internal:GetSpawnerID(_ID);
+    if SpawnerID ~= 0 then
+        return AiTroopSpawner.CanTroopBeAdded(SpawnerID, _TroopID);
+    end
+    local TrainerID = AiArmyRefiller.Internal:GetTrainerID(_ID);
+    if TrainerID ~= 0 then
+        return AiTroopTrainer.CanTroopBeAdded(TrainerID, _TroopID);
     end
     return false;
 end

@@ -50,7 +50,7 @@ end
 --- @param _ID integer   ID of spawner
 --- @param _Type integer Upgrade category of Leader
 --- @param _Exp integer?  Experience points (unused)
-function AiTroopTrainer.AddAllowedTypes(_ID, _Type, _Exp)
+function AiTroopTrainer.AddAllowedType(_ID, _Type, _Exp)
     if AiArmyTrainerData_TrainerIdToTrainerInstance[_ID] then
         table.insert(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].AllowedTypes, {_Type, 0});
     end
@@ -91,6 +91,14 @@ end
 --- @return boolean Added Troop was added
 function AiTroopTrainer.AddTroop(_ID, _TroopID)
     return AiTroopTrainer.Internal:AddTroop(_ID, _TroopID);
+end
+
+--- Checks if a troop can be added to a trainer.
+--- @param _ID integer      ID of trainer
+--- @param _TroopID integer ID of troop
+--- @return boolean Addable Troop can be added
+function AiTroopTrainer.CanTroopBeAdded(_ID, _TroopID)
+    return AiTroopTrainer.Internal:CanTroopBeAdded(_ID, _TroopID);
 end
 
 --- Removes a troop from the refilling list.
@@ -268,15 +276,25 @@ function AiTroopTrainer.Internal:RemoveArmy(_ID, _ArmyID)
 end
 
 function AiTroopTrainer.Internal:AddTroop(_ID, _TroopID)
+    if self:CanTroopBeAdded(_ID, _TroopID) then
+        self:RemoveTroop(_ID, _TroopID);
+        table.insert(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Refilling, _TroopID);
+        return true;
+    end
+    return false;
+end
+
+function AiTroopTrainer.Internal:CanTroopBeAdded(_ID, _TroopID)
     local Trainer = AiArmyTrainerData_TrainerIdToTrainerInstance[_ID];
     local PlayerID = Logic.EntityGetPlayer(_TroopID);
     if Trainer and Trainer.PlayerID == PlayerID then
         local Type = Logic.GetEntityType(_TroopID);
         for i= 1, table.getn(Trainer.AllowedTypes) do
-            if Type == Trainer.AllowedTypes[i][1] then
-                self:RemoveTroop(_ID, _TroopID);
-                table.insert(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Refilling, _TroopID);
-                return true;
+            local Categories = Logic.GetSettlerTypesInUpgradeCategory(Trainer.AllowedTypes[i][1]);
+            for j= 2, Categories[1]+1 do
+                if Type == Categories[j] then
+                    return true;
+                end
             end
         end
     end

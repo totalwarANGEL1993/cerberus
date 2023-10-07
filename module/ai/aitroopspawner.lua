@@ -55,7 +55,7 @@ end
 --- @param _ID integer   ID of spawner
 --- @param _Type integer Type of Leader
 --- @param _Exp integer  Experience points
-function AiTroopSpawner.AddAllowedTypes(_ID, _Type, _Exp)
+function AiTroopSpawner.AddAllowedType(_ID, _Type, _Exp)
     if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
         table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes, {_Type, _Exp});
     end
@@ -96,6 +96,14 @@ end
 --- @return boolean Added Troop was added
 function AiTroopSpawner.AddTroop(_ID, _TroopID)
     return AiTroopSpawner.Internal:AddTroop(_ID, _TroopID);
+end
+
+--- Checks if a troop can be added to a spawner.
+--- @param _ID integer      ID of spawner
+--- @param _TroopID integer ID of troop
+--- @return boolean Addable Troop can be added
+function AiTroopSpawner.CanTroopBeAdded(_ID, _TroopID)
+    return AiTroopSpawner.Internal:CanTroopBeAdded(_ID, _TroopID);
 end
 
 --- Removes a troop from the refilling list.
@@ -274,12 +282,19 @@ function AiTroopSpawner.Internal:RemoveArmy(_ID, _ArmyID)
 end
 
 function AiTroopSpawner.Internal:AddTroop(_ID, _TroopID)
+    if self:CanTroopBeAdded(_ID, _TroopID) then
+        self:RemoveTroop(_ID, _TroopID);
+        table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling, _TroopID);
+        return true;
+    end
+    return false;
+end
+
+function AiTroopSpawner.Internal:CanTroopBeAdded(_ID, _TroopID)
     if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
         local Type = Logic.GetEntityType(_TroopID);
         for i= 1, table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes) do
-            if Type == AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes[i] then
-                self:RemoveTroop(_ID, _TroopID);
-                table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling, _TroopID);
+            if Type == AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes[i][1] then
                 return true;
             end
         end
@@ -298,6 +313,7 @@ function AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID)
 end
 
 function AiTroopSpawner.Internal:ControllSpawner(_Index)
+    -- Control spawner
     local Spawner = self.Data.Spawners[_Index];
     if Spawner then
         if IsExisting(Spawner.ScriptName) then
@@ -339,6 +355,8 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
             end
         end
     end
+    -- Control refilling troops
+    self:ControlTroopRefilling(_Index);
 end
 
 function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
@@ -350,14 +368,15 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
         else
             local SpawnPos = GetPosition(Spawner.SpawnPoint);
             if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
-                Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
+                local Task = Logic.GetCurrentTaskList(TroopID);
+                if (not Task or not string.find(Task, "WALK")) then
+                    Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
+                end
             else
-                if not AreEnemiesInArea(Logic.EntityGetPlayer(TroopID), SpawnPos, AiTroopSpawner.NoEnemyDistance) then
-                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
-                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
-                    if MaxAmount > CurAmount then
-                        Tools.CreateSoldiersForLeader(ID, 1);
-                    end
+                local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
+                local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
+                if MaxAmount > CurAmount and not IsFighting(TroopID) then
+                    Tools.CreateSoldiersForLeader(TroopID, 1);
                 end
             end
         end
