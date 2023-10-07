@@ -435,7 +435,7 @@ function AiArmy.Retreat(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         Army:SetBehavior(AiArmy.Behavior.ADVANCE);
-        Army:SetPosition(nil);
+        Army:SetPosition(Army.HomePosition);
         Army:SetAnchor(nil, nil);
     end
 end
@@ -646,7 +646,11 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
         local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
         Enemies = GetEnemiesInArea(PlayerID, AreaCenter, _Area);
         for i= table.getn(Enemies), 1, -1 do
-            if not IsValidEntity(Enemies[i]) or GetDistanceSquare(AreaCenter, Enemies[i]) > AreaSquared then
+            local Type = Logic.GetEntityType(Enemies[i]);
+            if not IsValidEntity(Enemies[i])
+            or Type == Entities.PU_Hero3_Trap
+            or Type == Entities.PU_Hero3_TrapCannon
+            or GetDistanceSquare(AreaCenter, Enemies[i]) > AreaSquared then
                 table.remove(Enemies, i);
             end
         end
