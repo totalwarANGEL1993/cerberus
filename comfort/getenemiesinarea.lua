@@ -85,12 +85,14 @@ function GetEnemiesInArea_Helper_FillRelevantTypes()
     if table.getn(GetEntitiesOfDiplomacyStateInArea_RelevantTypes) == 0 then
         for k, v in pairs(Entities) do
             -- If changed, AreEnemiesInArea must also be changed!
-            if Logic.IsEntityTypeInCategory(v, EntityCategories.MilitaryBuilding) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.DefendableBuilding) == 1
+            if Logic.IsEntityTypeInCategory(v, EntityCategories.Cannon) == 1
+            or Logic.IsEntityTypeInCategory(v, EntityCategories.Headquarters) == 1
             or Logic.IsEntityTypeInCategory(v, EntityCategories.Hero) == 1
             or Logic.IsEntityTypeInCategory(v, EntityCategories.Leader) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.Cannon) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.Serf) == 1 then
+            or Logic.IsEntityTypeInCategory(v, EntityCategories.MilitaryBuilding) == 1
+            or Logic.IsEntityTypeInCategory(v, EntityCategories.Serf) == 1
+            or Logic.IsEntityTypeInCategory(v, EntityCategories.VillageCenter) == 1
+            or Logic.IsEntityTypeInCategory(v, EntityCategories.Wall) == 1 then
                 table.insert(GetEntitiesOfDiplomacyStateInArea_RelevantTypes, v);
             end
         end

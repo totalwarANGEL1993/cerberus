@@ -705,18 +705,6 @@ function AiArmyManager.Internal:DispatchTroopsToSpawner(_ID)
     local RefillerIDs = AiArmyRefiller.GetRefillersOfArmy(ArmyID);
     local Weakened = AiArmy.GetWeakenedTroops(ArmyID);
     if table.getn(RefillerIDs) > 0 then
-        -- for i= table.getn(Weakened), 1, -1 do
-        --     local Success = false;
-        --     for j= 1, table.getn(RefillerIDs) do
-        --         Success = AiArmyRefiller.AddTroop(RefillerIDs[j], Weakened[i]);
-        --         if Success == true then
-        --             AiArmy.RemoveTroop(ArmyID, Weakened[i]);
-        --             break;
-        --         end
-        --     end
-        -- end
-
-
         for i= table.getn(Weakened), 1, -1 do
             -- Get possible refillers
             local PossibleRefillerIDs = {};

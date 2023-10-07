@@ -1,3 +1,4 @@
+Lib.Require("comfort/AreEnemiesInArea");
 Lib.Require("comfort/CopyTable");
 Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/GetEnemiesInArea");
@@ -626,13 +627,28 @@ end
 
 -- Checks for enemies in the area and removes not reachable.
 function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID)
-    local AreaSquared = _Area ^ 2;
-    local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
-    local Position = (_TroopID and GetPosition(_TroopID)) or _Position;
-    local Enemies = GetEnemiesInArea(PlayerID, Position, _Area);
-    for i= table.getn(Enemies), 1, -1 do
-        if not IsValidEntity(Enemies[i]) or GetDistanceSquare(Position, Enemies[i]) > AreaSquared then
-            table.remove(Enemies, i);
+    local AreaCenter;
+    -- Check in vecinity of troop
+    if _TroopID and IsExisting(_TroopID) then
+        if AreEnemiesInArea(_PlayerID, GetPosition(_TroopID), _Area) then
+            AreaCenter = GetPosition(_TroopID);
+        end
+    -- Check in vecinity of position
+    else
+        if AreEnemiesInArea(_PlayerID, _Position, _Area) then
+            AreaCenter = _Position;
+        end
+    end
+    -- Obtain IDs of enemies
+    local Enemies = {};
+    if AreaCenter ~= nil then
+        local AreaSquared = _Area ^ 2;
+        local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
+        Enemies = GetEnemiesInArea(PlayerID, AreaCenter, _Area);
+        for i= table.getn(Enemies), 1, -1 do
+            if not IsValidEntity(Enemies[i]) or GetDistanceSquare(AreaCenter, Enemies[i]) > AreaSquared then
+                table.remove(Enemies, i);
+            end
         end
     end
     return Enemies;
@@ -844,10 +860,9 @@ end
 function AiArmy.Internal.Army:RefillBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
-    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
-    if Enemies[1] then
+    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
-        self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
+        self:SetAnchor(ArmyPosition, self.RodeLength);
     else
         if self:GetCurrentStregth() >= 1 then
             self:SetBehavior(AiArmy.Behavior.WAITING);
@@ -980,11 +995,10 @@ end
 ---   - If not --> AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:RegroupBehavior()
     local ArmyPosition = self:GetArmyPosition();
-    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
     self:NormalizedArmySpeed();
-    if Enemies[1] then
+    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
-        self:SetAnchor(GetPosition(Enemies[1]), self.RodeLength);
+        self:SetAnchor(ArmyPosition, self.RodeLength);
     else
         if self:IsScattered() then
             local Reachable = GetReachablePosition(self.Troops[1], ArmyPosition);
