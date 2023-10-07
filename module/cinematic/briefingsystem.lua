@@ -427,12 +427,12 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID)
     GameCallback_Logic_BriefingFinished(_PlayerID, self.Data.Book[_PlayerID]);
     -- Invalidate briefing
     self.Data.Book[_PlayerID] = nil;
+    -- Hide cinematic
+    Cinematic.Hide(_PlayerID);
     -- Dequeue next briefing
     if BriefingSystem.Internal.Data.Queue[_PlayerID] and table.getn(BriefingSystem.Internal.Data.Queue[_PlayerID]) > 0 then
         local NewBriefing = table.remove(BriefingSystem.Internal.Data.Queue[_PlayerID], 1);
         BriefingSystem.Internal:StartBriefing(_PlayerID, NewBriefing[1], NewBriefing[2]);
-    else
-        Cinematic.Hide(_PlayerID);
     end
 end
 
@@ -478,9 +478,7 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     -- Call game callback
     GameCallback_Logic_BriefingStarted(_PlayerID, self.Data.Book[_PlayerID]);
     -- Show cinematic
-    if XGUIEng.IsWidgetShown("Cinematic") == 0 then
-        Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
-    end
+    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
     -- Show nex page
     self:NextPage(_PlayerID, true);
 end

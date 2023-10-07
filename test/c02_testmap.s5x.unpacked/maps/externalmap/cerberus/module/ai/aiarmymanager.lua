@@ -272,7 +272,7 @@ function AiArmyManager.Internal:Install()
 
         self.ControllerJobID = Job.Turn(function()
             for i= table.getn(self.Data.Managers), 1, -1 do
-                if math.mod(Logic.GetCurrentTurn(), 10) == i then
+                if math.mod(Logic.GetCurrentTurn(), 10) == self.Data.Managers[i].Tick then
                     self:ControllManager(i);
                 end
             end
@@ -287,6 +287,7 @@ function AiArmyManager.Internal:CreateManager(_Data)
 
     local Manager = {
         ID             = ID,
+        Tick           = math.mod(ID, 10);
         Data           = {},
         Action         = _Data.Action,
         ArmyID         = _Data.ArmyID,
