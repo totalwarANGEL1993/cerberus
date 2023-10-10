@@ -29,10 +29,11 @@ Lib.Register("module/cinematic/BriefingSystem");
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,
     FakeHeight = 150,
-    DialogZoomDistance = 1000,
+    FOV = 42,
+    DialogZoomDistance = 1500,
     DialogZoomAngle = 35,
     DialogRotationAngle = -45,
-    BriefingZoomDistance = 4500,
+    BriefingZoomDistance = 6000,
     BriefingZoomAngle = 48,
     BriefingRotationAngle = -45,
     BriefingExploration = 6000,
@@ -657,6 +658,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
                 Camera.ZoomSetAngle(Page.Angle or BriefingSystem.BriefingZoomAngle);
             end
             Camera.RotSetAngle(Rotation or Page.Rotation or BriefingSystem.BriefingRotationAngle);
+            Camera.ZoomSetFOV(Page.FOV or BriefingSystem.FOV);
         else
             local LastPage = self.Data.Book[_PlayerID][self.Data.Book[_PlayerID].Page -1];
             if not LastPage or type(LastPage) ~= "table" then
@@ -677,6 +679,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
                 Camera.RotFlight(Page.Rotation, Page.Duration/10);
                 Camera.FlyToLookAt(Page.Position.X, Page.Position.Y, Page.Duration/10);
             end
+            Camera.ZoomSetFOV(Page.FOV or BriefingSystem.FOV);
         end
     end
 

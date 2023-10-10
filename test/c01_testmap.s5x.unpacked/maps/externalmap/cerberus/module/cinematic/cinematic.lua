@@ -129,10 +129,20 @@ function Cinematic.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        Camera.ZoomSetFOV(42);
+        self:InitRestoreAfterLoad();
         for k, v in pairs(Score.Player) do
             self.Data.EventStatus[k] = {};
         end
     end
+end
+
+function Cinematic.Internal:InitRestoreAfterLoad()
+	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
+	Mission_OnSaveGameLoaded = function()
+		FreeCam.Internal.Orig_Mission_OnSaveGameLoaded();
+        Camera.ZoomSetFOV(42);
+	end
 end
 
 function Cinematic.Internal:IsAnyCinematicEventActive(_PlayerID)
@@ -276,9 +286,10 @@ function Cinematic.Internal:DisableCinematicMode(_PlayerID)
     gvInterfaceCinematicFlag = 0;
 
     Camera.FollowEntity(0);
-    Camera.ScrollUpdateZMode(1);
+    Camera.ScrollUpdateZMode(0);
     Camera.SetControlMode(0);
     Camera.RotSetFlipBack(1);
+    Camera.ZoomSetFOV(42);
     Display.SetRenderFogOfWar(1);
     Display.SetRenderSky(0);
     GUI.EnableBattleSignals(true);
