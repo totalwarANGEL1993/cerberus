@@ -6,7 +6,7 @@ Lib.Register("module/cinematic/Cinematic");
 --- This file is supposed to be used as dependency for other scripts. Only use
 --- the functions, if you know what you are doing!
 --- 
---- Version 1.1.0
+--- Version 1.2.0
 --- 
 Cinematic = Cinematic or {}
 
@@ -200,21 +200,23 @@ function Cinematic.Internal:EnableCinematicMode(_PlayerID, _RestoreCamera, _Rest
     end
 
     GUIAction_GoBackFromHawkViewInNormalView();
-    Interface_SetCinematicMode(1);
+    GUIAction_ToggleMenu("NetworkWindow", 0);
     LocalMusic.SongLength = 0;
+    gvCamera.DefaultFlag = 0;
     gvInterfaceCinematicFlag = 1;
 
     Camera.StopCameraFlight();
     Camera.ScrollUpdateZMode(0);
     Camera.RotSetAngle(-45);
     Camera.SetControlMode(1);
+    Camera.RotSetFlipBack(0);
     Display.SetRenderFogOfWar(0);
     Display.SetRenderSky(1);
     GUI.ClearSelection();
     GUI.EnableBattleSignals(false);
     GUI.MiniMap_SetRenderFogOfWar(1);
     GUI.SetFeedbackSoundOutputState(0);
-    GUI.ActivateCutSceneState();
+    Input.CutsceneMode();
     Sound.PlayFeedbackSound(0,0);
 
     XGUIEng.ShowWidget("Cinematic",1);
@@ -225,6 +227,7 @@ function Cinematic.Internal:EnableCinematicMode(_PlayerID, _RestoreCamera, _Rest
     XGUIEng.ShowWidget("CinematicMC_Headline", 1);
     XGUIEng.ShowWidget("CinematicMiniMapContainer",1);
 
+    XGUIEng.ShowWidget("3dWorldView",0);
     XGUIEng.ShowWidget("Normal",1);
     XGUIEng.ShowAllSubWidgets("Windows",0);
     XGUIEng.ShowWidget("Top",0);
@@ -267,22 +270,27 @@ function Cinematic.Internal:DisableCinematicMode(_PlayerID)
         self.Local.SelectedEntities = nil;
     end
 
-    Interface_SetCinematicMode(0);
+    GUIAction_ToggleMenu("NetworkWindow", 0);
     LocalMusic.SongLength = 0;
+    gvCamera.DefaultFlag = 1;
     gvInterfaceCinematicFlag = 0;
 
     Camera.FollowEntity(0);
+    Camera.ScrollUpdateZMode(1);
     Camera.SetControlMode(0);
+    Camera.RotSetFlipBack(1);
     Display.SetRenderFogOfWar(1);
     Display.SetRenderSky(0);
-    Stream.Stop();
     GUI.EnableBattleSignals(true);
     GUI.SetFeedbackSoundOutputState(1);
     GUI.ActivateSelectionState();
+    Input.GameMode();
+    Stream.Stop();
 
     XGUIEng.ShowWidget("Cinematic",0);
     XGUIEng.ShowWidget("CinematicMiniMapContainer",0);
 
+    XGUIEng.ShowWidget("3dWorldView",1);
     XGUIEng.ShowWidget("Normal",1);
     XGUIEng.ShowWidget("Windows",1);
     XGUIEng.ShowWidget("Top",1);

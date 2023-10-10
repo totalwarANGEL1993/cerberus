@@ -10,7 +10,9 @@ Lib.Register("module/cinematic/BriefingSystem");
 --- 
 --- Briefing System
 --- 
---- Briefings can be used in multiplayer without any restraints!
+--- Briefings can be used in multiplayer for each player separete or with one
+--- being the receiver and others be pure spectators. A briefing spectator can
+--- not interact with the briefing but will see what the receiver is seeing.
 ---
 --- Defines the following callbacks:
 --- - GameCallback_Logic_BriefingStarted(_PlayerID, _Briefing)
@@ -18,8 +20,11 @@ Lib.Register("module/cinematic/BriefingSystem");
 ---
 --- - GameCallback_Logic_BriefingFinished(_PlayerID, _Briefing)
 ---   A briefing finished for the player.
+---
+--- - GameCallback_Logic_BriefingPageShown(_PlayerID, _Briefing, _PageID)
+---   A page of a briefing is shown to the player.
 --- 
---- Version 1.2.0
+--- Version 1.3.0
 --- 
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,
@@ -171,6 +176,9 @@ end
 function GameCallback_Logic_BriefingFinished(_PlayerID, _Briefing)
 end
 
+function GameCallback_Logic_BriefingPageShown(_PlayerID, _Briefing, _PageID)
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -275,8 +283,19 @@ function BriefingSystem.Internal:AddPages(_Briefing)
             if _Page.NoSkip ~= nil then
                 _Page.DisableSkipping = _Page.NoSkip == true;
             end
-            -- Add IDs automatically, if not provided
+            -- Fader pages must be automatic
+            if _Page.FadeIn then
+                _Page.Duration = _Page.Duration or _Page.FadeIn;
+                _Page.DisableSkipping = true;
+            end
+            if _Page.FadeOut then
+                _Page.Duration = _Page.Duration or _Page.FadeOut;
+                _Page.DisableSkipping = true;
+            end
+            -- Lock MC pages
             if _Page.MC then
+                _Page.DisableSkipping = true;
+                _Page.Duration = nil;
                 for i= 1, table.getn(_Page.MC) do
                     _Page.MC[i].ID = _Page.MC[i].ID or i;
                 end
@@ -430,9 +449,9 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID)
     -- Hide cinematic
     Cinematic.Hide(_PlayerID);
     -- Dequeue next briefing
-    if BriefingSystem.Internal.Data.Queue[_PlayerID] and table.getn(BriefingSystem.Internal.Data.Queue[_PlayerID]) > 0 then
-        local NewBriefing = table.remove(BriefingSystem.Internal.Data.Queue[_PlayerID], 1);
-        BriefingSystem.Internal:StartBriefing(_PlayerID, NewBriefing[1], NewBriefing[2]);
+    if self.Data.Queue[_PlayerID] and table.getn(self.Data.Queue[_PlayerID]) > 0 then
+        local NewBriefing = table.remove(self.Data.Queue[_PlayerID], 1);
+        self:StartBriefing(_PlayerID, NewBriefing[1], NewBriefing[2]);
     end
 end
 
@@ -502,7 +521,7 @@ function BriefingSystem.Internal:NextPage(_PlayerID, _FirstPage)
         return;
     end
     -- Set start time
-    self.Data.Book[_PlayerID][PageID].StartTime = Round(Logic.GetTime() * 10);
+    self.Data.Book[_PlayerID][PageID].StartTime = Round(Logic.GetCurrentTurn());
     -- Create exploration entity
     if Page.Target and Page.Explore and Page.Explore > 0 then
         local Position = GetPosition(Page.Target);
@@ -539,7 +558,7 @@ function BriefingSystem.Internal:CanPageBeSkipped(_PlayerID)
             return false;
         end
         -- 0.5 seconds must have passed between two page skips
-        if math.abs(self.Data.Book[_PlayerID][PageID].StartTime - (Logic.GetTime() * 10)) < 5 then
+        if math.abs(self.Data.Book[_PlayerID][PageID].StartTime - Logic.GetCurrentTurn()) < 5 then
             return false;
         end
     end
@@ -582,6 +601,8 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     if Page.Action then
         Page:Action(self.Data.Book[_PlayerID]);
     end
+    -- Invoke game callback
+    GameCallback_Logic_BriefingPageShown(_PlayerID, self.Data.Book[_PlayerID], self.Data.Book[_PlayerID].Page);
     -- Only for local player
     if _PlayerID ~= GUI.GetPlayerID() or _PlayerID == 17 then
         return;
@@ -618,6 +639,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
 
         if not Page.CameraFlight then
             local Rotation = Logic.GetEntityOrientation(EntityID);
+            Camera.StopCameraFlight();
             if Logic.IsSettler(EntityID) == 1 then
                 Rotation = Rotation +90;
                 Camera.FollowEntity(EntityID);
@@ -667,6 +689,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     if Page.MC then
         self:PrintOptions(self.Data.Book[_PlayerID], Page);
     else
+        Mouse.CursorHide();
         for i= 1, BriefingSystem.MCButtonAmount, 1 do
             XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
         end
@@ -719,11 +742,11 @@ function BriefingSystem.Internal:ControlBriefing()
                 self:EndBriefing(i);
                 return false;
             end
-            -- HACK: set cursor
-            if self.Data.Book[i][PageID].MC then
-                GUI.ActivateBuySoldierState();
-            else
-                GUI.ActivateCutSceneState();
+            -- HACK: fix MC buttons
+            -- (Doen't work on display for some reason)
+            for j= 1, BriefingSystem.MCButtonAmount, 1 do
+                XGUIEng.DisableButton("CinematicMC_Button" ..j, 1);
+                XGUIEng.DisableButton("CinematicMC_Button" ..j, 0);
             end
             -- Jump to page
             if type(self.Data.Book[i][PageID]) ~= "table" then
@@ -732,7 +755,7 @@ function BriefingSystem.Internal:ControlBriefing()
                 return false;
             end
             -- Next page after duration is up
-            local TimePassed = (Logic.GetTime() * 10) - self.Data.Book[i][PageID].StartTime;
+            local TimePassed = Logic.GetCurrentTurn() - self.Data.Book[i][PageID].StartTime;
             if not self.Data.Book[i][PageID].MC and TimePassed > self.Data.Book[i][PageID].Duration then
                 self:NextPage(i, false);
             end
@@ -837,6 +860,7 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
         -- Add the option to hide choices so that a player is stuck on the
         -- choice page until external intervention
         if _Briefing.IsReadOnly then
+            Mouse.CursorHide();
             for i= 1, table.getn(_Page.MC), 1 do
                 if BriefingSystem.MCButtonAmount >= i then
                     XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
@@ -844,10 +868,10 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
             end
         else
             -- Display choices normally
+            Mouse.CursorShow();
             for i= 1, table.getn(_Page.MC), 1 do
                 if BriefingSystem.MCButtonAmount >= i then
-                    -- Button highlight fix
-                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 1);
+                    -- Fix buttons (doesn't work here)
                     XGUIEng.DisableButton("CinematicMC_Button" ..i, 1);
                     XGUIEng.DisableButton("CinematicMC_Button" ..i, 0);
                     -- Localize text

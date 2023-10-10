@@ -1,4 +1,6 @@
 function OnMapStart()
+    Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\briefingtestcases.lua");
+
     Camera.ZoomSetFactorMax(2.0);
     CreateMapEntities();
 
@@ -14,6 +16,7 @@ function OnMapStart()
     Lib.Require("module/ai/AiTroopSpawner");
     Lib.Require("module/ai/AiArmyManager");
     Lib.Require("module/archive/Archive");
+    Lib.Require("module/cinematic/BriefingSystem");
     Lib.Require("module/lua/Overwrite");
     Lib.Require("module/mp/BuyHero");
     Lib.Require("module/mp/Syncer");
