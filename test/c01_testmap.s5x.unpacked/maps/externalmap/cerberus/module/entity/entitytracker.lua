@@ -13,7 +13,7 @@ Lib.Register("module/entity/EntityTracker");
 --- GameCallback_GUI_SelectionChanged is called by code if an configured type
 --- is created/destroyed or an building upgrade is started/canceled.
 --- 
---- Version 1.0.0
+--- Version 1.1.0
 ---
 
 EntityTracker = EntityTracker or {};
@@ -33,9 +33,10 @@ end
 ---  * >0   Limit
 --- 
 --- @param _Type number Entity type
+--- @param _PlayerID number? ID of player
 --- @return number Limit Current limit for type
-function EntityTracker.GetLimitOfType(_Type)
-    return EntityTracker.Internal:GetLimitForType(_Type);
+function EntityTracker.GetLimitOfType(_Type, _PlayerID)
+    return EntityTracker.Internal:GetLimitForType(_Type, _PlayerID);
 end
 
 --- Sets a limit for the type.
@@ -45,8 +46,10 @@ end
 --- 
 --- @param _Type number Entity type
 --- @param _Limit number Limit for type
-function EntityTracker.SetLimitOfType(_Type, _Limit)
-    EntityTracker.Internal:SetLimitForType(_Type, _Limit);
+--- @param _PlayerID number? ID of player
+function EntityTracker.SetLimitOfType(_Type, _Limit, _PlayerID)
+    _PlayerID = _PlayerID or -1;
+    EntityTracker.Internal:SetLimitForType(_Type, _Limit, _PlayerID);
 end
 
 --- Returns the amount of tracked entities of the player.
@@ -62,9 +65,7 @@ end
 
 EntityTracker.Internal = EntityTracker.Internal or {
     Data = {},
-    Config = {
-        Limit = {},
-    },
+    Config = {},
 };
 
 function EntityTracker.Internal:Install()
@@ -74,6 +75,9 @@ function EntityTracker.Internal:Install()
         self.IsInstalled = true;
 
         for i= 1, table.getn(Score.Player) do
+            self.Config[i] = {
+                Limit = {},
+            };
             self.Data[i] = {
                 Potential = {},
                 Current = {},
@@ -103,30 +107,36 @@ function EntityTracker.Internal:SetupSynchronization()
     );
 end
 
-function EntityTracker.Internal:GetLimitForType(_Type)
+function EntityTracker.Internal:GetLimitForType(_Type, _PlayerID)
     local UpgradeCategory = GetUpgradeCategoryByEntityType(_Type);
     local UpgradeLevel = GetUpgradeLevelByEntityType(_Type);
-    if UpgradeCategory ~= 0 and self.Config.Limit[UpgradeCategory] then
-        return self.Config.Limit[UpgradeCategory][UpgradeLevel +1];
+    if UpgradeCategory ~= 0 and self.Config[_PlayerID].Limit[UpgradeCategory] then
+        return self.Config[_PlayerID].Limit[UpgradeCategory][UpgradeLevel +1];
     end
     return -1;
 end
 
-function EntityTracker.Internal:SetLimitForType(_Type, _Limit)
+function EntityTracker.Internal:SetLimitForType(_Type, _Limit, _PlayerID)
+    if _PlayerID == -1 then
+        for i= 1, table.getn(Score.Player) do
+            self:SetLimitForType(_Type, _Limit, i);
+        end
+        return;
+    end
     local UpgradeCategory = GetUpgradeCategoryByEntityType(_Type);
     local UpgradeLevel = GetUpgradeLevelByEntityType(_Type);
     if UpgradeCategory ~= 0 then
-        if not self.Config.Limit[UpgradeCategory] then
-            self.Config.Limit[UpgradeCategory] = {-1, -1, -1, -1};
+        if not self.Config[_PlayerID].Limit[UpgradeCategory] then
+            self.Config[_PlayerID].Limit[UpgradeCategory] = {-1, -1, -1, -1};
         end
-        self.Config.Limit[UpgradeCategory][UpgradeLevel +1] = _Limit;
+        self.Config[_PlayerID].Limit[UpgradeCategory][UpgradeLevel +1] = _Limit;
     end
 end
 
 function EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type)
     local Amount = 0;
     local UpgradeCategory = GetUpgradeCategoryByEntityType(_Type);
-    if self.Data[_PlayerID] and self.Config.Limit[UpgradeCategory] then
+    if self.Data[_PlayerID] and self.Config[_PlayerID].Limit[UpgradeCategory] then
         if self.Data[_PlayerID].Potential[_Type] then
             Amount = Amount + table.getn(self.Data[_PlayerID].Potential[_Type]);
         end
