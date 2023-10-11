@@ -186,8 +186,8 @@ function AiTroopSpawner.Internal:Install()
         self.IsInstalled = true;
 
         self.ControllerJobID = Job.Second(function()
-            for i= table.getn(self.Data.Spawners), 1, -1 do
-                self:ControllSpawner(i);
+            for i= table.getn(AiTroopSpawner.Internal.Data.Spawners), 1, -1 do
+                AiTroopSpawner.Internal:ControllSpawner(i);
             end
         end);
     end

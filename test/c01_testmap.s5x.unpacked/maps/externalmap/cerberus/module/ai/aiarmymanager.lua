@@ -271,10 +271,10 @@ function AiArmyManager.Internal:Install()
         self.IsInstalled = true;
 
         self.ControllerJobID = Job.Turn(function()
-            for i= table.getn(self.Data.Managers), 1, -1 do
+            for i= table.getn(AiArmyManager.Internal.Data.Managers), 1, -1 do
                 --- @diagnostic disable-next-line: undefined-field
-                if math.mod(Logic.GetCurrentTurn(), 10) == self.Data.Managers[i].Tick then
-                    self:ControllManager(i);
+                if math.mod(Logic.GetCurrentTurn(), 10) == AiArmyManager.Internal.Data.Managers[i].Tick then
+                    AiArmyManager.Internal:ControllManager(i);
                 end
             end
         end);

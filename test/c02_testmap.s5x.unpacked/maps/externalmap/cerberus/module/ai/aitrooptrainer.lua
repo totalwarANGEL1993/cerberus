@@ -160,14 +160,14 @@ function AiTroopTrainer.Internal:Install()
         self.IsInstalled = true;
 
         self.ControllerJobID = Job.Second(function()
-            for i= table.getn(self.Data.Trainers), 1, -1 do
-                self:ControllTrainer(i);
+            for i= table.getn(AiTroopTrainer.Internal.Data.Trainers), 1, -1 do
+                AiTroopTrainer.Internal:ControllTrainer(i);
             end
         end);
 
         self.ControllerJobID = Job.Create(function()
             local EntityID = Event.GetEntityID();
-            self:ControlTrainedUnits(EntityID);
+            AiTroopTrainer.Internal:ControlTrainedUnits(EntityID);
         end);
     end
 end
