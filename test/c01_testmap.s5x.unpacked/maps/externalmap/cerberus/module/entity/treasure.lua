@@ -150,7 +150,7 @@ function Treasure.Internal:Install()
         self.IsInstalled = true;
 
         self.ControllerJobID = Job.Second(function()
-            for k,v in pairs(self.Treasures) do
+            for k,v in pairs(Treasure.Internal.Treasures) do
                 Treasure.Internal:Controller(k);
             end
         end);
