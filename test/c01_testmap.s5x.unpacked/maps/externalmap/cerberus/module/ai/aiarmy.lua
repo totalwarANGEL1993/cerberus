@@ -150,11 +150,11 @@ function AiArmy.SpawnTroop(_ID, _Type, _Position, _Exp)
             if type(Position) ~= "table" then
                 Position = GetPosition(_Position);
             end
-            local TroopID = AI.Entity_CreateFormation(Army.PlayerID, _Type, 0, 0, _Position.X, _Position.Y, 0, 0, _Exp or 0, 0);
+            local TroopID = AI.Entity_CreateFormation(Army.PlayerID, _Type, 0, 0, Position.X, Position.Y, 0, 0, _Exp or 0, 0);
             assert(TroopID ~= nil);
             for i= 1, Logic.LeaderGetMaxNumberOfSoldiers(TroopID) do
                 local SoldierType = Logic.LeaderGetSoldiersType(TroopID);
-                Logic.CreateEntity(SoldierType, _Position.X, _Position.Y, 0, Army.PlayerID);
+                Logic.CreateEntity(SoldierType, Position.X, Position.Y, 0, Army.PlayerID);
                 Tools.AttachSoldiersToLeader(TroopID, 1);
             end
             return AiArmy.AddTroop(_ID, TroopID, true);

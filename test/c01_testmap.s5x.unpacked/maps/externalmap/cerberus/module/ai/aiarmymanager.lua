@@ -176,7 +176,7 @@ end
 --- The last element of the path becomes the attack target. Enemies are
 --- searched there and it is used for comparisons between the targets.
 --- @param _ID integer ID of manager
---- @param ... table Waypoint list
+--- @param ... string Waypoint list
 function AiArmyManager.AddAttackTargetPath(_ID, ...)
     AiArmyManager.Internal:AddAttackTarget(_ID, arg);
 end
