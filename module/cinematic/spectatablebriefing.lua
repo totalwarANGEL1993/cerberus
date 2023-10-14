@@ -83,7 +83,9 @@ function SpectatableBriefing.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        self:OverwriteGetPageHeadline();
         self:OverwriteGetPageText();
+        self:OverwritePageShownCallback();
     end
 end
 
@@ -107,6 +109,28 @@ function SpectatableBriefing.Internal:StartBriefing(_PlayerID, _BriefingName, _B
         Briefing.IsReadOnly = true;
         Briefing.DisableSkipping = true;
         BriefingSystem.Internal:StartBriefing(Briefing.Watchers[i], _BriefingName, Briefing);
+    end
+end
+
+function SpectatableBriefing.Internal:NextPageForSpactators(_PlayerID, _PageID)
+    local Briefing = BriefingSystem.Internal.Data.Book[_PlayerID];
+    if not Briefing or not Briefing.IsSpectatable then
+        return;
+    end
+    for i= 1, table.getn(Briefing.Watchers) do
+        SpectatedBriefing = BriefingSystem.Internal.Data.Book[Briefing.Watchers[i]];
+        if SpectatedBriefing then
+            local FirstPage = SpectatedBriefing.Page == 1;
+            BriefingSystem.Internal:NextPage(Briefing.Watchers[i], FirstPage);
+        end
+    end
+end
+
+function SpectatableBriefing.Internal:OverwritePageShownCallback()
+    self.Orig_GameCallback_Logic_BriefingPageShown = GameCallback_Logic_BriefingPageShown;
+    GameCallback_Logic_BriefingPageShown = function(_PlayerID, _Briefing, _PageID)
+        SpectatableBriefing.Internal.Orig_GameCallback_Logic_BriefingPageShown(_PlayerID, _Briefing, _PageID);
+        SpectatableBriefing.Internal:NextPageForSpactators(_PlayerID, _PageID);
     end
 end
 
