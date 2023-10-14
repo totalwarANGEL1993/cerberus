@@ -1,7 +1,19 @@
 Lib.Require("comfort/GetDistance");
 Lib.Register("comfort/GetEnemiesInArea");
 
+-- Helper list of entities
 GetEntitiesOfDiplomacyStateInArea_RelevantTypes = {};
+-- If changed, AreEnemiesInArea must also be changed!
+GetEntitiesOfDiplomacyStateInArea_RelevantCategories = {
+    "Cannon",
+    "Headquarters",
+    "Hero",
+    "Leader",
+    "MilitaryBuilding",
+    "Serf",
+    "VillageCenter",
+    "Wall",
+};
 
 --- Returns enemies in the area.
 ---
@@ -37,8 +49,15 @@ function GetAlliesInArea(_PlayerID, _Position, _Area)
     return GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, Diplomacy.Friendly);
 end
 
-function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diplomacy)
-    GetEnemiesInArea_Helper_FillRelevantTypes();
+--- Returns entities of other players with the diplomacy state.
+--- @param _PlayerID integer  ID of player
+--- @param _Position table    Area center
+--- @param _Area integer      Size of area
+--- @param _Diplomacy integer Diplomacy state
+--- @param _Categories table? Relevant categories
+--- @return table List Found entities
+function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diplomacy, _Categories)
+    GetEnemiesInArea_Helper_FillRelevantTypes(_Categories);
     -- Search enemies
     -- (max 3 of each type might be enough)
     local Enemies = {};
@@ -81,18 +100,22 @@ function GetEnemiesInArea_Helper_GetEntitiesInArea(_PlayerID, _Type, _Position, 
     return Results;
 end
 
-function GetEnemiesInArea_Helper_FillRelevantTypes()
+function GetEnemiesInArea_Helper_FillRelevantTypes(_Categories)
+    local Categories = GetEntitiesOfDiplomacyStateInArea_RelevantCategories;
+    if _Categories then
+        GetEntitiesOfDiplomacyStateInArea_RelevantTypes = {};
+        Categories = _Categories;
+    end
     if table.getn(GetEntitiesOfDiplomacyStateInArea_RelevantTypes) == 0 then
         for k, v in pairs(Entities) do
-            -- If changed, AreEnemiesInArea must also be changed!
-            if Logic.IsEntityTypeInCategory(v, EntityCategories.Cannon) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.Headquarters) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.Hero) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.Leader) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.MilitaryBuilding) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.Serf) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.VillageCenter) == 1
-            or Logic.IsEntityTypeInCategory(v, EntityCategories.Wall) == 1 then
+            local InAnyCategory = false;
+            for i= 1, table.getn(Categories) do
+                if Logic.IsEntityTypeInCategory(v, EntityCategories[Categories[i]]) == 1 then
+                    InAnyCategory = true;
+                    break;
+                end
+            end
+            if InAnyCategory then
                 table.insert(GetEntitiesOfDiplomacyStateInArea_RelevantTypes, v);
             end
         end

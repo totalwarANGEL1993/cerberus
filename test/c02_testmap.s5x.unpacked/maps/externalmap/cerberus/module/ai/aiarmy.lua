@@ -468,16 +468,28 @@ end
 --- @param _ID integer          ID of army
 --- @param _Position? table     Area center
 --- @param _RodeLength? integer Area size
+--- @param _Categories? table   List of categories
 --- @return table Enemies List of enemies
-function AiArmy.GetEnemies(_ID, _Position, _RodeLength)
+function AiArmy.GetEnemies(_ID, _Position, _RodeLength, _Categories)
     local Enemies = {};
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         local Position = _Position or Army.Anchor.Position or Army.Position or Army.HomePosition;
         local Area = _RodeLength or Army.Anchor.RodeLength or Army.RodeLength;
-        Enemies = AiArmy.Internal:GetEnemiesInTerritory(Army.PlayerID, Position, Area);
+        Enemies = AiArmy.Internal:GetEnemiesInTerritory(Army.PlayerID, Position, Area, nil, _Categories);
     end
     return Enemies;
+end
+
+--- Returns a list of enemies of the army but without walls.
+--- @param _ID integer          ID of army
+--- @param _Position? table     Area center
+--- @param _RodeLength? integer Area size
+--- @return table Enemies List of enemies
+function AiArmy.GetEnemiesWithoutWalls(_ID, _Position, _RodeLength)
+    return AiArmy.GetEnemies(_ID, _Position, _RodeLength, {
+        "Cannon", "Headquarters", "Hero", "Leader", "MilitaryBuilding", "Serf","VillageCenter"
+    });
 end
 
 --- Changes the default how troops target enemies.
@@ -626,16 +638,17 @@ function AiArmy.Internal:Controller()
 end
 
 -- Checks for enemies in the area and removes not reachable.
-function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID)
+function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, _CategoryList)
     local AreaCenter;
+
     -- Check in vecinity of troop
     if _TroopID and IsExisting(_TroopID) then
-        if AreEnemiesInArea(_PlayerID, GetPosition(_TroopID), _Area) then
+        if AreEntitiesOfDiplomacyStateInArea(_PlayerID, GetPosition(_TroopID), _Area, Diplomacy.Hostile, _CategoryList) then
             AreaCenter = GetPosition(_TroopID);
         end
     -- Check in vecinity of position
     else
-        if AreEnemiesInArea(_PlayerID, _Position, _Area) then
+        if AreEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, Diplomacy.Hostile, _CategoryList) then
             AreaCenter = _Position;
         end
     end
@@ -644,7 +657,7 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
     if AreaCenter ~= nil then
         local AreaSquared = _Area ^ 2;
         local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
-        Enemies = GetEnemiesInArea(PlayerID, AreaCenter, _Area);
+        Enemies = GetEntitiesOfDiplomacyStateInArea(PlayerID, AreaCenter, _Area, Diplomacy.Hostile, _CategoryList);
         for i= table.getn(Enemies), 1, -1 do
             local Type = Logic.GetEntityType(Enemies[i]);
             if not IsValidEntity(Enemies[i])
@@ -656,6 +669,16 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
         end
     end
     return Enemies;
+end
+
+function AiArmy.Internal:GetEnemiesFortificationFilter(_PlayerID, _Position, _Area, _TroopID)
+    local CategoryList = {"Wall"};
+    return self:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, CategoryList);
+end
+
+function AiArmy.Internal:GetEnemiesNoFortificationFilter(_PlayerID, _Position, _Area, _TroopID)
+    local CategoryList = {"Cannon", "Headquarters", "Hero", "Leader", "MilitaryBuilding", "Serf","VillageCenter"};
+    return self:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, CategoryList);
 end
 
 -- Returns the best target for the troop from the target list.
@@ -907,10 +930,23 @@ end
 ---   - Set behavior: AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:AdvanceBehavior()
     self:NormalizedArmySpeed();
+    local ArmyPosition = self:GetArmyPosition();
+
     local EncounteredEnemy = 0;
     for j= 1, table.getn(self.Troops) do
+        -- Check is blocked
         local Exploration = Logic.GetEntityExplorationRange(self.Troops[j]) + 8;
-        local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, GetPosition(self.Troops[j]), Exploration * 100);
+        local SearchFortification = false;
+        if self.Position ~= nil and not ArePositionsConnected(ArmyPosition, self.Position) then
+            SearchFortification = true;
+        end
+        -- Search enemies
+        local Enemies = {};
+        if SearchFortification then
+            Enemies = AiArmy.Internal:GetEnemiesFortificationFilter(self.PlayerID, GetPosition(self.Troops[j]), Exploration * 100);
+        else
+            Enemies = AiArmy.Internal:GetEnemiesNoFortificationFilter(self.PlayerID, GetPosition(self.Troops[j]), Exploration * 100);
+        end
         if Enemies[1] then
             EncounteredEnemy = Enemies[1];
             break;
@@ -930,7 +966,6 @@ function AiArmy.Internal.Army:AdvanceBehavior()
         elseif self.Position == nil then
             self:SetBehavior(AiArmy.Behavior.WAITING);
         else
-            local ArmyPosition = self:GetArmyPosition();
             local Reachable = GetReachablePosition(self.Troops[1], ArmyPosition, self.Troops[1]);
             if GetDistance(Reachable, self.Position) > 1000 then
                 for j= 1, table.getn(self.Troops) do
@@ -956,7 +991,21 @@ end
 ---   - Move troop to anchor if to far apart
 ---   - Move troop to anchor if no enemy
 function AiArmy.Internal.Army:BattleBehavior()
-    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength);
+    local ArmyPosition = self:GetArmyPosition();
+
+    -- Check is blocked
+    local SearchFortification = false;
+    if self.Position ~= nil and not ArePositionsConnected(ArmyPosition, self.Position) then
+        SearchFortification = true;
+    end
+    -- Search enemies
+    local Enemies = {};
+    if SearchFortification then
+        Enemies = AiArmy.Internal:GetEnemiesFortificationFilter(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength);
+    else
+        Enemies = AiArmy.Internal:GetEnemiesNoFortificationFilter(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength);
+    end
+
     if not Enemies[1] then
         self:SetAnchor(nil, nil);
         self:SetBehavior(AiArmy.Behavior.REGROUP);
@@ -969,13 +1018,23 @@ function AiArmy.Internal.Army:BattleBehavior()
                 self:LockOn(self.Troops[j], nil);
             else
                 if not self.Targets[self.Troops[j]] then
-                    Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
+                    -- -- Check is blocked
+                    -- SearchFortification = false;
+                    -- if self.Position ~= nil and not ArePositionsConnected(ArmyPosition, self.Anchor.Position) then
+                    --     SearchFortification = true;
+                    -- end
+                    -- -- Search enemies
+                    -- if SearchFortification then
+                    --     Enemies = AiArmy.Internal:GetEnemiesFortificationFilter(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
+                    -- else
+                    --     Enemies = AiArmy.Internal:GetEnemiesNoFortificationFilter(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
+                    -- end
+                    -- Attack enemies
                     if Enemies[1] then
                         local TargetID = AiArmy.Internal:PriorityTarget(self.Troops[j], Enemies);
                         self:LockOn(self.Troops[j], TargetID);
                         Logic.GroupAttack(self.Troops[j], TargetID);
                     else
-                        local ArmyPosition = self:GetArmyPosition();
                         if GetDistance(ArmyPosition, self.Anchor.Position) > 1000 then
                             --- @diagnostic disable-next-line: undefined-field
                             Logic.MoveSettler(self.Troops[j], self.Anchor.Position.X, self.Anchor.Position.Y);

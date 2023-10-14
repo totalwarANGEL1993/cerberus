@@ -1,5 +1,17 @@
 Lib.Register("comfort/AreEnemiesInArea");
 
+-- If changed, GetEnemiesInArea must also be changed!
+AreEntitiesOfDiplomacyStateInArea_RelevantCategories = {
+    "Cannon",
+    "Headquarters",
+    "Hero",
+    "Leader",
+    "MilitaryBuilding",
+    "Serf",
+    "VillageCenter",
+    "Wall"
+};
+
 --- Returns if enemies of the player are in the area.
 --- @param _player number ID of player
 --- @param _position any  Area center
@@ -26,8 +38,15 @@ function AreAlliesInArea(_player, _position, _range)
     return AreEntitiesOfDiplomacyStateInArea(_player, _position, _range, Diplomacy.Friendly);
 end
 
--- Improved version by totalwarANGEL
-function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state)
+--- Returns entities of other players with the diplomacy state.
+--- @param _player integer    ID of player
+--- @param _Position table    Area center
+--- @param _range integer     Size of area
+--- @param _state integer     Diplomacy state
+--- @param _Categories table? Relevant categories
+--- @return boolean Found Entities are near
+function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state, _Categories)
+    local Categories = _Categories or AreEntitiesOfDiplomacyStateInArea_RelevantCategories;
     local Position = _Position;
     if type(Position) ~= "table" then
         Position = GetPosition(Position);
@@ -38,15 +57,7 @@ function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state)
                 i,
                 Position.X, Position.Y,
                 _range,
-                -- If changed, GetEnemiesInArea must also be changed!
-                "Cannon",
-                "Headquarters",
-                "Hero",
-                "Leader",
-                "MilitaryBuilding",
-                "Serf",
-                "VillageCenter",
-                "Wall"
+                unpack(Categories)
             ) == 1 then
                 return true;
             end
