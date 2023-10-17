@@ -1,3 +1,4 @@
+Lib.Require("comfort/CopyTable");
 Lib.Register("module/trigger/Job");
 
 --- 
@@ -96,6 +97,27 @@ function Job.Trade(_Function, ...)
     return Job.Internal:StartJob(Events.LOGIC_EVENT_GOODS_TRADED, _Function, unpack(arg));
 end
 
+--- Adds a condition to a specific tribute or to all tributes.
+---
+--- Conditions for specific tributes have priority over the common condition.
+---
+--- #### Example
+--- ```lua
+--- -- _PlayerID  - player who would pay tribute
+--- -- _TributeID - ID of tribute payed
+--- function MyCondition(_PlayerID, _TributeID)
+---     -- true: tribute can be fulfilled
+---     -- false: tribute is locked
+---     return true;
+--- end
+--- Job.AddTributeCondition(6, MyCondition);
+--- ```
+--- @param _TributeID integer  ID of tribute or -1 for all
+--- @param _Condition function Condition function
+function Job.AddTributeCondition(_TributeID, _Condition)
+    Job.Internal.Data.TributeCondition[_TributeID] = _Condition;
+end
+
 -- TODO: Add delay functions
 
 -- -------------------------------------------------------------------------- --
@@ -105,6 +127,8 @@ Job.Internal = Job.Internal or {
     JobIdSequence = 0,
 
     Data = {
+        TributeCondition = {},
+        --
         Parameter = {},
         Function = {},
         Executor = {},
@@ -115,7 +139,30 @@ function Job.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
+        self:InitOverwriteTributePaied();
         self:InitRestoreAfterLoad();
+    end
+end
+
+function Job.Internal:InitOverwriteTributePaied()
+    self.Orig_GameCallback_FulfillTribute = GameCallback_FulfillTribute;
+    GameCallback_FulfillTribute = function(_PlayerID, _TributeID)
+        local IsAllowed = 1;
+        if Job.Internal.Orig_GameCallback_FulfillTribute then
+            IsAllowed = Job.Internal.Orig_GameCallback_FulfillTribute(_PlayerID, _TributeID);
+        end
+        if Job.Internal.Data.TributeCondition[_TributeID] then
+            IsAllowed = 0;
+            if Job.Internal.Data.TributeCondition[_TributeID](_PlayerID, _TributeID) then
+                IsAllowed = 1;
+            end
+        elseif Job.Internal.Data.TributeCondition[-1] then
+            IsAllowed = 0;
+            if Job.Internal.Data.TributeCondition[-1](_PlayerID, _TributeID) then
+                IsAllowed = 1;
+            end
+        end
+        return IsAllowed;
     end
 end
 
