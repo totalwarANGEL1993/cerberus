@@ -1,4 +1,3 @@
-Lib.Require("comfort/AreEnemiesInArea");
 Lib.Require("comfort/CopyTable");
 Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/GetEnemiesInArea");
@@ -887,7 +886,8 @@ end
 function AiArmy.Internal.Army:RefillBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
-    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
+    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+    if Enemies[1] then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
         self:SetAnchor(ArmyPosition, self.RodeLength);
     else
@@ -1059,7 +1059,8 @@ end
 function AiArmy.Internal.Army:RegroupBehavior()
     local ArmyPosition = self:GetArmyPosition();
     self:NormalizedArmySpeed();
-    if AreEnemiesInArea(self.PlayerID, ArmyPosition, self.RodeLength) then
+    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+    if Enemies[1] then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
         self:SetAnchor(ArmyPosition, self.RodeLength);
     else
