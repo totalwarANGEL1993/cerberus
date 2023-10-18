@@ -59,12 +59,11 @@ end
 function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diplomacy, _Categories)
     GetEnemiesInArea_Helper_FillRelevantTypes(_Categories);
     -- Search enemies
-    -- (max 3 of each type might be enough)
     local Enemies = {};
     for i= 1, table.getn(Score.Player) do
         if i ~= _PlayerID and Logic.GetDiplomacyState(_PlayerID, i) == _Diplomacy then
             for k, v in pairs(GetEntitiesOfDiplomacyStateInArea_RelevantTypes) do
-                local Findings = GetEnemiesInArea_Helper_GetEntitiesInArea(i, v, _Position, _Area, 3);
+                local Findings = GetEnemiesInArea_Helper_GetEntitiesInArea(i, v, _Position, _Area, 16);
                 for j= 1, table.getn(Findings) do
                     -- Add heroes if camouflage is notactive
                     if Logic.IsHero(Findings[j]) == 1 then

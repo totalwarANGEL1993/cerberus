@@ -26,6 +26,8 @@ function OnMapStart()
     Lib.Require("module/ui/Workplace");
     Lib.Require("module/weather/WeatherMaker");
 
+    Script.Load("E:\\Siedler\\Projekte\\Fremdprojekte\\NovatorWT23\\merchantcaravantrader.lua");
+
     Archive.Install();
     Workplace.Install();
     BuyHero.Install();
