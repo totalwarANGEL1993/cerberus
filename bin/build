@@ -1,9 +1,9 @@
 #!/bin/bash
 
 rm -rf var
-mkdir -p var/cerberus
-cp -r comfort var/cerberus
-cp -r module var/cerberus
+mkdir -p var/cerberus/lua
+cp -r lua/comfort var/cerberus/lua
+cp -r lua/module var/cerberus/lua
 cp -r loader.lua var/cerberus
 
 rm -rf test/c01_testmap.s5x.unpacked/maps/externalmap/cerberus
