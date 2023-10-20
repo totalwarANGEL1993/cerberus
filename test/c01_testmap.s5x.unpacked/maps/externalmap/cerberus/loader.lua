@@ -11,7 +11,7 @@ Lib = {
         "script/",
     },
 
-    Version = "1.3.5",
+    Version = "1.4.0",
     Sources = {},
     Loaded = {},
 };
@@ -47,7 +47,7 @@ end
 --- @param _Path string Relative path
 function Lib.Register(_Path)
     local Key = string.gsub(_Path, "/", "_");
-    Lib.Loaded[Key] = Lib.Sources[Key] .. "cerberus\\";
+    Lib.Loaded[Key] = Lib.Sources[Key] .. "cerberus\\lua\\";
 end
 
 --- DO NOT USE THIS MANUALLY!
@@ -55,7 +55,7 @@ end
 --- @param _Source string Path where the component is loaded from
 --- @param _Path string   Relative path of component
 function Lib.Load(_Source, _Path)
-    local Path = _Source.. "cerberus\\" .._Path;
+    local Path = _Source.. "cerberus\\lua\\" .._Path;
     Script.Load(Path.. ".lua");
 end
 
