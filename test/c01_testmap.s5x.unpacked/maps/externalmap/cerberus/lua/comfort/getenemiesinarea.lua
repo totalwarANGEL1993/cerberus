@@ -1,4 +1,3 @@
-Lib.Require("comfort/GetDistance");
 Lib.Register("comfort/GetEnemiesInArea");
 
 -- Helper list of entities
@@ -6,13 +5,11 @@ GetEntitiesOfDiplomacyStateInArea_RelevantTypes = {};
 -- If changed, AreEnemiesInArea must also be changed!
 GetEntitiesOfDiplomacyStateInArea_RelevantCategories = {
     "Cannon",
-    "Headquarters",
+    "DefendableBuilding",
     "Hero",
     "Leader",
     "MilitaryBuilding",
-    "Serf",
-    "VillageCenter",
-    "Wall",
+    "Serf"
 };
 
 --- Returns enemies in the area.
@@ -58,6 +55,9 @@ end
 --- @return table List Found entities
 function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diplomacy, _Categories)
     GetEnemiesInArea_Helper_FillRelevantTypes(_Categories);
+
+    -- Create central entity
+    local AreaCenterID = Logic.CreateEntity(Entities.XD_Rock1, _Position.X, _Position.Y, 0, 0);
     -- Search enemies
     local Enemies = {};
     for i= 1, table.getn(Score.Player) do
@@ -74,7 +74,7 @@ function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diploma
                     elseif Logic.GetEntityType(Findings[j]) == Entities.PU_Thief then
                         local Task = Logic.GetCurrentTaskList(Findings[j]);
                         if (not Task or (string.find(Task,"STEAL_GOODS") or string.find(Task,"BATTLE")))
-                        or GetDistance(_Position, Findings[j]) <= 300 then
+                        or Logic.CheckEntitiesDistance(_Position, Findings[j], 300) then
                             table.insert(Enemies, Findings[j]);
                         end
                     -- Add all other unit types
@@ -85,6 +85,9 @@ function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diploma
             end
         end
     end
+    -- Destroy central entity
+    DestroyEntity(AreaCenterID);
+
     return Enemies;
 end
 

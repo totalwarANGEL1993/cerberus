@@ -3,13 +3,11 @@ Lib.Register("comfort/AreEnemiesInArea");
 -- If changed, GetEnemiesInArea must also be changed!
 AreEntitiesOfDiplomacyStateInArea_RelevantCategories = {
     "Cannon",
-    "Headquarters",
+    "DefendableBuilding",
     "Hero",
     "Leader",
     "MilitaryBuilding",
-    "Serf",
-    "VillageCenter",
-    "Wall"
+    "Serf"
 };
 
 --- Returns if enemies of the player are in the area.

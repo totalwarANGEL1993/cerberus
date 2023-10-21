@@ -639,34 +639,37 @@ end
 -- Checks for enemies in the area and removes not reachable.
 function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, _CategoryList)
     local AreaCenter;
+    local Enemies = {};
 
     -- Check in vecinity of troop
     if _TroopID and IsExisting(_TroopID) then
-        if AreEntitiesOfDiplomacyStateInArea(_PlayerID, GetPosition(_TroopID), _Area, Diplomacy.Hostile, _CategoryList) then
+        if AreEntitiesOfDiplomacyStateInArea(_PlayerID, GetPosition(_TroopID), math.min(_Area,3000), Diplomacy.Hostile, _CategoryList) then
             AreaCenter = GetPosition(_TroopID);
         end
     -- Check in vecinity of position
     else
-        if AreEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, Diplomacy.Hostile, _CategoryList) then
-            AreaCenter = _Position;
+        if not AreEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, math.min(_Area,3000), Diplomacy.Hostile, _CategoryList) then
+            return Enemies;
         end
+        AreaCenter = _Position;
     end
+
+    -- Create central entity
+    local AreaCenterID = Logic.CreateEntity(Entities.XD_Rock1, AreaCenter.X, AreaCenter.Y, 0, 0);
     -- Obtain IDs of enemies
-    local Enemies = {};
-    if AreaCenter ~= nil then
-        local AreaSquared = _Area ^ 2;
-        local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
-        Enemies = GetEntitiesOfDiplomacyStateInArea(PlayerID, AreaCenter, _Area, Diplomacy.Hostile, _CategoryList);
-        for i= table.getn(Enemies), 1, -1 do
-            local Type = Logic.GetEntityType(Enemies[i]);
-            if not IsValidEntity(Enemies[i])
-            or Type == Entities.PU_Hero3_Trap
-            or Type == Entities.PU_Hero3_TrapCannon
-            or GetDistanceSquare(AreaCenter, Enemies[i]) > AreaSquared then
-                table.remove(Enemies, i);
-            end
+    local PlayerID = (_TroopID and Logic.EntityGetPlayer(_TroopID)) or _PlayerID;
+    Enemies = GetEntitiesOfDiplomacyStateInArea(PlayerID, AreaCenter, _Area, Diplomacy.Hostile, _CategoryList);
+    for i= table.getn(Enemies), 1, -1 do
+        local TypeName = Logic.GetEntityTypeName(Logic.GetEntityType(Enemies[i]));
+        if not IsValidEntity(Enemies[i])
+        or not Logic.CheckEntitiesDistance(AreaCenterID, Enemies[i], _Area)
+        or string.find(TypeName, "PU_Hero3_Trap") then
+            table.remove(Enemies, i);
         end
     end
+    -- Destroy central entity
+    DestroyEntity(AreaCenterID);
+
     return Enemies;
 end
 
@@ -676,7 +679,7 @@ function AiArmy.Internal:GetEnemiesFortificationFilter(_PlayerID, _Position, _Ar
 end
 
 function AiArmy.Internal:GetEnemiesNoFortificationFilter(_PlayerID, _Position, _Area, _TroopID)
-    local CategoryList = {"Cannon", "Headquarters", "Hero", "Leader", "MilitaryBuilding", "Serf","VillageCenter"};
+    local CategoryList = {"Cannon", "DefendableBuilding", "Hero", "Leader", "MilitaryBuilding", "Serf"};
     return self:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, CategoryList);
 end
 
