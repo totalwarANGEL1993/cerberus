@@ -7,7 +7,7 @@ AreEntitiesOfDiplomacyStateInArea_RelevantCategories = {
     "Hero",
     "Leader",
     "MilitaryBuilding",
-    "Serf"
+    "Serf",
 };
 
 --- Returns if enemies of the player are in the area.
@@ -45,15 +45,11 @@ end
 --- @return boolean Found Entities are near
 function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state, _Categories)
     local Categories = _Categories or AreEntitiesOfDiplomacyStateInArea_RelevantCategories;
-    local Position = _Position;
-    if type(Position) ~= "table" then
-        Position = GetPosition(Position);
-    end
     for i = 1, 8 do
         if i ~= _player and Logic.GetDiplomacyState(_player, i) == _state then
             if Logic.IsPlayerEntityOfCategoryInArea(
                 i,
-                Position.X, Position.Y,
+                _Position.X, _Position.Y,
                 _range,
                 unpack(Categories)
             ) == 1 then

@@ -480,17 +480,6 @@ function AiArmy.GetEnemies(_ID, _Position, _RodeLength, _Categories)
     return Enemies;
 end
 
---- Returns a list of enemies of the army but without walls.
---- @param _ID integer          ID of army
---- @param _Position? table     Area center
---- @param _RodeLength? integer Area size
---- @return table Enemies List of enemies
-function AiArmy.GetEnemiesWithoutWalls(_ID, _Position, _RodeLength)
-    return AiArmy.GetEnemies(_ID, _Position, _RodeLength, {
-        "Cannon", "Headquarters", "Hero", "Leader", "MilitaryBuilding", "Serf","VillageCenter"
-    });
-end
-
 --- Changes the default how troops target enemies.
 ---
 --- #### Options:
@@ -643,12 +632,12 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
 
     -- Check in vecinity of troop
     if _TroopID and IsExisting(_TroopID) then
-        if AreEntitiesOfDiplomacyStateInArea(_PlayerID, GetPosition(_TroopID), math.min(_Area,3000), Diplomacy.Hostile, _CategoryList) then
+        if AreEntitiesOfDiplomacyStateInArea(_PlayerID, GetPosition(_TroopID), _Area, Diplomacy.Hostile, _CategoryList) then
             AreaCenter = GetPosition(_TroopID);
         end
     -- Check in vecinity of position
     else
-        if not AreEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, math.min(_Area,3000), Diplomacy.Hostile, _CategoryList) then
+        if not AreEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, Diplomacy.Hostile, _CategoryList) then
             return Enemies;
         end
         AreaCenter = _Position;
@@ -1021,17 +1010,6 @@ function AiArmy.Internal.Army:BattleBehavior()
                 self:LockOn(self.Troops[j], nil);
             else
                 if not self.Targets[self.Troops[j]] then
-                    -- -- Check is blocked
-                    -- SearchFortification = false;
-                    -- if self.Position ~= nil and not ArePositionsConnected(ArmyPosition, self.Anchor.Position) then
-                    --     SearchFortification = true;
-                    -- end
-                    -- -- Search enemies
-                    -- if SearchFortification then
-                    --     Enemies = AiArmy.Internal:GetEnemiesFortificationFilter(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
-                    -- else
-                    --     Enemies = AiArmy.Internal:GetEnemiesNoFortificationFilter(self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength, self.Troops[j]);
-                    -- end
                     -- Attack enemies
                     if Enemies[1] then
                         local TargetID = AiArmy.Internal:PriorityTarget(self.Troops[j], Enemies);

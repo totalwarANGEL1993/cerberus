@@ -10,12 +10,14 @@ Lib.Register("comfort/IsValidEntity");
 ---
 function IsValidEntity(_Entity)
     local ID = GetID(_Entity);
-    if  Logic.IsSettler(ID) == 1
-    and not Logic.IsEntityDestroyed(ID)
-    and Logic.GetEntityHealth(ID) > 0 then
-        local Task = Logic.GetCurrentTaskList(ID);
-        if Task and string.find(Task, "DIE") then
-            return false;
+    if IsExisting(ID) then
+        if  (Logic.IsBuilding(ID) == 1 or Logic.IsSettler(ID) == 1)
+        and Logic.GetEntityHealth(ID) > 0 then
+            local Task = Logic.GetCurrentTaskList(ID);
+            if Task and string.find(Task, "DIE") then
+                return false;
+            end
+            return true;
         end
         return true;
     end

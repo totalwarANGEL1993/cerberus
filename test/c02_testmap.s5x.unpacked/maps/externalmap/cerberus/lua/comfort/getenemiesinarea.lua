@@ -9,7 +9,7 @@ GetEntitiesOfDiplomacyStateInArea_RelevantCategories = {
     "Hero",
     "Leader",
     "MilitaryBuilding",
-    "Serf"
+    "Serf",
 };
 
 --- Returns enemies in the area.
@@ -74,7 +74,7 @@ function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diploma
                     elseif Logic.GetEntityType(Findings[j]) == Entities.PU_Thief then
                         local Task = Logic.GetCurrentTaskList(Findings[j]);
                         if (not Task or (string.find(Task,"STEAL_GOODS") or string.find(Task,"BATTLE")))
-                        or Logic.CheckEntitiesDistance(_Position, Findings[j], 300) then
+                        or Logic.CheckEntitiesDistance(AreaCenterID, Findings[j], 300) then
                             table.insert(Enemies, Findings[j]);
                         end
                     -- Add all other unit types

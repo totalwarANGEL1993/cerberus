@@ -26,8 +26,6 @@ function OnMapStart()
     Lib.Require("module/ui/Workplace");
     Lib.Require("module/weather/WeatherMaker");
 
-    Script.Load("E:\\Siedler\\Projekte\\Fremdprojekte\\NovatorWT23\\merchantcaravantrader.lua");
-
     Archive.Install();
     Workplace.Install();
     BuyHero.Install();
@@ -37,6 +35,27 @@ function OnMapStart()
 
     CreateTroopSpawnersTest()
     CreateAttackArmiesTest()
+
+
+    UseWeatherSet("HighlandsWeatherSet");
+    LocalMusic.UseSet = HIGHLANDMUSIC;
+
+    -- Rain (normal)
+    Logic.AddWeatherElement(2, 30, 1, 2, 5, 10);
+    -- Rain (with snow)
+    Logic.AddWeatherElement(2, 30, 1, 4, 5, 10);
+    -- Winter (normal)
+    Logic.AddWeatherElement(3, 30, 1, 3, 5, 10);
+    -- Winter (without snow)
+    Logic.AddWeatherElement(3, 30, 1, 7, 5, 10);
+    -- Winter (normal)
+    Logic.AddWeatherElement(3, 30, 1, 3, 5, 10);
+    -- Winter (with rain)
+    Logic.AddWeatherElement(3, 30, 1, 8, 5, 10);
+    -- Rain (normal)
+    Logic.AddWeatherElement(2, 30, 1, 2, 5, 10);
+    -- Summer (normal)
+    Logic.AddWeatherElement(1, 30, 1, 1, 5, 10);
 end
 
 function CreateTroopSpawnersTest()

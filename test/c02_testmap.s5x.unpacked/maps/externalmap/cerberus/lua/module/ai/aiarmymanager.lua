@@ -353,7 +353,7 @@ function AiArmyManager.Internal:ControllManager(_Index)
                 end
                 -- Check enemies defeated
                 local Target = Data.Campaign.Target[table.getn(Data.Campaign.Target)];
-                local Enemies = AiArmy.GetEnemiesWithoutWalls(Data.ArmyID, GetPosition(Target));
+                local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Target));
                 if not Enemies[1] then
                     self:EndCampaign(Data.ID);
                     AiArmy.Retreat(Data.ArmyID);
@@ -452,7 +452,7 @@ function AiArmyManager.Internal:GetUnattendedAttackTarget(_ID, _CampaignType)
         -- Get target
         if table.getn(Targets) >= 0 then
             for i= table.getn(Targets), 1, -1 do
-                local Enemies = AiArmy.GetEnemiesWithoutWalls(Data.ArmyID, GetPosition(Targets[i][table.getn(Targets[i])]));
+                local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Targets[i][table.getn(Targets[i])]));
                 if Enemies[1] then
                     Targets[i].Index = 1;
                     return Targets[i];
