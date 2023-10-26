@@ -145,6 +145,16 @@ function AiTroopTrainer.ChangePlayer(_ID, _PlayerID)
     return AiTroopTrainer.Internal:ChangePlayer(_ID, _PlayerID);
 end
 
+--- Checks if the trainer is alive.
+--- @param _ID integer ID of trainer
+--- @return boolean Alive Trainer is alive
+function AiTroopTrainer.IsAlive(_ID)
+    if AiArmyTrainerData_TrainerIdToTrainerInstance[_ID] then
+        return IsExisting(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].ScriptName);
+    end
+    return false;
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 

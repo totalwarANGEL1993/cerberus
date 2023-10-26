@@ -171,6 +171,16 @@ function AiTroopSpawner.ChangePlayer(_ID, _PlayerID)
     return AiTroopSpawner.Internal:ChangePlayer(_ID, _PlayerID);
 end
 
+--- Checks if the spawner is alive.
+--- @param _ID integer ID of spawner
+--- @return boolean Alive Spawner is alive
+function AiTroopSpawner.IsAlive(_ID)
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        return IsExisting(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].ScriptName);
+    end
+    return false;
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 

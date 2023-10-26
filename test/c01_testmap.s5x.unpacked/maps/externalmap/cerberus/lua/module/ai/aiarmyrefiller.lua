@@ -75,6 +75,19 @@ function AiArmyRefiller.Get(_Entity)
     return AiArmyRefiller.Internal:GetByEntity(_Entity);
 end
 
+--- Checks if the refiller is alive.
+--- @param _ID integer ID of refiller
+--- @return boolean Alive Refiller is alive
+function AiArmyRefiller.IsAlive(_ID)
+    if AiArmyRefiller.IsSpawner(_ID) then
+        return AiTroopSpawner.IsAlive(AiArmyRefiller.GetSpawnerID(_ID));
+    end
+    if AiArmyRefiller.IsTrainer(_ID) then
+        return AiArmyRefiller.IsAlive(AiArmyRefiller.GetTrainerID(_ID));
+    end
+    return false;
+end
+
 --- Returns the ID of the internal spawner or 0 if not a spawner.
 --- @param _ID integer ID of refiller
 --- @return integer Spawner ID of spawner
