@@ -1051,6 +1051,9 @@ function AiArmy.Internal.Army:RegroupBehavior()
                 Logic.MoveSettler(self.Troops[j], Reachable.X, Reachable.Y);
             end
         else
+            for j= 1, table.getn(self.Troops) do
+                Logic.MoveSettler(self.Troops[j], ArmyPosition.X, ArmyPosition.Y);
+            end
             if self.Position then
                 self:SetBehavior(AiArmy.Behavior.ADVANCE);
             else

@@ -188,6 +188,12 @@ function AiArmyManager.RemoveAttackTarget(_ID, _Target)
     AiArmyManager.Internal:RemoveAttackTarget(_ID, _Target);
 end
 
+--- Removes all attack targets.
+--- @param _ID integer ID of manager
+function AiArmyManager.ClearAttackTargets(_ID)
+    AiArmyManager.Internal:ClearAttackTargets(_ID);
+end
+
 --- Adds a guard position to the manager.
 --- @param _ID integer ID of manager
 --- @param _Target string Target script entity
@@ -200,6 +206,12 @@ end
 --- @param _Target any Target script entity
 function AiArmyManager.RemoveGuardPosition(_ID, _Target)
     AiArmyManager.Internal:RemoveGuardPosition(_ID, _Target);
+end
+
+--- Removes all guard positions.
+--- @param _ID integer ID of manager
+function AiArmyManager.ClearGuardPositions(_ID)
+    AiArmyManager.Internal:ClearGuardPositions(_ID)
 end
 
 --- Forbid the manager to send it's army to attack
@@ -390,7 +402,11 @@ function AiArmyManager.Internal:ControllManager(_Index)
                         end
                     end
                     if GetDistance(AiArmy.GetLocation(Data.ArmyID), Data.Campaign.Target) > 1000 then
-                        AiArmy.Advance(Data.ArmyID, GetPosition(Data.Campaign.Target));
+                        local Position = Data.Campaign.Target;
+                        if type(Data.Campaign.Target) ~= "table" then
+                            Position = GetPosition(Data.Campaign.Target);
+                        end
+                        AiArmy.Advance(Data.ArmyID, Position);
                     end
                 end
 
@@ -554,6 +570,14 @@ function AiArmyManager.Internal:RemoveAttackTarget(_ID, _Target)
     end
 end
 
+function AiArmyManager.Internal:ClearAttackTargets(_ID)
+    if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
+        for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets), 1, -1 do
+            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID].AttackTargets, i);
+        end
+    end
+end
+
 function AiArmyManager.Internal:AddGuardPosition(_ID, _Target)
     if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
         if not IsInTable(_Target, AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions) then
@@ -568,6 +592,14 @@ function AiArmyManager.Internal:RemoveGuardPosition(_ID, _Target)
             if AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions[i] == _Target then
                 table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions, i);
             end
+        end
+    end
+end
+
+function AiArmyManager.Internal:ClearGuardPositions(_ID)
+    if AiArmyManagerData_ManagerIdToManagerInstance[_ID] then
+        for i= table.getn(AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions), 1, -1 do
+            table.remove(AiArmyManagerData_ManagerIdToManagerInstance[_ID].GuardPositions, i);
         end
     end
 end
