@@ -862,9 +862,9 @@ function AiArmy.Internal.Army:WaitBehavior()
                 for i= table.getn(self.Troops), 1, -1 do
                     local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
                     local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
-                    if MaxAmount > CurAmount then
-                        if not IsFighting(self.Troops[i]) and self:IsTroopAlive(self.Troops[i])
-                        and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
+                    local Health = Logic.GetEntityHealth(self.Troops[i]);
+                    if Health > 0 and MaxAmount > CurAmount then
+                        if not IsFighting(self.Troops[i]) and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
                             Tools.CreateSoldiersForLeader(self.Troops[i], 1);
                         end
                     end
@@ -924,11 +924,11 @@ function AiArmy.Internal.Army:RefillBehavior()
                         Logic.MoveSettler(self.Troops[i], self.HomePosition.X, self.HomePosition.Y);
                     end
                     -- Respawn soldiers
-                    if not IsFighting(self.Troops[i]) and self:IsTroopAlive(self.Troops[i])
-                    and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
-                        local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
-                        local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
-                        if MaxAmount > CurAmount then
+                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
+                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
+                    local Health = Logic.GetEntityHealth(self.Troops[i]);
+                    if Health > 0 and MaxAmount > CurAmount then
+                        if not IsFighting(self.Troops[i]) and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
                             Tools.CreateSoldiersForLeader(self.Troops[i], 1);
                         end
                     end

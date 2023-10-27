@@ -34,13 +34,25 @@ Lib.Register("module/ai/AiArmyManager");
 --- of a second is used to run a subset of the managers. Still, each manager
 --- is run only once per second.
 ---
+--- Defines the following callbacks:
+--- - GameCallback_Logic_OnCampaignStart(_ManagerID, _Type, _Target, _Time)
+---   A campaign (attack or guard) is started.
+---
+--- - GameCallback_Logic_OnCampaignEnd(_ManagerID, _Type, _Target, _Time, _CampaignResult)
+---   A campaign (attack or guard) has concluded.
+---
 --- Version 1.3.0
 ---
 AiArmyManager = AiArmyManager or {
     Campaign = {
         ATTACK = 1,
         DEFEND = 2,
-    }
+    },
+    CampaignResult = {
+        FAILURE = 1,
+        SUCCESS = 2,
+        ABOURT = 3,
+    },
 };
 
 AiArmyManagerData_ManagerIdToManagerInstance = {};
@@ -269,6 +281,15 @@ function AiArmyManager.DispatchTroopsToRefiller(_ID)
 end
 
 -- -------------------------------------------------------------------------- --
+-- Game Callbacks
+
+function GameCallback_Logic_OnCampaignStart(_ManagerID, _Type, _Target, _Time)
+end
+
+function GameCallback_Logic_OnCampaignEnd(_ManagerID, _Type, _Target, _Time, _CampaignResult)
+end
+
+-- -------------------------------------------------------------------------- --
 -- Internal
 
 AiArmyManager.Internal = AiArmyManager.Internal or {
@@ -351,7 +372,7 @@ function AiArmyManager.Internal:ControllManager(_Index)
             if Data.Campaign.Type == AiArmyManager.Campaign.ATTACK then
                 -- Check army defeated
                 if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
-                    self:EndCampaign(Data.ID);
+                    self:EndCampaign(Data.ID, AiArmyManager.CampaignResult.FAILURE);
                     return;
                 end
                 -- Control movement
@@ -367,7 +388,7 @@ function AiArmyManager.Internal:ControllManager(_Index)
                 local Target = Data.Campaign.Target[table.getn(Data.Campaign.Target)];
                 local Enemies = AiArmy.GetEnemies(Data.ArmyID, GetPosition(Target));
                 if not Enemies[1] then
-                    self:EndCampaign(Data.ID);
+                    self:EndCampaign(Data.ID, AiArmyManager.CampaignResult.SUCCESS);
                     AiArmy.Retreat(Data.ArmyID);
                     return;
                 end
@@ -376,7 +397,7 @@ function AiArmyManager.Internal:ControllManager(_Index)
             elseif Data.Campaign.Type == AiArmyManager.Campaign.DEFEND then
                 -- Check army defeated
                 if AiArmy.GetBehavior(Data.ArmyID) == AiArmy.Behavior.FALLBACK then
-                    self:EndCampaign(Data.ID);
+                    self:EndCampaign(Data.ID, AiArmyManager.CampaignResult.FAILURE);
                     return;
                 end
                 -- Tick down guard time
@@ -384,7 +405,7 @@ function AiArmyManager.Internal:ControllManager(_Index)
                 and AiArmy.GetBehavior(Data.ArmyID) ~= AiArmy.Behavior.ADVANCE then
                     self.Data.Managers[_Index].Campaign.Time = Data.Campaign.Time -1;
                     if Data.Campaign.Time == 0 then
-                        self:EndCampaign(Data.ID);
+                        self:EndCampaign(Data.ID, AiArmyManager.CampaignResult.SUCCESS);
                         AiArmy.Retreat(Data.ArmyID);
                         return;
                     end
@@ -620,7 +641,8 @@ function AiArmyManager.Internal:SetGuardTime(_ID, _Time)
 end
 
 function AiArmyManager.Internal:BeginOffensiveCampaign(_ID, _Target)
-    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
+    local Data = AiArmyManagerData_ManagerIdToManagerInstance[_ID];
+    assert(Data);
     -- Delete target memory
     AiArmyManagerData_ManagerIdToManagerInstance[_ID].LastAttackTarget = nil;
     -- Save campaign data
@@ -629,10 +651,12 @@ function AiArmyManager.Internal:BeginOffensiveCampaign(_ID, _Target)
         Target = _Target,
         Time = -1,
     };
+    GameCallback_Logic_OnCampaignStart(_ID, Data.Campaign.Type, Data.Campaign.Target, Data.Campaign.Time);
 end
 
 function AiArmyManager.Internal:BeginDefensiveCampaign(_ID, _Target, _Time)
-    assert(AiArmyManagerData_ManagerIdToManagerInstance[_ID]);
+    local Data = AiArmyManagerData_ManagerIdToManagerInstance[_ID];
+    assert(Data);
     -- Delete target memory
     AiArmyManagerData_ManagerIdToManagerInstance[_ID].LastGuardTarget = nil;
     -- Save campaign data
@@ -641,9 +665,10 @@ function AiArmyManager.Internal:BeginDefensiveCampaign(_ID, _Target, _Time)
         Target = _Target,
         Time = _Time,
     };
+    GameCallback_Logic_OnCampaignStart(_ID, Data.Campaign.Type, Data.Campaign.Target, Data.Campaign.Time);
 end
 
-function AiArmyManager.Internal:EndCampaign(_ID)
+function AiArmyManager.Internal:EndCampaign(_ID, _Result)
     local Data = AiArmyManagerData_ManagerIdToManagerInstance[_ID];
     assert(Data);
     self:DispatchTroopsToSpawner(_ID);
@@ -655,6 +680,8 @@ function AiArmyManager.Internal:EndCampaign(_ID)
     if Data.Campaign.Type == AiArmyManager.Campaign.DEFEND then
         AiArmyManagerData_ManagerIdToManagerInstance[_ID].LastGuardTarget = Data.Campaign.Target;
     end
+    GameCallback_Logic_OnCampaignEnd(_ID, Data.Campaign.Type, Data.Campaign.Target, Data.Campaign.Time, _Result);
+
     -- Create idle campaign
     AiArmyManagerData_ManagerIdToManagerInstance[_ID].Campaign = {
         Type = AiArmyManager.Campaign.IDLE,
