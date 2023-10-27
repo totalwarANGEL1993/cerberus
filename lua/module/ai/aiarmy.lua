@@ -379,6 +379,19 @@ function AiArmy.IsActive(_ID)
     return false;
 end
 
+--- Deactivates the automatic refill of soldiers for leaders.
+---
+--- If left active, soldiers will automatically refill soldiers when close to
+--- the army home position even without any refiller buildings. This is active
+--- by default.
+--- @param _ID integer ID of army
+--- @param _Flag boolean Deactivate refill
+function AiArmy.DeactivateSoldierRefill(_ID, _Flag)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID].SoldierRefill = not _Flag == true;
+    end
+end
+
 --- Sets the percentage when the army is defeated.
 --- @param _Threshold number Defeated threshold
 function AiArmy.SetAliveThreshold(_Threshold)
@@ -778,6 +791,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     Targets          = {},
     Reinforcements   = {},
     Troops           = {},
+    SoldierRefill    = true,
     CleanUp          = {},
 
     Data             = {},
@@ -827,6 +841,8 @@ end
 ---   - Set anchor: Enemy position
 --- * Troops scattered
 ---   - Move troops to army center
+--- * Home position
+---   - Leaders refill soldiers
 function AiArmy.Internal.Army:WaitBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
@@ -840,6 +856,19 @@ function AiArmy.Internal.Army:WaitBehavior()
             local Reachable = GetReachablePosition(self.Troops[1], Position);
             for j= 1, table.getn(self.Troops) do
                 Logic.MoveSettler(self.Troops[j], Reachable.X, Reachable.Y);
+            end
+        else
+            if self.SoldierRefill then
+                for i= table.getn(self.Troops), 1, -1 do
+                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
+                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
+                    if MaxAmount > CurAmount then
+                        if not IsFighting(self.Troops[i]) and self:IsTroopAlive(self.Troops[i])
+                        and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
+                            Tools.CreateSoldiersForLeader(self.Troops[i], 1);
+                        end
+                    end
+                end
             end
         end
     end
@@ -886,20 +915,22 @@ function AiArmy.Internal.Army:RefillBehavior()
         if self:GetCurrentStregth() >= 1 then
             self:SetBehavior(AiArmy.Behavior.WAITING);
         else
-            for i= table.getn(self.Troops), 1, -1 do
-                -- Move to home position
-                if  Logic.IsEntityMoving(self.Troops[i]) == false
-                and GetDistance(self.Troops[i], self.HomePosition) > 1000 then
-                    --- @diagnostic disable-next-line: undefined-field
-                    Logic.MoveSettler(self.Troops[i], self.HomePosition.X, self.HomePosition.Y);
-                end
-                -- Respawn soldiers
-                if not IsFighting(self.Troops[i])
-                and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
-                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
-                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
-                    if MaxAmount > CurAmount then
-                        Tools.CreateSoldiersForLeader(self.Troops[i], 1);
+            if self.SoldierRefill then
+                for i= table.getn(self.Troops), 1, -1 do
+                    -- Move to home position
+                    if  Logic.IsEntityMoving(self.Troops[i]) == false
+                    and GetDistance(self.Troops[i], self.HomePosition) > 1000 then
+                        --- @diagnostic disable-next-line: undefined-field
+                        Logic.MoveSettler(self.Troops[i], self.HomePosition.X, self.HomePosition.Y);
+                    end
+                    -- Respawn soldiers
+                    if not IsFighting(self.Troops[i]) and self:IsTroopAlive(self.Troops[i])
+                    and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
+                        local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(self.Troops[i]);
+                        local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
+                        if MaxAmount > CurAmount then
+                            Tools.CreateSoldiersForLeader(self.Troops[i], 1);
+                        end
                     end
                 end
             end
