@@ -864,7 +864,8 @@ function AiArmy.Internal.Army:WaitBehavior()
                     local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
                     local Health = Logic.GetEntityHealth(self.Troops[i]);
                     if Health > 0 and MaxAmount > CurAmount then
-                        if not IsFighting(self.Troops[i]) and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
+                        if  not IsFighting(self.Troops[i]) and IsValidEntity(self.Troops[i])
+                        and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
                             Tools.CreateSoldiersForLeader(self.Troops[i], 1);
                         end
                     end
@@ -928,7 +929,8 @@ function AiArmy.Internal.Army:RefillBehavior()
                     local CurAmount = Logic.LeaderGetNumberOfSoldiers(self.Troops[i]);
                     local Health = Logic.GetEntityHealth(self.Troops[i]);
                     if Health > 0 and MaxAmount > CurAmount then
-                        if not IsFighting(self.Troops[i]) and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
+                        if  not IsFighting(self.Troops[i]) and IsValidEntity(self.Troops[i])
+                        and GetDistance(self.Troops[i], self.HomePosition) <= 1500 then
                             Tools.CreateSoldiersForLeader(self.Troops[i], 1);
                         end
                     end

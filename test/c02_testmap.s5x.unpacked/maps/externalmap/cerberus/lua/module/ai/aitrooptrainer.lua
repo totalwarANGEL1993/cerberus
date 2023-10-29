@@ -382,7 +382,7 @@ function AiTroopTrainer.Internal:ControlTroopRefilling(_ID)
                         if not AreEnemiesInArea(Logic.EntityGetPlayer(TroopID), SpawnPos, AiTroopSpawner.NoEnemyDistance) then
                             local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                             local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
-                            if MaxAmount > CurAmount then
+                            if MaxAmount > CurAmount and not IsFighting(TroopID)  and IsValidEntity(TroopID) then
                                 Tools.CreateSoldiersForLeader(ID, 1);
                             end
                         end
