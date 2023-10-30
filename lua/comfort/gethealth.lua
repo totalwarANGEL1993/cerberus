@@ -1,12 +1,11 @@
 Lib.Register("comfort/GetHealth");
 
+-- Version: 1.0.0
+-- Author:  unknown
+
 --- Returns the relative health of the entity.
 --- @param _Entity any Entity to check
 --- @return number Health Relative health
----
---- @author Unknown
---- @version 1.0.0
----
 function GetHealth(_Entity)
     local EntityID = GetID(_Entity);
     if not Tools.IsEntityAlive(EntityID) then

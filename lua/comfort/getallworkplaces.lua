@@ -1,14 +1,12 @@
 Lib.Require("comfort/GetValidEntitiesOfType");
 Lib.Register("comfort/GetAllWorkplaces");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns all worker of the player.
 --- @param _PlayerID number ID of player
 --- @return table List List of worker
----
---- @require GetValidEntitiesOfType
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetAllWorkplaces(_PlayerID, _EntityType)
     _EntityType = _EntityType or 0;
     local PlayerEntities = GetValidEntitiesOfType(_PlayerID, _EntityType);

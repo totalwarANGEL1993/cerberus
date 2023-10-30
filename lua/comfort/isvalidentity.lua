@@ -1,13 +1,12 @@
 Lib.Register("comfort/IsValidEntity");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Checks if the entity is valid. An entity is valid if it
 --- exists, has HP and is not busy with dying.
 --- @param _Entity any Entity to check
 --- @return boolean Valid Entity is alive and well
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function IsValidEntity(_Entity)
     local ID = GetID(_Entity);
     if IsExisting(ID) then

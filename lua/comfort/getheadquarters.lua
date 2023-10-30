@@ -1,12 +1,11 @@
 Lib.Register("comfort/GetHeadquarters");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns the first Headquarters found for the player.
 --- @param _PlayerID number ID of player
 --- @return number ID Entity 
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetHeadquarters(_PlayerID)
     local ID = 0;
     local Headquarters1 = {Logic.GetPlayerEntities(_PlayerID, Entities.PB_Headquarters1, 1)};

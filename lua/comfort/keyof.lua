@@ -1,13 +1,12 @@
 Lib.Register("comfort/KeyOf");
 
+-- Version: 1.0.0
+-- Author:  mcb
+
 --- Returns the kay of the value in the table.
 --- @param _wert  any   Value to search
 --- @param _table table Table to check
 --- @return any Key Key of value
----
---- @author Unknown
---- @version 1.0.0
----
 function KeyOf(_wert, _table)
     if _table == nil then
         return false;

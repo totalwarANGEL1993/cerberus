@@ -1,12 +1,11 @@
 Lib.Register("comfort/GetSeparatedTooltipText");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns the tooltip text separated in sections.
 --- @param _Key string Key of text
 --- @return table Text Table with text chunks 
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetSeparatedTooltipText(_Key)
     local Text = XGUIEng.GetStringTableText(_Key);
     local LBHStart, LBHEnd = string.find(Text, "@cr");
