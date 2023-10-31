@@ -1,12 +1,12 @@
 Lib.Register("comfort/ArePositionsConnected");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Checks if the positions are in the same sector.
 --- @param _pos1 any First position
 --- @param _pos2 any Second position
 --- @return boolean Connected Positions are connected
---- 
---- @author totalwarANGEL
---- @version 1.0.0
 --- 
 function ArePositionsConnected(_pos1, _pos2)
     local sector1, sector2 = 0, 0;

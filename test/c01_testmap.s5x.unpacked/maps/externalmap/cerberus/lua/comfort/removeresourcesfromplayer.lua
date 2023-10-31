@@ -1,12 +1,11 @@
 Lib.Register("comfort/RemoveResourcesFromPlayer");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Takes a costs table and removes the resources from the player.
 --- @param _PlayerID number ID of player
 --- @param _Costs table     Costs table
---- 
---- @author totalwarANGEL
---- @version 1.0.0
---- 
 function RemoveResourcesFromPlayer(_PlayerID, _Costs)
 	local Gold   = Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.Gold ) + Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.GoldRaw);
     local Clay   = Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.Clay ) + Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.ClayRaw);

@@ -1,12 +1,12 @@
 Lib.Register("comfort/CopyTable");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Copies a table.
 --- @param _Source table Table to copy
 --- @param _Dest? table   (Optional) Destination table
 --- @return table Found Value was found
----
---- @author totalwarANGEL
---- @version 1.0.0
 ---
 function CopyTable(_Source, _Dest)
     _Dest = _Dest or {};

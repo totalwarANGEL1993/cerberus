@@ -1,5 +1,8 @@
 Lib.Register("comfort/AreEnemiesInArea");
 
+-- Version: 1.0.1
+-- Author:  Emzet
+
 -- If changed, GetEnemiesInArea must also be changed!
 AreEntitiesOfDiplomacyStateInArea_RelevantCategories = {
     "Cannon",
@@ -16,9 +19,6 @@ AreEntitiesOfDiplomacyStateInArea_RelevantCategories = {
 --- @param _range number  Area size
 --- @return boolean EnemiesNear Enemies are in area
 ---
---- @author Emzet
---- @version 1.0.1
----
 function AreEnemiesInArea(_player, _position, _range)
     return AreEntitiesOfDiplomacyStateInArea(_player, _position, _range, Diplomacy.Hostile);
 end
@@ -28,9 +28,6 @@ end
 --- @param _position any  Area center
 --- @param _range number  Area size
 --- @return boolean AlliesNear Allies are in area
----
---- @author Emzet
---- @version 1.0.1
 ---
 function AreAlliesInArea(_player, _position, _range)
     return AreEntitiesOfDiplomacyStateInArea(_player, _position, _range, Diplomacy.Friendly);
@@ -43,6 +40,7 @@ end
 --- @param _state integer     Diplomacy state
 --- @param _Categories table? Relevant categories
 --- @return boolean Found Entities are near
+---
 function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state, _Categories)
     local Categories = _Categories or AreEntitiesOfDiplomacyStateInArea_RelevantCategories;
     for i = 1, 8 do

@@ -1,6 +1,9 @@
 Lib.Require("comfort/CopyTable");
 Lib.Register("comfort/StartInlineTrigger");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 JobQueueData = {
     JobIDSequence = 0,
 };
@@ -9,11 +12,6 @@ JobQueueData = {
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
----
---- @deprecated
---- @author totalwarANGEL
---- @version 1.0.0
----
 function StartSimpleSecondsTrigger(_Function, ...)
     local Function = _Function;
     if type(Function) == "string" then
@@ -27,11 +25,6 @@ end
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
----
---- @deprecated
---- @author totalwarANGEL
---- @version 1.0.0
----
 function StartSimpleTurnTrigger(_Function, ...)
     local Function = _Function;
     if type(Function) == "string" then
@@ -49,11 +42,6 @@ end
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
----
---- @deprecated
---- @author totalwarANGEL
---- @version 1.0.0
----
 function StartSimpleHurtTrigger(_Function, ...)
     local Function = _Function;
     if type(Function) == "string" then
@@ -70,11 +58,6 @@ end
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
----
---- @deprecated
---- @author totalwarANGEL
---- @version 1.0.0
----
 function StartSimpleCreatedTrigger(_Function, ...)
     local Function = _Function;
     if type(Function) == "string" then
@@ -91,11 +74,6 @@ end
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
----
---- @deprecated
---- @author totalwarANGEL
---- @version 1.0.0
----
 function StartSimpleDestroyedTrigger(_Function, ...)
     local Function = _Function;
     if type(Function) == "string" then
@@ -112,11 +90,6 @@ end
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
----
---- @deprecated
---- @author totalwarANGEL
---- @version 1.0.0
----
 function StartSimpleTributeTrigger(_Function, ...)
     local Function = _Function;
     if type(Function) == "string" then
@@ -135,11 +108,6 @@ end
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
----
---- @deprecated
---- @author totalwarANGEL
---- @version 1.0.0
----
 function StartSimpleTradeTrigger(_Function, ...)
     local Function = _Function;
     if type(Function) == "string" then

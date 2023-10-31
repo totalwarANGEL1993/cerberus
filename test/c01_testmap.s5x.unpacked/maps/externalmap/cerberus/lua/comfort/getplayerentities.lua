@@ -1,13 +1,12 @@
 Lib.Register("comfort/GetPlayerEntities");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns All entities of the type.
 --- @param _PlayerID   number ID of player
 --- @param _EntityType number Entity type or 0 for all
 --- @return table List List of entity IDs 
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetPlayerEntities(_PlayerID, _EntityType)
     local PlayerEntities = {}
     if _EntityType ~= 0 then

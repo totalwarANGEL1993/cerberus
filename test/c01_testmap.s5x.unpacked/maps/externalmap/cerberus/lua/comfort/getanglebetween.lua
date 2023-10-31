@@ -1,15 +1,12 @@
 Lib.Register("comfort/GetAngleBetween");
 
+-- Version: 1.0.0
+-- Author:  Flodder
+
 --- Returns the angle between the positions.
 --- @param _Pos1 any First position
 --- @param _Pos2 any Second position
 --- @return number Angle Angle between positions
----
---- @require IsValidPosition
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetAngleBetween(_Pos1,_Pos2)
 	local delta_X = 0;
 	local delta_Y = 0;

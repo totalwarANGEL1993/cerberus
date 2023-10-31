@@ -1,13 +1,12 @@
 Lib.Register("comfort/CreateWoodPile");
 
+-- Version: 1.0.0
+-- Author:  Noigi
+
 --- Creates a pile of wood to extract.
 --- @param _posEntity any    Position of pile
 --- @param _resources number Amount of resources
 --- @return number ID Index of pile
----
---- @author Noigi
---- @version 1.0.0
----
 function CreateWoodPile(_posEntity, _resources)
     assert(type(_posEntity) == "string");
     assert(type(_resources) == "number");
@@ -36,10 +35,6 @@ end
 
 --- Destroys a pile of wood.
 --- @param _index number Index of pile
----
---- @author Noigi
---- @version 1.0.0
----
 function DestroyWoodPile(_index)
     gvWoodPiles = gvWoodPiles or {};
     for i= table.getn(gvWoodPiles), 1, -1 do

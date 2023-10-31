@@ -1,12 +1,11 @@
 Lib.Register("comfort/GetEntitiesByPrefix");
 
+-- Version: 1.0.0
+-- Author:  unknown
+
 --- Returns all entities with names starting with the prefix.
 --- @param _Prefix string Prefix of script names
 --- @return table Result List of entities
----
---- @author Unknown
---- @version 1.0.0
----
 function GetEntitiesByPrefix(_Prefix)
     local list = {};
     local i = 1;

@@ -1,13 +1,12 @@
 Lib.Register("comfort/ConvertSecondsToString");
 
+-- Version: 1.0.0
+-- Author:  Blue Byte
+
 --- Converts seconds to a time string.
 --- (The string will be in the format hh:mm:ss.)
 --- @param _TotalSeconds number time in seconds
---- @return string Time Time string 
----
---- @author totalwarANGEL
---- @version 1.0.0
----
+--- @return string Time Time string
 function ConvertSecondsToString(_TotalSeconds)
     local TotalMinutes = math.floor(_TotalSeconds / 60);
     local TotalHours = math.floor(TotalMinutes / 60);

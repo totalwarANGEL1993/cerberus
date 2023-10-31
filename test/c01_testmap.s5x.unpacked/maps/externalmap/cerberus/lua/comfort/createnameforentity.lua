@@ -1,13 +1,13 @@
 Lib.Register("comfort/CreateNameForEntity");
 
+-- Version: 1.0.0
+-- Author:  Noigi
+
 gvEntityNameCounter = gvEntityNameCounter or 0;
 
 --- Returns all categories the entity is in.
 --- @param _eID number Entity ID
 --- @return string Name Script name
----
---- @author Noigi
---- @version 1.0.0
 ---
 function CreateNameForEntity(_eID)
     if type(_eID) == "string" then

@@ -1,17 +1,14 @@
 Lib.Require("comfort/IsValidPosition");
 Lib.Register("comfort/GetCirclePosition");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns a position around a central position.
 --- @param _Target any      Center position
 --- @param _Distance number Radius from center
 --- @param _Angle number    Angle of circle
 --- @return table Position
----
---- @require IsValidPosition
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetCirclePosition(_Target, _Distance, _Angle)
     if not IsValidPosition(_Target) and not IsExisting(_Target) then
         return {X= 1, Y= 1, Z = 2000};

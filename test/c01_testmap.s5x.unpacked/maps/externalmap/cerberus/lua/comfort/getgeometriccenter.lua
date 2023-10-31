@@ -1,13 +1,12 @@
 Lib.Require("comfort/IsValidPosition");
 Lib.Register("comfort/GetGeometricCenter");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns the average position of all positions.
 --- @param ... any List of positions
 --- @return table Center Center position
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetGeometricCenter(...)
     local Valid = 0;
     local SumX = 0;

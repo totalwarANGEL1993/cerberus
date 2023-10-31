@@ -1,13 +1,12 @@
 Lib.Register("comfort/GetDistanceSquare");
 
+-- Version: 1.0.0
+-- Author:  unknown
+
 --- Returns the power of 2 of the distance between two positions.
 --- @param _pos1 any First position
 --- @param _pos2 any Second position
 --- @return number Distance Distance between positions
----
---- @author Unknown
---- @version 1.0.0
----
 function GetDistanceSquare(_pos1, _pos2)
     if (type(_pos1) == "string") or (type(_pos1) == "number") then
         _pos1 = GetPosition(_pos1);
