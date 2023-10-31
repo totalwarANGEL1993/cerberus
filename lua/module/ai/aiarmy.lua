@@ -638,7 +638,7 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
     for i= table.getn(Enemies), 1, -1 do
         local TypeName = Logic.GetEntityTypeName(Logic.GetEntityType(Enemies[i]));
         if not IsValidEntity(Enemies[i])
-        or not Logic.CheckEntitiesDistance(AreaCenterID, Enemies[i], _Area)
+        or Logic.CheckEntitiesDistance(AreaCenterID, Enemies[i], _Area) == 0
         or string.find(TypeName, "PU_Hero3_Trap") then
             table.remove(Enemies, i);
         end

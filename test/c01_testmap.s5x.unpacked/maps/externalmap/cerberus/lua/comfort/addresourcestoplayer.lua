@@ -1,11 +1,11 @@
 Lib.Register("comfort/AddResourcesToPlayer");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Takes a costs table and gives the resources to the player.
 --- @param _PlayerID number ID of player
 --- @param _Resources table Table with resources
---- 
---- @author totalwarANGEL
---- @version 1.0.0
 --- 
 function AddResourcesToPlayer(_PlayerID, _Resources)
     if _Resources[ResourceType.Gold] ~= nil then

@@ -1,5 +1,8 @@
 Lib.Register("comfort/SerializeTable");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns the table serialized as string.
 --- @param _Table table Input table
 --- @return string Serialized Serialized table

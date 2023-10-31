@@ -1,11 +1,11 @@
 Lib.Register("comfort/GetAllCannons");
 
+-- Version: 1.0.0
+-- Author:  unknown
+
 --- Returns all cannons of the player.
 --- @param _PlayerID number ID of player
 --- @return table List List of cannons
----
---- @author totalwarANGEL
---- @version 1.0.0
 ---
 function GetAllCannons(_PlayerID)
     local CannonList = {};

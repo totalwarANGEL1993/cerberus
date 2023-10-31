@@ -357,8 +357,7 @@ function AiTroopTrainer.Internal:ControlTrainedUnits(_EntityID)
             end
         end
         if Trainer and Trainer.PlayerID == PlayerID then
-            local Task = Logic.GetCurrentTaskList(_EntityID);
-            if not Task or (Task and string.find(Task, "TRAIN")) then
+            if not IsTraining(_EntityID) then
                 self:AddTroop(Trainer.ID, _EntityID);
             end
         end

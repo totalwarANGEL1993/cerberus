@@ -1,12 +1,11 @@
 Lib.Register("comfort/IsValidPosition");
 
+-- Version: 1.0.0
+-- Author:  unknown
+
 --- Checks if the position is valid.
 --- @param _pos table Position to check
 --- @return boolean Valid Position is valid
----
---- @author unknown
---- @version 1.0.0
----
 function IsValidPosition(_pos)
     if type(_pos) == "table" then
         if (_pos.X ~= nil and type(_pos.X) == "number") and (_pos.Y ~= nil and type(_pos.Y) == "number") then

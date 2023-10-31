@@ -1,5 +1,8 @@
 Lib.Register("comfort/GetEnemiesInArea");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 -- Helper list of entities
 GetEntitiesOfDiplomacyStateInArea_RelevantTypes = {};
 -- If changed, AreEnemiesInArea must also be changed!
@@ -20,11 +23,6 @@ GetEntitiesOfDiplomacyStateInArea_RelevantCategories = {
 --- @param _Position table  Area center
 --- @param _Area number     Size of area
 --- @return table List Found enemies
---- @see AreEnemiesInArea
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetEnemiesInArea(_PlayerID, _Position, _Area)
     return GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, Diplomacy.Hostile);
 end
@@ -37,11 +35,6 @@ end
 --- @param _Position table  Area center
 --- @param _Area number     Size of area
 --- @return table List Found allies
---- @see AreAlliesInArea
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetAlliesInArea(_PlayerID, _Position, _Area)
     return GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, Diplomacy.Friendly);
 end

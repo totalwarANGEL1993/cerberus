@@ -1,12 +1,11 @@
 Lib.Register("comfort/GetResourceName");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns the interface name of the resource.
 --- @param _ResourceType number Type of resource
 --- @return string Name Resource name in GUI
----
---- @author Unknown
---- @version 1.0.0
----
 function GetResourceName(_ResourceType)
     local GoodName = XGUIEng.GetStringTableText("InGameMessages/GUI_NameMoney");
     if _ResourceType == ResourceType.Clay or _ResourceType == ResourceType.ClayRaw then

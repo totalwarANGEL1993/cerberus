@@ -1,12 +1,11 @@
 Lib.Register("comfort/GetUpgradeCategoryByEntityType");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns the upgrade category of the entity type
 --- @param _Type number Entity type
 --- @return number Category Upgrade category
----
---- @author totalwarANGEL
---- @version 1.0.0
----
 function GetUpgradeCategoryByEntityType(_Type)
     local TypeName = Logic.GetEntityTypeName(_Type);
     if TypeName then

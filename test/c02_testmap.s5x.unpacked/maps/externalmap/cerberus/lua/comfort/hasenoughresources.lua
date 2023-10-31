@@ -1,13 +1,12 @@
 Lib.Register("comfort/HasEnoughResources");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Takes a costs table and cchecks if the player has the resources.
 --- @param _PlayerID number ID of player
 --- @param _Costs table Table with costs
 --- @return boolean Available Has resources
---- 
---- @author totalwarANGEL
---- @version 1.0.0
---- 
 function HasEnoughResources(_PlayerID, _Costs)
 	local Gold   = Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.Gold ) + Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.GoldRaw);
     local Clay   = Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.Clay ) + Logic.GetPlayersGlobalResource(_PlayerID, ResourceType.ClayRaw);

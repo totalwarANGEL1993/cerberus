@@ -1,5 +1,8 @@
 Lib.Register("comfort/StartCountdown");
 
+-- Version: 1.0.0
+-- Author:  unknown
+
 --- Starts a countdown.
 ---
 --- Only one visible countdown is allowed but any number of invisible

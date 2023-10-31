@@ -1,5 +1,8 @@
 Lib.Register("comfort/GetReachablePosition");
 
+-- Version: 1.0.0
+-- Author:  totalwarANGEL
+
 --- Returns a position that can be reached by the entity
 --- @param _Entity any   Reference entity
 --- @param _Target any   Target position

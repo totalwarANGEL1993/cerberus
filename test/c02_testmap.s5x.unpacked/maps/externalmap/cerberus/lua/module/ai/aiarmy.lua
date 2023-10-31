@@ -5,6 +5,7 @@ Lib.Require("comfort/GetEntityCategoriesAsString");
 Lib.Require("comfort/GetGeometricCenter");
 Lib.Require("comfort/GetReachablePosition");
 Lib.Require("comfort/IsFighting");
+Lib.Require("comfort/IsTraining");
 Lib.Require("comfort/IsValidEntity");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/ai/AiArmy");
@@ -19,7 +20,7 @@ Lib.Register("module/ai/AiArmy");
 --- Everything else is very similar to what default armies are doing. A higher
 --- instance of controller is advised but not explicitly required.
 ---
---- Version 1.3.1
+--- Version 1.3.2
 ---
 
 AiArmy = AiArmy or {
@@ -562,33 +563,6 @@ function AiArmy.Internal:Install()
     end
 end
 
-function AiArmy.Internal:IsTroopAlive(_TroopID)
-    if not IsExisting(_TroopID) then
-        return false;
-    end
-    local Task = Logic.GetCurrentTaskList(_TroopID);
-    if Task and string.find(Task, "DIE") then
-        return false;
-    end
-    return Logic.GetEntityHealth(_TroopID) > 0;
-end
-
-function AiArmy.Internal:IsTroopFighting(_TroopID)
-    return IsFighting(_TroopID);
-end
-
-function AiArmy.Internal:IsTroopTraining(_TroopID)
-    local Task = Logic.GetCurrentTaskList(_TroopID);
-    if Task and string.find(Task, "TRAIN") then
-        return true;
-    end
-    return false;
-end
-
-function AiArmy.Internal:IsTroopMoving(_TroopID)
-    return Logic.IsEntityMoving(_TroopID) == true;
-end
-
 function AiArmy.Internal:Controller()
     local Turn = Logic.GetCurrentTurn();
 
@@ -1120,7 +1094,7 @@ end
 function AiArmy.Internal.Army:ManageArmyMembers()
     -- Update reinforcements
     for j= table.getn(self.Reinforcements), 1, -1 do
-        if not AiArmy.Internal:IsTroopAlive(self.Reinforcements[j]) then
+        if not IsValidEntity(self.Reinforcements[j]) then
             local ID = table.remove(self.Reinforcements, j);
             AiArmyData_ReinforcementIdToArmyId[ID] = nil;
         elseif GetDistance(self.Reinforcements[j], self:GetArmyPosition()) <= 2000 then
@@ -1138,7 +1112,7 @@ function AiArmy.Internal.Army:ManageArmyMembers()
 
     -- Update current troops
     for j= table.getn(self.Troops), 1, -1 do
-        if not AiArmy.Internal:IsTroopAlive(self.Troops[j]) then
+        if not IsValidEntity(self.Troops[j]) then
             self:LockOn(self.Troops[j], nil);
             local ID = table.remove(self.Troops, j);
             AiArmyData_TroopIdToArmyId[ID] = nil;
@@ -1147,9 +1121,9 @@ function AiArmy.Internal.Army:ManageArmyMembers()
 
     -- Update troop cleanup
     for j= table.getn(self.CleanUp), 1, -1 do
-        local Alive = AiArmy.Internal:IsTroopAlive(self.CleanUp[j]);
-        local Fighting = AiArmy.Internal:IsTroopFighting(self.CleanUp[j]);
-        local Moving = AiArmy.Internal:IsTroopMoving(self.CleanUp[j]);
+        local Alive = IsValidEntity(self.CleanUp[j]);
+        local Fighting = IsFighting(self.CleanUp[j]);
+        local Moving = Logic.IsEntityMoving(self.CleanUp[j]);
         if not Alive or not Fighting or not Moving then
             AiArmyData_TroopIdToArmyId[ID] = nil;
             local ID = table.remove(self.CleanUp, j);
@@ -1166,7 +1140,7 @@ function AiArmy.Internal.Army:ManageArmyMembers()
 
     -- Update troop targets
     for j= table.getn(self.Targets), 1, -1 do
-        if not AiArmy.Internal:IsTroopAlive(self.Targets[j][2])
+        if not IsValidEntity(self.Targets[j][2])
         or self.Targets[j][3] == nil
         or Logic.GetTime() > self.Targets[j][3]+15 then
             table.remove(self.Targets, j);
@@ -1183,7 +1157,7 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
             return false;
         end
 
-        if AiArmy.Internal:IsTroopAlive(_ID) then
+        if IsValidEntity(_ID) then
             -- AI.Army_EnableLeaderAi(_ID, 0);
             if self.FormationController then
                 self:FormationController(_ID);
@@ -1209,7 +1183,7 @@ end
 function AiArmy.Internal.Army:RemoveTroop(_ID)
     for i= table.getn(self.Reinforcements), 1, -1 do
         if self.Reinforcements[i] == _ID then
-            -- if AiArmy.Internal:IsTroopAlive(_ID) then
+            -- if IsValidEntity(_ID) then
             --     AI.Army_EnableLeaderAi(_ID, 1);
             -- end
             AiArmyData_ReinforcementIdToArmyId[_ID] = nil;
@@ -1218,7 +1192,7 @@ function AiArmy.Internal.Army:RemoveTroop(_ID)
     end
     for i= table.getn(self.Troops), 1, -1 do
         if self.Troops[i] == _ID then
-            -- if AiArmy.Internal:IsTroopAlive(_ID) then
+            -- if IsValidEntity(_ID) then
             --     AI.Army_EnableLeaderAi(_ID, 1);
             -- end
             AiArmyData_TroopIdToArmyId[_ID] = nil;
@@ -1417,12 +1391,12 @@ function AiArmy.Internal.Army:ResetArmySpeed()
 end
 
 function AiArmy.Internal.Army:SetTroopSpeed(_TroopID, _Factor)
-    if AiArmy.Internal:IsTroopAlive(_TroopID) then
+    if IsValidEntity(_TroopID) then
         Logic.SetSpeedFactor(_TroopID, _Factor);
         if Logic.IsLeader(_TroopID) == 1 then
             local Soldiers = {Logic.GetSoldiersAttachedToLeader(_TroopID)};
             for i= 2, Soldiers[1]+1, 1 do
-                if AiArmy.Internal:IsTroopAlive(_TroopID) then
+                if IsValidEntity(_TroopID) then
                     Logic.SetSpeedFactor(Soldiers[i], _Factor);
                 end
             end
@@ -1431,7 +1405,7 @@ function AiArmy.Internal.Army:SetTroopSpeed(_TroopID, _Factor)
 end
 
 function AiArmy.Internal.Army:GetTroopSpeedConfigKey(_TroopID)
-    if AiArmy.Internal:IsTroopAlive(_TroopID) then
+    if IsValidEntity(_TroopID) then
         local TypeName = Logic.GetEntityTypeName(Logic.GetEntityType(_TroopID));
         if AiArmyConstants.BaseSpeed[TypeName] then
             return TypeName;
