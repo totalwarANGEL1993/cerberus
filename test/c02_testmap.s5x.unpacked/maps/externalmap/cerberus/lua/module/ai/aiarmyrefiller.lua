@@ -30,6 +30,8 @@ AiArmyRefiller = AiArmyRefiller or {};
 --- * SpawnPoint   (Optional) Scriptname of position
 --- * SpawnAmount  (Optional) Max amount to spawn per cycle
 --- * SpawnTimer   (Optional) Time between spawn cycles
+--- * Sequentially (Optional) Order of spawns is sequentially
+--- * Endlessly    (Optional) Spawns repeat infinite
 --- * AllowedTypes (Optional) List of types {Type, Experience}
 ---
 --- @param _Data table Troop Spawner definition
