@@ -337,6 +337,19 @@ function AiArmy.GetHomePosition(_ID)
     end
 end
 
+--- Returns if the army is close to a position.
+--- @param _ID integer       ID of army
+--- @param _Position any     Position to check
+--- @param _Distance integer Distance to position
+--- @return boolean IsNear Army is near
+function AiArmy.IsArmyNear(_ID, _Position, _Distance)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Location = AiArmy.GetLocation(_ID);
+        return GetDistance(Location, _Position) <= _Distance;
+    end
+    return false;
+end
+
 --- Changes the radius of action of the army.
 --- 
 --- If the anchor for a battle is already set it will still use the old
@@ -638,7 +651,7 @@ function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _Tro
     for i= table.getn(Enemies), 1, -1 do
         local TypeName = Logic.GetEntityTypeName(Logic.GetEntityType(Enemies[i]));
         if not IsValidEntity(Enemies[i])
-        or not Logic.CheckEntitiesDistance(AreaCenterID, Enemies[i], _Area)
+        or Logic.CheckEntitiesDistance(AreaCenterID, Enemies[i], _Area) == 0
         or string.find(TypeName, "PU_Hero3_Trap") then
             table.remove(Enemies, i);
         end
