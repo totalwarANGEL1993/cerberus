@@ -1,2 +1,16 @@
 #!/bin/bash
-lua manager.lua "$@"
+
+rm -rf var
+mkdir -p var/cerberus/lua
+cp -r lua/comfort var/cerberus/lua
+cp -r lua/module var/cerberus/lua
+cp -r loader.lua var/cerberus
+
+rm -rf test/c01_testmap.s5x.unpacked/maps/externalmap/cerberus
+cp -r var/cerberus test/c01_testmap.s5x.unpacked/maps/externalmap
+bin/bba5.exe test/c01_testmap.s5x.unpacked
+
+rm -rf test/c02_testmap.s5x.unpacked/maps/externalmap/cerberus
+cp -r var/cerberus test/c02_testmap.s5x.unpacked/maps/externalmap
+bin/bba5.exe test/c02_testmap.s5x.unpacked
+
