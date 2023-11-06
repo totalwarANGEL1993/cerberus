@@ -815,7 +815,7 @@ function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
 end
 
 function AiArmy.Internal.Army:Dispose()
-    self:Abadon(false);
+    self:Abandon(false);
     AiArmyData_ArmyIdToArmyInstance[self.ID] = nil;
 end
 
@@ -1138,8 +1138,8 @@ function AiArmy.Internal.Army:ManageArmyMembers()
         local Fighting = IsFighting(self.CleanUp[j]);
         local Moving = Logic.IsEntityMoving(self.CleanUp[j]);
         if not Alive or not Fighting or not Moving then
-            AiArmyData_TroopIdToArmyId[ID] = nil;
             local ID = table.remove(self.CleanUp, j);
+            AiArmyData_TroopIdToArmyId[ID] = nil;
             self:LockOn(ID, nil);
             if not Fighting and not Moving then
                 local Soldiers = {Logic.GetSoldiersAttachedToLeader(ID)};
@@ -1238,7 +1238,7 @@ function AiArmy.Internal.Army:GetWeakenedTroops()
     return Removed;
 end
 
-function AiArmy.Internal.Army:Abadon(_KillLater)
+function AiArmy.Internal.Army:Abandon(_KillLater)
     for i= table.getn(self.Reinforcements), 1, -1 do
         local ID = self:RemoveTroop(self.Reinforcements[i]);
         if _KillLater and ID ~= 0 and IsExisting(ID) then
