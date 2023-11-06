@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetPlayerEntities");
 Lib.Require("comfort/GetUpgradeCategoryByEntityType");
 Lib.Require("comfort/GetUpgradeLevelByEntityType");
 Lib.Require("module/mp/Syncer");
@@ -13,7 +14,7 @@ Lib.Register("module/entity/EntityTracker");
 --- GameCallback_GUI_SelectionChanged is called by code if an configured type
 --- is created/destroyed or an building upgrade is started/canceled.
 --- 
---- Version 1.1.0
+--- Version 1.2.0
 ---
 
 EntityTracker = EntityTracker or {};
@@ -53,10 +54,10 @@ function EntityTracker.SetLimitOfType(_Type, _Limit, _PlayerID)
 end
 
 --- Returns the amount of tracked entities of the player.
---- @param _PlayerID number ID of player
 --- @param _Type number Entity type
+--- @param _PlayerID number ID of player
 --- @return number amount of entities
-function EntityTracker.GetUsageOfType(_PlayerID, _Type)
+function EntityTracker.GetUsageOfType(_Type, _PlayerID)
     return EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type);
 end
 
@@ -84,6 +85,7 @@ function EntityTracker.Internal:Install()
             };
         end
         self:SetupSynchronization();
+        self:FindInitialPlayerEntities();
         self:OverrideUpgradeBuilding();
         self:StartTriggers();
     end
@@ -105,6 +107,15 @@ function EntityTracker.Internal:SetupSynchronization()
             end
         end
     );
+end
+
+function EntityTracker.Internal:FindInitialPlayerEntities()
+    for PlayerID,_ in pairs(self.Config) do
+        local PlayerEntities = GetPlayerEntities(PlayerID, 0);
+        for _,EntityID in pairs(PlayerEntities) do
+            self:OnEntityCreated(PlayerID, EntityID);
+        end
+    end
 end
 
 function EntityTracker.Internal:GetLimitForType(_Type, _PlayerID)
@@ -159,7 +170,10 @@ end
 function EntityTracker.Internal:OnEntityDestroyed(_PlayerID, _EntityID)
     if self.Data[_PlayerID] then
         local Type = Logic.GetEntityType(_EntityID);
-        self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        local NextType = GetUpgradedEntityType(Type);
+        if NextType > 0 then
+            self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        end
         self:RemoveFromList("Potential", Type, _PlayerID, _EntityID);
         self:RemoveFromList("Current", Type, _PlayerID, _EntityID);
         self:UpdateSelectionBuildingUpgradeButtons(_PlayerID, _EntityID);
@@ -171,17 +185,21 @@ function EntityTracker.Internal:OnUpgradeStarted(_PlayerID, _EntityID)
     if self.Data[_PlayerID] then
         local Type = Logic.GetEntityType(_EntityID);
         self.Data[_PlayerID].UpgradeBuildingLock = false;
-        self:AddToList("Potential", Type +1, _PlayerID, _EntityID);
+        local NextType = GetUpgradedEntityType(Type);
+        if NextType > 0 then
+            self:AddToList("Potential", Type +1, _PlayerID, _EntityID);
+        end
         self:RemoveFromList("Current", Type, _PlayerID, _EntityID);
-        -- self:UpdateSelectionBuildingUpgradeButtons(_PlayerID, _EntityID);
-        -- self:UpdateSelectionSerfConstrucButtons(_PlayerID);
     end
 end
 
 function EntityTracker.Internal:OnUpgradeCanceled(_PlayerID, _EntityID)
     if self.Data[_PlayerID] then
         local Type = Logic.GetEntityType(_EntityID);
-        self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        local NextType = GetUpgradedEntityType(Type);
+        if NextType > 0 then
+            self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        end
         self:AddToList("Current", Type, _PlayerID, _EntityID);
         self:UpdateSelectionBuildingUpgradeButtons(_PlayerID, _EntityID);
         self:UpdateSelectionSerfConstrucButtons(_PlayerID);

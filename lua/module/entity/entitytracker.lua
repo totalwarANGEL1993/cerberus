@@ -170,7 +170,10 @@ end
 function EntityTracker.Internal:OnEntityDestroyed(_PlayerID, _EntityID)
     if self.Data[_PlayerID] then
         local Type = Logic.GetEntityType(_EntityID);
-        self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        local NextType = GetUpgradedEntityType(Type);
+        if NextType > 0 then
+            self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        end
         self:RemoveFromList("Potential", Type, _PlayerID, _EntityID);
         self:RemoveFromList("Current", Type, _PlayerID, _EntityID);
         self:UpdateSelectionBuildingUpgradeButtons(_PlayerID, _EntityID);
@@ -182,7 +185,10 @@ function EntityTracker.Internal:OnUpgradeStarted(_PlayerID, _EntityID)
     if self.Data[_PlayerID] then
         local Type = Logic.GetEntityType(_EntityID);
         self.Data[_PlayerID].UpgradeBuildingLock = false;
-        self:AddToList("Potential", Type +1, _PlayerID, _EntityID);
+        local NextType = GetUpgradedEntityType(Type);
+        if NextType > 0 then
+            self:AddToList("Potential", Type +1, _PlayerID, _EntityID);
+        end
         self:RemoveFromList("Current", Type, _PlayerID, _EntityID);
     end
 end
@@ -190,7 +196,10 @@ end
 function EntityTracker.Internal:OnUpgradeCanceled(_PlayerID, _EntityID)
     if self.Data[_PlayerID] then
         local Type = Logic.GetEntityType(_EntityID);
-        self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        local NextType = GetUpgradedEntityType(Type);
+        if NextType > 0 then
+            self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+        end
         self:AddToList("Current", Type, _PlayerID, _EntityID);
         self:UpdateSelectionBuildingUpgradeButtons(_PlayerID, _EntityID);
         self:UpdateSelectionSerfConstrucButtons(_PlayerID);
