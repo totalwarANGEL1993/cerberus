@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/GetPlayerEntities");
 Lib.Require("comfort/GetUpgradeCategoryByEntityType");
 Lib.Require("comfort/GetUpgradeLevelByEntityType");
@@ -114,7 +115,7 @@ function EntityTracker.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.Config[i] = {
                 Limit = {},
             };
@@ -154,7 +155,7 @@ end
 
 function EntityTracker.Internal:SetLimitForType(_PlayerID, _Type, _Limit)
     if _PlayerID == -1 then
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self:SetLimitForType(i, _Type, _Limit);
         end
     else

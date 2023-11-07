@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Register("module/cinematic/Cinematic");
 
 --- 
@@ -65,7 +66,7 @@ end
 --- @param _Name string Name of cinematic
 --- @return boolean Active The event is active for a player
 function Cinematic.IsActiveForAnyPlayer(_Name)
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         if Cinematic.Internal:SetCinematicEventState(i, _Name) == CinematicEventStatus.Active then
             return true;
         end
@@ -85,7 +86,7 @@ end
 --- @param _Name string Name of cinematic
 --- @return boolean Active The event is active for a player
 function Cinematic.IsConcludedForAnyPlayer(_Name)
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         if Cinematic.Internal:SetCinematicEventState(i, _Name) == CinematicEventStatus.Over then
             return true;
         end
@@ -131,8 +132,8 @@ function Cinematic.Internal:Install()
 
         Camera.ZoomSetFOV(42);
         self:InitRestoreAfterLoad();
-        for k, v in pairs(Score.Player) do
-            self.Data.EventStatus[k] = {};
+        for PlayerID = 1, GetMaxAmountOfPlayer() do
+            self.Data.EventStatus[PlayerID] = {};
         end
     end
 end

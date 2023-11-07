@@ -1,4 +1,5 @@
 Lib.Require("comfort/GetHeadquarters");
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/GetCirclePosition");
 Lib.Require("comfort/GetLanguage");
 Lib.Require("module/lua/Overwrite");
@@ -157,7 +158,7 @@ function BuyHero.Internal:Install()
         self.SyncEvent = Syncer.CreateEvent(function(_PlayerID, _Type)
             BuyHero.Internal:BuyHeroCallback(_PlayerID, _Type);
         end);
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.Data[i] = {
                 MaxHeroAmount = self.Config.MaxHeroAmount,
             };

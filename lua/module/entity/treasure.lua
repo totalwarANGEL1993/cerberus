@@ -1,4 +1,5 @@
 Lib.Require("comfort/GetLanguage");
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/KeyOf");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/entity/Treasure");
@@ -319,7 +320,7 @@ end
 
 function Treasure.Internal:IsHeroOpenerClose(_Data)
     local x,y,z = Logic.EntityGetPos(GetID(_Data.ScriptName));
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         if Logic.IsPlayerEntityOfCategoryInArea(i, x, y, _Data.Distance, "Hero") == 1 then
             return i;
         end
@@ -329,7 +330,7 @@ end
 
 function Treasure.Internal:IsMilitaryOpenerClose(_Data)
     local x,y,z = Logic.EntityGetPos(GetID(_Data.ScriptName));
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         if Logic.IsPlayerEntityOfCategoryInArea(i, x, y, _Data.Distance, "Military") == 1 then
             return i;
         end
@@ -349,7 +350,7 @@ end
 
 function Treasure.Internal:IsAnyOpenerClose(_Data)
     local x,y,z = Logic.EntityGetPos(GetID(_Data.ScriptName));
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         local PlayerEntities = {Logic.GetPlayerEntitiesInArea(i, 0, x, y, _Data.Distance, 16)};
         for j= 2, PlayerEntities[1] +1 do
             if Logic.IsSettler(PlayerEntities[j]) == 1 then

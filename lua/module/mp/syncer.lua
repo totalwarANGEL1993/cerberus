@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/CopyTable");
 Lib.Register("module/mp/Syncer");
 
@@ -214,7 +215,7 @@ end
 function Syncer.Internal:GetActivePlayers()
     local Players = {};
     if self:IsMultiplayerGame() then
-        for i= 1, table.getn(Score.Player), 1 do
+        for i= 1, GetMaxAmountOfPlayer(), 1 do
             if Logic.PlayerGetGameState(i) == 1 then
                 table.insert(Players, i);
             end
