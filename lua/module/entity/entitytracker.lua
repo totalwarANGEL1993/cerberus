@@ -1,6 +1,7 @@
 Lib.Require("comfort/GetPlayerEntities");
 Lib.Require("comfort/GetUpgradeCategoryByEntityType");
 Lib.Require("comfort/GetUpgradeLevelByEntityType");
+Lib.Require("comfort/GetUpgradedEntityType");
 Lib.Require("module/mp/Syncer");
 Lib.Register("module/entity/EntityTracker");
 
@@ -14,7 +15,7 @@ Lib.Register("module/entity/EntityTracker");
 --- GameCallback_GUI_SelectionChanged is called by code if an configured type
 --- is created/destroyed or an building upgrade is started/canceled.
 --- 
---- Version 1.2.0
+--- Version 1.3.0
 ---
 
 EntityTracker = EntityTracker or {};
@@ -37,7 +38,7 @@ end
 --- @param _PlayerID number? ID of player
 --- @return number Limit Current limit for type
 function EntityTracker.GetLimitOfType(_Type, _PlayerID)
-    return EntityTracker.Internal:GetLimitForType(_Type, _PlayerID);
+    return EntityTracker.Internal:GetLimitForType(_PlayerID, _Type);
 end
 
 --- Sets a limit for the type.
@@ -48,17 +49,37 @@ end
 --- @param _Type number Entity type
 --- @param _Limit number Limit for type
 --- @param _PlayerID number? ID of player
-function EntityTracker.SetLimitOfType(_Type, _Limit, _PlayerID)
-    _PlayerID = _PlayerID or -1;
-    EntityTracker.Internal:SetLimitForType(_Type, _Limit, _PlayerID);
+function EntityTracker.SetLimitOfType(_Type, _PlayerID, _Limit)
+    return EntityTracker.Internal:SetLimitForType(_PlayerID, _Type, _Limit);
 end
 
 --- Returns the amount of tracked entities of the player.
+---
+--- If `_Upgrades` is used, all upgrades of the type will also be considered.
+---
 --- @param _Type number Entity type
 --- @param _PlayerID number ID of player
+--- @param _Upgrades? boolean With upgrades
 --- @return number amount of entities
-function EntityTracker.GetUsageOfType(_Type, _PlayerID)
-    return EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type);
+function EntityTracker.GetUsageOfType(_Type, _PlayerID, _Upgrades)
+    return EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type, _Upgrades);
+end
+
+--- Returns if the limit of the entity type has been exceeded.
+---
+--- If `_Upgrades` is used, all upgrades of the type will also be considered.
+---
+--- @param _Type number Entity type
+--- @param _PlayerID number ID of player
+--- @param _Upgrades? boolean With upgrades
+--- @return boolean Exceeded The maximum has been surpassed
+function EntityTracker.IsLimitOfTypeExceeded(_Type, _PlayerID, _Upgrades)
+    local Limit = EntityTracker.Internal:GetLimitForType(_PlayerID, _Type);
+    if Limit > -1 then
+        local Amount = EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type, _Upgrades);
+        return Amount >= Limit;
+    end
+    return false;
 end
 
 -- -------------------------------------------------------------------------- --
@@ -109,6 +130,31 @@ function EntityTracker.Internal:SetupSynchronization()
     );
 end
 
+function EntityTracker.Internal:GetLimitForType(_PlayerID, _Type)
+    return self.Config[_PlayerID].Limit[_Type] or -1
+end
+
+function EntityTracker.Internal:SetLimitForType(_PlayerID, _Type, _Limit)
+    self.Config[_PlayerID].Limit[_Type] = _Limit
+end
+
+function EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type, _Upgrades)
+    local Amount = 0;
+    if _Upgrades == true then
+        local UpgradedEntity = GetUpgradedEntityType(_Type);
+        if UpgradedEntity > 0 then
+            Amount = self:GetCurrentAmountOfType(_PlayerID, UpgradedEntity, _Upgrades);
+        end
+    end
+    if self.Data[_PlayerID].Potential[_Type] then
+        Amount = Amount + table.getn(self.Data[_PlayerID].Potential[_Type]);
+    end
+    if self.Data[_PlayerID].Current[_Type] then
+        Amount = Amount + table.getn(self.Data[_PlayerID].Current[_Type]);
+    end
+    return Amount;
+end
+
 function EntityTracker.Internal:FindInitialPlayerEntities()
     for PlayerID,_ in pairs(self.Config) do
         local PlayerEntities = GetPlayerEntities(PlayerID, 0);
@@ -116,46 +162,6 @@ function EntityTracker.Internal:FindInitialPlayerEntities()
             self:OnEntityCreated(PlayerID, EntityID);
         end
     end
-end
-
-function EntityTracker.Internal:GetLimitForType(_Type, _PlayerID)
-    local UpgradeCategory = GetUpgradeCategoryByEntityType(_Type);
-    local UpgradeLevel = GetUpgradeLevelByEntityType(_Type);
-    if UpgradeCategory ~= 0 and self.Config[_PlayerID].Limit[UpgradeCategory] then
-        return self.Config[_PlayerID].Limit[UpgradeCategory][UpgradeLevel +1];
-    end
-    return -1;
-end
-
-function EntityTracker.Internal:SetLimitForType(_Type, _Limit, _PlayerID)
-    if _PlayerID == -1 then
-        for i= 1, table.getn(Score.Player) do
-            self:SetLimitForType(_Type, _Limit, i);
-        end
-        return;
-    end
-    local UpgradeCategory = GetUpgradeCategoryByEntityType(_Type);
-    local UpgradeLevel = GetUpgradeLevelByEntityType(_Type);
-    if UpgradeCategory ~= 0 then
-        if not self.Config[_PlayerID].Limit[UpgradeCategory] then
-            self.Config[_PlayerID].Limit[UpgradeCategory] = {-1, -1, -1, -1};
-        end
-        self.Config[_PlayerID].Limit[UpgradeCategory][UpgradeLevel +1] = _Limit;
-    end
-end
-
-function EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type)
-    local Amount = 0;
-    local UpgradeCategory = GetUpgradeCategoryByEntityType(_Type);
-    if self.Data[_PlayerID] and self.Config[_PlayerID].Limit[UpgradeCategory] then
-        if self.Data[_PlayerID].Potential[_Type] then
-            Amount = Amount + table.getn(self.Data[_PlayerID].Potential[_Type]);
-        end
-        if self.Data[_PlayerID].Current[_Type] then
-            Amount = Amount + table.getn(self.Data[_PlayerID].Current[_Type]);
-        end
-    end
-    return Amount;
 end
 
 function EntityTracker.Internal:OnEntityCreated(_PlayerID, _EntityID)
@@ -172,7 +178,7 @@ function EntityTracker.Internal:OnEntityDestroyed(_PlayerID, _EntityID)
         local Type = Logic.GetEntityType(_EntityID);
         local NextType = GetUpgradedEntityType(Type);
         if NextType > 0 then
-            self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+            self:RemoveFromList("Potential", NextType, _PlayerID, _EntityID);
         end
         self:RemoveFromList("Potential", Type, _PlayerID, _EntityID);
         self:RemoveFromList("Current", Type, _PlayerID, _EntityID);
@@ -187,7 +193,7 @@ function EntityTracker.Internal:OnUpgradeStarted(_PlayerID, _EntityID)
         self.Data[_PlayerID].UpgradeBuildingLock = false;
         local NextType = GetUpgradedEntityType(Type);
         if NextType > 0 then
-            self:AddToList("Potential", Type +1, _PlayerID, _EntityID);
+            self:AddToList("Potential", NextType, _PlayerID, _EntityID);
         end
         self:RemoveFromList("Current", Type, _PlayerID, _EntityID);
     end
@@ -198,7 +204,7 @@ function EntityTracker.Internal:OnUpgradeCanceled(_PlayerID, _EntityID)
         local Type = Logic.GetEntityType(_EntityID);
         local NextType = GetUpgradedEntityType(Type);
         if NextType > 0 then
-            self:RemoveFromList("Potential", Type +1, _PlayerID, _EntityID);
+            self:RemoveFromList("Potential", NextType, _PlayerID, _EntityID);
         end
         self:AddToList("Current", Type, _PlayerID, _EntityID);
         self:UpdateSelectionBuildingUpgradeButtons(_PlayerID, _EntityID);
@@ -343,21 +349,33 @@ function EntityTracker.Internal:OverrideUpgradeBuilding()
 	GUIAction_UpgradeSelectedBuilding = function()
         local PlayerID = GUI.GetPlayerID();
 		local EntityID = GUI.GetSelectedEntity();
-		local Type = Logic.GetEntityType(EntityID);
 
         if InterfaceTool_IsBuildingDoingSomething(EntityID) == true then
             return;
         end
+        -- Check for alarm mode
         if Logic.IsAlarmModeActive(EntityID) == true then
             GUI.AddNote(XGUIEng.GetStringTableText("InGameMessages/Note_StoptAlarmFirst"));
             return;
         end
+        -- Check for training leaders
         local LeadersTrainingAtMilitaryBuilding = Logic.GetLeaderTrainingAtBuilding(EntityID);
         if LeadersTrainingAtMilitaryBuilding ~= 0 then
             GUI.AddNote(XGUIEng.GetStringTableText("InGameMessages/GUI_UpgradeNotPossibleBecauseOfTraining"));
             return;
         end
+        -- Check for overtime
+        if Logic.IsOvertimeActiveAtBuilding(EntityID) == true then
+            return;
+        end
+        -- Check if burning badly
+        local MaxHealth = Logic.GetEntityMaxHealth(EntityID);
+        local Health = Logic.GetEntityHealth(EntityID);
+        if MaxHealth > 0 and Health / MaxHealth <= 0.2 then
+            return;
+        end
 
+		local Type = Logic.GetEntityType(EntityID);
         gvGUI_UpdateButtonIDArray[EntityID] = XGUIEng.GetCurrentWidgetID();
         Logic.FillBuildingUpgradeCostsTable(Type, InterfaceGlobals.CostTable);
         if InterfaceTool_HasPlayerEnoughResources_Feedback(InterfaceGlobals.CostTable) == 1 then
