@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/GetPlayerEntities");
 Lib.Require("comfort/GetUpgradeCategoryByEntityType");
 Lib.Require("comfort/GetUpgradeLevelByEntityType");
@@ -15,7 +16,7 @@ Lib.Register("module/entity/EntityTracker");
 --- GameCallback_GUI_SelectionChanged is called by code if an configured type
 --- is created/destroyed or an building upgrade is started/canceled.
 --- 
---- Version 1.3.0
+--- Version 1.3.2
 ---
 
 EntityTracker = EntityTracker or {};
@@ -49,7 +50,8 @@ end
 --- @param _Type number Entity type
 --- @param _Limit number Limit for type
 --- @param _PlayerID number? ID of player
-function EntityTracker.SetLimitOfType(_Type, _PlayerID, _Limit)
+function EntityTracker.SetLimitOfType(_Type, _Limit, _PlayerID)
+    _PlayerID = _PlayerID or -1;
     return EntityTracker.Internal:SetLimitForType(_PlayerID, _Type, _Limit);
 end
 
@@ -65,6 +67,23 @@ function EntityTracker.GetUsageOfType(_Type, _PlayerID, _Upgrades)
     return EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type, _Upgrades);
 end
 
+--- Returns if the limit of the entity type has been reached.
+---
+--- If `_Upgrades` is used, all upgrades of the type will also be considered.
+---
+--- @param _Type number Entity type
+--- @param _PlayerID number ID of player
+--- @param _Upgrades? boolean With upgrades
+--- @return boolean Exceeded The maximum has been reached
+function EntityTracker.IsLimitOfTypeReached(_Type, _PlayerID, _Upgrades)
+    local Limit = EntityTracker.Internal:GetLimitForType(_PlayerID, _Type);
+    if Limit > -1 then
+        local Amount = EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type, _Upgrades);
+        return Amount >= Limit;
+    end
+    return false;
+end
+
 --- Returns if the limit of the entity type has been exceeded.
 ---
 --- If `_Upgrades` is used, all upgrades of the type will also be considered.
@@ -77,7 +96,7 @@ function EntityTracker.IsLimitOfTypeExceeded(_Type, _PlayerID, _Upgrades)
     local Limit = EntityTracker.Internal:GetLimitForType(_PlayerID, _Type);
     if Limit > -1 then
         local Amount = EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type, _Upgrades);
-        return Amount >= Limit;
+        return Amount > Limit;
     end
     return false;
 end
@@ -96,7 +115,7 @@ function EntityTracker.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.Config[i] = {
                 Limit = {},
             };
@@ -135,7 +154,13 @@ function EntityTracker.Internal:GetLimitForType(_PlayerID, _Type)
 end
 
 function EntityTracker.Internal:SetLimitForType(_PlayerID, _Type, _Limit)
-    self.Config[_PlayerID].Limit[_Type] = _Limit
+    if _PlayerID == -1 then
+        for i= 1, GetMaxAmountOfPlayer() do
+            self:SetLimitForType(i, _Type, _Limit);
+        end
+    else
+        self.Config[_PlayerID].Limit[_Type] = _Limit
+    end
 end
 
 function EntityTracker.Internal:GetCurrentAmountOfType(_PlayerID, _Type, _Upgrades)
