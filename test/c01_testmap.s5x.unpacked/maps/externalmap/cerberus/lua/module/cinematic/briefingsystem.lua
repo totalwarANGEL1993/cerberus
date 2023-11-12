@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/Round");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Require("module/ui/Placeholder");
@@ -203,7 +204,7 @@ function BriefingSystem.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.Data.Book[i] = nil;
             self.Data.Queue[i] = {};
         end
@@ -403,7 +404,7 @@ function BriefingSystem.Internal:IsBriefingActive(_PlayerID)
 end
 
 function BriefingSystem.Internal:IsBriefingActiveForAnyPlayer()
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         if self:IsBriefingActive(i) then
             return true;
         end
@@ -733,7 +734,7 @@ function BriefingSystem.Internal:BriefingMCButtonSelected(_Selected)
 end
 
 function BriefingSystem.Internal:ControlBriefing()
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         if self.Data.Book[i] then
             -- Check page exists
             local PageID = self.Data.Book[i].Page;

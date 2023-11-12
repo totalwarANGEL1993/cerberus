@@ -1,4 +1,5 @@
 Lib.Require("comfort/CreateNameForEntity");
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Register("module/io/Interaction");
 
 --- 
@@ -81,7 +82,7 @@ function Interaction.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.LastInteractionHero[i] = nil;
             self.LastInteractionNpc[i] = nil;
         end

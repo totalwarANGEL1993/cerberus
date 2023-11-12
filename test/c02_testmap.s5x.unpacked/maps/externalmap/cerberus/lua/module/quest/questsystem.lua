@@ -1,9 +1,10 @@
 Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/GetHeadquarters");
-Lib.Require("comfort/KeyOf");
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/GetLanguage");
 Lib.Require("comfort/GetPlayerEntities");
 Lib.Require("comfort/GetResourceName");
+Lib.Require("comfort/KeyOf");
 
 Lib.Require("module/cinematic/BriefingSystem");
 Lib.Require("module/io/NonPlayerCharacter");
@@ -131,7 +132,7 @@ function QuestSystem.Internal:Install()
         self.IsInstalled = true;
 
         Placeholder.Install();
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.Data[i] = {
                 QuestInfo = {},
             };
@@ -1006,7 +1007,7 @@ function QuestSystem.Internal:InitJobs()
 
     -- Thief job
     Job.Second(function()
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             QuestSystem.Internal:ObjectiveStealHandler(i);
         end
     end);
@@ -1024,7 +1025,7 @@ function QuestSystem.Internal:InitJobs()
         PaydayTimeoutFlag = PaydayTimeoutFlag or {};
         PaydayOverFlag = PaydayOverFlag or {};
 
-        for i= 1, table.getn(Score.Player), 1 do
+        for i= 1, GetMaxAmountOfPlayer(), 1 do
             local Frequency = Logic.GetPlayerPaydayFrequency(i);
             PaydayTimeoutFlag[i] = PaydayTimeoutFlag[i] or false;
             PaydayOverFlag[i] = PaydayOverFlag[i] or false;
