@@ -155,7 +155,7 @@ function Tutorial.Internal:AddMessage(_Page)
     if type(_Page.Text) == "table" then
         _Page.Text = _Page.Text[self.m_Language];
     end
-    if string.find(_Page.Text, "^%w/%w$") then
+    if string.find(_Page.Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
         _Page.Text = XGUIEng.GetStringTableText(_Page.Text);
     end
     -- Add continuation text

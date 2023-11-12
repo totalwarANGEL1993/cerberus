@@ -830,7 +830,7 @@ function BriefingSystem.Internal:GetTextLocalized(_Text)
         Text = Text[Language];
     end
     -- String table text or replace placeholders
-    if string.find(Text, "^%w/%w$") then
+    if string.find(Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
         Text = XGUIEng.GetStringTableText(Text);
     end
     return Text;
@@ -884,7 +884,7 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                         Text = Text[Language];
                     end
                     -- String table text or replace placeholders
-                    if string.find(Text, "^%w/%w$") then
+                    if string.find(Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
                         Text = XGUIEng.GetStringTableText(Text);
                     else
                         Text = Placeholder.Replace(Text);
@@ -894,7 +894,6 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                 end
             end
         end
-    else
     end
 end
 
