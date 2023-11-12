@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Register("comfort/GetEnemiesInArea");
 
 -- Version: 1.0.0

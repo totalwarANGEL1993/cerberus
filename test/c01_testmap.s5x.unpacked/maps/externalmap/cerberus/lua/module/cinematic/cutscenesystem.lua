@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/Round");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Require("module/ui/Placeholder");
@@ -81,7 +82,7 @@ function CutsceneSystem.Internal:Install()
 
     if not self.IsInstalled then
         self.IsInstalled = true;
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.Data.Book[i] = nil;
             self.Data.Queue[i] = {};
         end

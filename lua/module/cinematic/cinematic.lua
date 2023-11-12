@@ -239,6 +239,7 @@ function Cinematic.Internal:EnableCinematicMode(_PlayerID, _RestoreCamera, _Rest
     XGUIEng.ShowWidget("CinematicMiniMapContainer",1);
 
     XGUIEng.ShowWidget("3dWorldView",0);
+    XGUIEng.ShowWidget("3dOnScreenDisplay",0);
     XGUIEng.ShowWidget("Normal",1);
     XGUIEng.ShowAllSubWidgets("Windows",0);
     XGUIEng.ShowWidget("Top",0);
@@ -286,23 +287,11 @@ function Cinematic.Internal:DisableCinematicMode(_PlayerID)
     gvCamera.DefaultFlag = 1;
     gvInterfaceCinematicFlag = 0;
 
-    Camera.FollowEntity(0);
-    Camera.ScrollUpdateZMode(0);
-    Camera.SetControlMode(0);
-    Camera.RotSetFlipBack(1);
-    Camera.ZoomSetFOV(42);
-    Display.SetRenderFogOfWar(1);
-    Display.SetRenderSky(0);
-    GUI.EnableBattleSignals(true);
-    GUI.SetFeedbackSoundOutputState(1);
-    GUI.ActivateSelectionState();
-    Input.GameMode();
-    Stream.Stop();
-
     XGUIEng.ShowWidget("Cinematic",0);
     XGUIEng.ShowWidget("CinematicMiniMapContainer",0);
 
     XGUIEng.ShowWidget("3dWorldView",1);
+    XGUIEng.ShowWidget("3dOnScreenDisplay",1);
     XGUIEng.ShowWidget("Normal",1);
     XGUIEng.ShowWidget("Windows",1);
     XGUIEng.ShowWidget("Top",1);
@@ -315,6 +304,19 @@ function Cinematic.Internal:DisableCinematicMode(_PlayerID)
     XGUIEng.ShowWidget("MiniMap",1);
     XGUIEng.ShowWidget("MiniMapOverlay",1);
     XGUIEng.ShowWidget("MinimapButtons",1);
+
+    Camera.FollowEntity(0);
+    Camera.ScrollUpdateZMode(0);
+    Camera.SetControlMode(0);
+    Camera.RotSetFlipBack(1);
+    Camera.ZoomSetFOV(42);
+    Display.SetRenderFogOfWar(1);
+    Display.SetRenderSky(0);
+    GUI.EnableBattleSignals(true);
+    GUI.SetFeedbackSoundOutputState(1);
+    GUI.ActivateSelectionState();
+    Input.GameMode();
+    Stream.Stop();
 end
 
 function Cinematic.Internal:SetPageStyle(_DisableMap, _MCAmount, _PageStyle)

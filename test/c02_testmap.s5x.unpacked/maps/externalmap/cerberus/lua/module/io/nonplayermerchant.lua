@@ -1,5 +1,6 @@
-Lib.Require("comfort/KeyOf");
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/GetResourceName");
+Lib.Require("comfort/KeyOf");
 Lib.Require("module/ui/Placeholder");
 Lib.Require("module/io/Interaction");
 Lib.Require("module/mp/Syncer");
@@ -160,7 +161,7 @@ function NonPlayerMerchant.Internal:Install()
     if not self.IsInstalled then
         self.IsInstalled = true;
 
-        for i= 1, table.getn(Score.Player) do
+        for i= 1, GetMaxAmountOfPlayer() do
             self.Data[i] = {};
         end
         self:OverrideNpcInteractionCallbacks();
