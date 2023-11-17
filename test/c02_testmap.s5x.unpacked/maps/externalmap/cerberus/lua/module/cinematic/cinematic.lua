@@ -1,4 +1,5 @@
 Lib.Require("comfort/GetMaxAmountOfPlayer");
+Lib.Require("comfort/Round");
 Lib.Register("module/cinematic/Cinematic");
 
 --- 
@@ -355,11 +356,11 @@ function Cinematic.Internal:SetRegularPageStyle(_DisableMap)
 end
 
 function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
-    local size = {GUI.GetScreenSize()};
-    local choiceHeight = 40;
-    local choiceWidth  = 500;
-    local choicePosX   = 274;
-    local choicePosY   = Round((size[2]/2) - ((_MCAmount/2)*(choiceHeight+5)));
+    local SW, SH = GUI.GetScreenSize();
+    local SWF, SHF = 1024, 384;
+    local CD, CH, CW = 10, 40, 500;
+    local CX = 262;
+    local CY = Round(SHF - ((_MCAmount / 2) * (CH + (CD / 2))));
 
     -- Set widget apperance
     XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);
@@ -376,8 +377,8 @@ function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
     -- Set answers
     for i= 1, _MCAmount, 1 do
         if XGUIEng.IsWidgetExisting("CinematicMC_Button" ..i) == 1 then
-            XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button" ..i, choicePosX, choicePosY, choiceWidth, choiceHeight);
-            choicePosY = choicePosY + (choiceHeight+10);
+            XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button" ..i, CX, CY, CW, CH);
+            CY = CY + (CH + CD);
         end
     end
 
