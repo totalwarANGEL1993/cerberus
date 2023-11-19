@@ -830,7 +830,7 @@ function BriefingSystem.Internal:GetTextLocalized(_Text)
         Text = Text[Language];
     end
     -- String table text or replace placeholders
-    if string.find(Text, "^%w/%w$") then
+    if string.find(Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
         Text = XGUIEng.GetStringTableText(Text);
     end
     return Text;
@@ -883,18 +883,16 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                     if type(Text) == "table" then
                         Text = Text[Language];
                     end
-                    -- String table text or replace placeholders
-                    if string.find(Text, "^%w/%w$") then
+                    -- String table text and replace placeholders
+                    if string.find(Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
                         Text = XGUIEng.GetStringTableText(Text);
-                    else
-                        Text = Placeholder.Replace(Text);
                     end
+                    Text = Placeholder.Replace(Text);
                     -- Set text
                     XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
                 end
             end
         end
-    else
     end
 end
 

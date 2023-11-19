@@ -211,7 +211,7 @@ function Interaction.Internal:GetLocalizedMessage(_Msg)
     if type(Msg) == "table" then
         Msg = Msg[Language];
     end
-    if string.find(Msg, "^%w/%w$") then
+    if string.find(Msg, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
         Msg = XGUIEng.GetStringTableText(Msg);
     end
     return Msg;

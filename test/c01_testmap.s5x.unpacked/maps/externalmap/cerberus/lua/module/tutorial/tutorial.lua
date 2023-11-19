@@ -76,6 +76,11 @@ Tutorial.Internal = Tutorial.Internal or {
         ContinueText = {
             de = "(Weiter mit Enter)",
             en = "(Continue with return)",
+            es = "(Continuar con Enter)",
+            fr = "(Continuez avec Entrer)",
+            it = "(Prosegui con Invio)",
+            pl = "(Kontynuuj za pomocą Enter)",
+            ru = "(Prodolzhit' nazhatiyem Enter",
         }
     },
 };
@@ -149,6 +154,9 @@ function Tutorial.Internal:AddMessage(_Page)
     -- Check for multi language
     if type(_Page.Text) == "table" then
         _Page.Text = _Page.Text[self.m_Language];
+    end
+    if string.find(_Page.Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
+        _Page.Text = XGUIEng.GetStringTableText(_Page.Text);
     end
     -- Add continuation text
     if not _Page.Condition then
