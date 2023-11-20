@@ -142,7 +142,7 @@ end
 function Cinematic.Internal:InitRestoreAfterLoad()
 	self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
 	Mission_OnSaveGameLoaded = function()
-		FreeCam.Internal.Orig_Mission_OnSaveGameLoaded();
+		Cinematic.Internal.Orig_Mission_OnSaveGameLoaded();
         Camera.ZoomSetFOV(42);
 	end
 end
