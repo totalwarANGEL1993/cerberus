@@ -90,6 +90,8 @@ function Tutorial.Internal:Install()
         self.m_Language = GetLanguage();
         self.Data.ContinueText = self.Text.ContinueText[self.m_Language];
         self:OverwriteMessageFunctions();
+        self:InitRestoreAfterLoad();
+
         self.IsInstalled = true;
     end
 end

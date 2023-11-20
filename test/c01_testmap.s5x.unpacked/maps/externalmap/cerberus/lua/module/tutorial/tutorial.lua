@@ -90,6 +90,8 @@ function Tutorial.Internal:Install()
         self.m_Language = GetLanguage();
         self.Data.ContinueText = self.Text.ContinueText[self.m_Language];
         self:OverwriteMessageFunctions();
+        self:InitRestoreAfterLoad();
+
         self.IsInstalled = true;
     end
 end
@@ -160,7 +162,9 @@ function Tutorial.Internal:AddMessage(_Page)
     end
     -- Add continuation text
     if not _Page.Condition then
-        _Page.Text = Placeholder.Replace(_Page.Text).. " @cr @color:66,206,244 " ..self.Data.ContinueText;
+        _Page.Text = Placeholder.Replace(_Page.Text)..
+                     " @cr @color:66,206,244 "..
+                     self.Data.ContinueText;
     end
     -- Add page
     table.insert(self.Data.Messages, CopyTable(_Page));
