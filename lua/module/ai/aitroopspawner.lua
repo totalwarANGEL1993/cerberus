@@ -376,10 +376,11 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                     end
                 end
             end
+
+            -- Control refilling troops
+            self:ControlTroopRefilling(_Index);
         end
     end
-    -- Control refilling troops
-    self:ControlTroopRefilling(_Index);
 end
 
 function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
