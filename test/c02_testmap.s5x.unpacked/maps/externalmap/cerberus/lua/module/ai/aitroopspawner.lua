@@ -1,7 +1,6 @@
 Lib.Require("comfort/AreEnemiesInArea");
 Lib.Require("comfort/GetDistance");
 Lib.Require("module/trigger/Job");
-Lib.Require("module/ai/AiArmy");
 Lib.Register("module/ai/AiTroopSpawner");
 
 ---
@@ -342,6 +341,9 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                 end
             end
 
+            -- Control refilling troops
+            self:ControlTroopRefilling(_Index);
+
             -- Assign refilled troop
             -- Adds 1 refilled troop per second to the weakest army if possible
             local ArmyID = self:GetArmyAwardedRespawn(_Index);
@@ -351,7 +353,7 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                     local PlayerID = AiArmy.GetPlayer(ArmyID);
                     if PlayerID ~= 0 then
                         local TroopID = self:GetTroop(_Index, PlayerID);
-                        if TroopID ~= 0 then
+                        if TroopID > 0 then
                             AiArmy.AddTroop(ArmyID, TroopID, true);
                         end
                     end
@@ -371,15 +373,15 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                         if AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL
                         or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
                             local ID = self:Spawn(_Index, ArmyID);
-                            AiArmy.AddTroop(ArmyID, ID, true);
+                            if ID > 0 then
+                                AiArmy.AddTroop(ArmyID, ID, true);
+                            end
                         end
                     end
                 end
             end
         end
     end
-    -- Control refilling troops
-    self:ControlTroopRefilling(_Index);
 end
 
 function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
@@ -424,23 +426,27 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID)
         TroopID = self:GetTroop(_Index, PlayerID);
         local TypeAmount = table.getn(AllowedTypes);
         if TroopID == 0 and TypeAmount > 0 then
-            local TroopIndex = 0;
-            if self.Data.Spawners[_Index].Sequentially then
-                self.Data.Spawners[_Index].AllowedTypes.Index = AllowedTypes.Index + 1
-                TroopIndex = AllowedTypes.Index;
-                if not AllowedTypes[TroopIndex] then
-                    if self.Data.Spawners[_Index].Endlessly then
-                        self.Data.Spawners[_Index].AllowedTypes.Index = 0;
-                        TroopIndex = 1;
-                    else
-                        TroopIndex = 0;
+            local MaximumLeader = AiArmy.GetMaxNumberOfLeader(_ArmyID);
+            local CurrentLeader = AiArmy.GetNumberOfLeader(_ArmyID);
+            if CurrentLeader < MaximumLeader then
+                local TroopIndex = 0;
+                if self.Data.Spawners[_Index].Sequentially then
+                    self.Data.Spawners[_Index].AllowedTypes.Index = AllowedTypes.Index + 1
+                    TroopIndex = AllowedTypes.Index;
+                    if not AllowedTypes[TroopIndex] then
+                        if self.Data.Spawners[_Index].Endlessly then
+                            self.Data.Spawners[_Index].AllowedTypes.Index = 0;
+                            TroopIndex = 1;
+                        else
+                            TroopIndex = 0;
+                        end
                     end
+                else
+                    TroopIndex = math.random(1, TypeAmount);
                 end
-            else
-                TroopIndex = math.random(1, TypeAmount);
-            end
-            if TroopIndex > 0 then
-                TroopID = self:CreateTroop(_Index, PlayerID, TroopIndex);
+                if TroopIndex > 0 then
+                    TroopID = self:CreateTroop(_Index, PlayerID, TroopIndex);
+                end
             end
         end
     end
@@ -461,6 +467,10 @@ function AiTroopSpawner.Internal:CreateTroop(_Index, _PlayerID, _Selected)
     return TroopID;
 end
 
+function AiTroopSpawner.Internal:IsRefilling(_Index)
+    return self.Data.Spawners[_Index].Refilling[1] ~= nil;
+end
+
 function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID)
     for i= table.getn(self.Data.Spawners[_Index].Refilling), 1, -1 do
         local TroopID = self.Data.Spawners[_Index].Refilling[i];
@@ -472,6 +482,9 @@ function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID)
                 return TroopID;
             end
         end
+    end
+    if self.Data.Spawners[_Index].Refilling[1] then
+        return -1;
     end
     return 0;
 end
