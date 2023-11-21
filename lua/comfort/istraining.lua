@@ -9,7 +9,7 @@ Lib.Register("comfort/IsTraining");
 function IsTraining(_Entity)
     local ID = GetID(_Entity);
     if ID ~= 0 then
-        return Logic.LeaderGetBarracks(ID) ~= 0;
+        return Logic.LeaderGetBarrack(ID) ~= 0;
     end
     return false;
 end
