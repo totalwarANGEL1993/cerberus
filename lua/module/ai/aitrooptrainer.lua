@@ -1,7 +1,6 @@
 Lib.Require("comfort/AreEnemiesInArea");
 Lib.Require("comfort/GetDistance");
 Lib.Require("module/trigger/Job");
-Lib.Require("module/ai/AiArmy");
 Lib.Register("module/ai/AiTroopTrainer");
 
 ---
