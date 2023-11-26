@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Register("comfort/AreEnemiesInArea");
 
 -- Version: 1.0.1
@@ -43,7 +44,7 @@ end
 ---
 function AreEntitiesOfDiplomacyStateInArea(_player, _Position, _range, _state, _Categories)
     local Categories = _Categories or AreEntitiesOfDiplomacyStateInArea_RelevantCategories;
-    for i = 1, 8 do
+    for i = 1, GetMaxAmountOfPlayer() do
         if i ~= _player and Logic.GetDiplomacyState(_player, i) == _state then
             if Logic.IsPlayerEntityOfCategoryInArea(
                 i,

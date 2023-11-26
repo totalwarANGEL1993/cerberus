@@ -54,7 +54,7 @@ function GetEntitiesOfDiplomacyStateInArea(_PlayerID, _Position, _Area, _Diploma
     local AreaCenterID = Logic.CreateEntity(Entities.XD_Rock1, _Position.X, _Position.Y, 0, 0);
     -- Search enemies
     local Enemies = {};
-    for i= 1, table.getn(Score.Player) do
+    for i= 1, GetMaxAmountOfPlayer() do
         if i ~= _PlayerID and Logic.GetDiplomacyState(_PlayerID, i) == _Diplomacy then
             for k, v in pairs(GetEntitiesOfDiplomacyStateInArea_RelevantTypes) do
                 local Findings = GetEnemiesInArea_Helper_GetEntitiesInArea(i, v, _Position, _Area, 16);
