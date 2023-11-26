@@ -1,4 +1,8 @@
+Lib.Require("comfort/AverageAngle");
 Lib.Require("comfort/CopyTable");
+Lib.Require("comfort/GetCirclePosition");
+Lib.Require("comfort/GetConeCenter");
+Lib.Require("comfort/GetConeEnd");
 Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/GetEnemiesInArea");
 Lib.Require("comfort/GetEntityCategoriesAsString");
@@ -6,7 +10,10 @@ Lib.Require("comfort/GetGeometricCenter");
 Lib.Require("comfort/GetReachablePosition");
 Lib.Require("comfort/IsFighting");
 Lib.Require("comfort/IsTraining");
+Lib.Require("comfort/IsInCone");
+Lib.Require("comfort/IsInSight");
 Lib.Require("comfort/IsValidEntity");
+Lib.Require("comfort/IsValidPosition");
 Lib.Require("module/trigger/Job");
 Lib.Require("module/ai/AiArmyRefiller");
 Lib.Register("module/ai/AiArmy");
@@ -491,7 +498,7 @@ function AiArmy.GetEnemies(_ID, _Position, _RodeLength, _Categories)
         local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         local Position = _Position or Army.Anchor.Position or Army.Position or Army.HomePosition;
         local Area = _RodeLength or Army.Anchor.RodeLength or Army.RodeLength;
-        Enemies = AiArmy.Internal:GetEnemiesInTerritory(Army.PlayerID, Position, Area, nil, _Categories);
+        Enemies = AiArmy.Internal:GetEnemiesInCircle(Army.PlayerID, Position, Area, nil, _Categories);
     end
     return Enemies;
 end
@@ -583,18 +590,22 @@ function AiArmy.Internal:Controller()
         Army:SetLastTick(Turn);
         Army:ManageArmyMembers();
 
-        if not Army:IsAlive() and Army.Behavior ~= AiArmy.Behavior.FALLBACK then
-            for j= 1, table.getn(Army.Reinforcements) do
-                Logic.SettlerStand(Army.Reinforcements[j]);
+
+        if not Army:IsAlive() then
+            if  Army.Behavior ~= AiArmy.Behavior.FALLBACK
+            and Army.Behavior ~= AiArmy.Behavior.REFILL then
+                for j= 1, table.getn(Army.Reinforcements) do
+                    Logic.SettlerStand(Army.Reinforcements[j]);
+                end
+                for j= 1, table.getn(Army.Troops) do
+                    Logic.SettlerStand(Army.Troops[j]);
+                end
+                Army:SetBehavior(AiArmy.Behavior.FALLBACK);
+                Army:SetAnchor(nil, nil);
+                Army:SetPosition(nil);
+                Army:ResetArmySpeed();
+                return;
             end
-            for j= 1, table.getn(Army.Troops) do
-                Logic.SettlerStand(Army.Troops[j]);
-            end
-            Army:SetBehavior(AiArmy.Behavior.FALLBACK);
-            Army:SetAnchor(nil, nil);
-            Army:SetPosition(nil);
-            Army:ResetArmySpeed();
-            return;
         end
         Army:DebugShowCurrentPosition();
 
@@ -614,8 +625,42 @@ function AiArmy.Internal:Controller()
     end
 end
 
--- Checks for enemies in the area and removes not reachable.
-function AiArmy.Internal:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, _CategoryList)
+function AiArmy.Internal:GetEnemiesInCone(_PlayerID, _Position, _Area, _Angle, _CategoryList)
+    local Enemies = {};
+    local AreaCenter = GetConeCenter(_Position, _Area, _Angle);
+
+    -- Debug
+    -- local AreaEnd = GetConeEnd(_Position, _Area, _Angle);
+    -- Logic.DestroyEffect(gvDebugConeCenter or 0);
+    -- Logic.DestroyEffect(gvDebugConeEnd or 0);
+    -- local ConeCenterID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaCenter.X, AreaCenter.Y, 0);
+    -- local ConeEndID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaEnd.X, AreaEnd.Y, 0);
+    -- gvDebugConeCenter = ConeCenterID;
+    -- gvDebugConeEnd = ConeEndID;
+
+    if not AreEntitiesOfDiplomacyStateInArea(_PlayerID, AreaCenter, _Area, Diplomacy.Hostile, _CategoryList) then
+        return Enemies;
+    end
+
+    for _,ID in ipairs(self:GetEnemiesInCircle(_PlayerID, AreaCenter, _Area, nil, _CategoryList)) do
+        if IsInCone(ID, _Position, _Area, _Angle, 50) then
+            table.insert(Enemies, ID);
+        end
+    end
+    return Enemies;
+end
+
+function AiArmy.Internal:GetEnemiesInConeFortificationFilter(_PlayerID, _Position, _Area, _Angle)
+    local CategoryList = {"Wall"};
+    return self:GetEnemiesInCone(_PlayerID, _Position, _Area, _Angle, CategoryList)
+end
+
+function AiArmy.Internal:GetEnemiesInConeRegularFilter(_PlayerID, _Position, _Area, _Angle)
+    local CategoryList = {"Cannon", "DefendableBuilding", "Hero", "Leader", "MilitaryBuilding", "Serf"};
+    return self:GetEnemiesInCone(_PlayerID, _Position, _Area, _Angle, CategoryList);
+end
+
+function AiArmy.Internal:GetEnemiesInCircle(_PlayerID, _Position, _Area, _TroopID, _CategoryList)
     local AreaCenter;
     local Enemies = {};
 
@@ -653,12 +698,12 @@ end
 
 function AiArmy.Internal:GetEnemiesFortificationFilter(_PlayerID, _Position, _Area, _TroopID)
     local CategoryList = {"Wall"};
-    return self:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, CategoryList);
+    return self:GetEnemiesInCircle(_PlayerID, _Position, _Area, _TroopID, CategoryList);
 end
 
-function AiArmy.Internal:GetEnemiesNoFortificationFilter(_PlayerID, _Position, _Area, _TroopID)
+function AiArmy.Internal:GetEnemiesRegularFilter(_PlayerID, _Position, _Area, _TroopID)
     local CategoryList = {"Cannon", "DefendableBuilding", "Hero", "Leader", "MilitaryBuilding", "Serf"};
-    return self:GetEnemiesInTerritory(_PlayerID, _Position, _Area, _TroopID, CategoryList);
+    return self:GetEnemiesInCircle(_PlayerID, _Position, _Area, _TroopID, CategoryList);
 end
 
 -- Returns the best target for the troop from the target list.
@@ -811,7 +856,12 @@ end
 
 --- Army is waiting to be refilled.
 ---
---- 
+--- * Troops scattered
+---   - Move troops to army center
+--- * At home and weakened
+---   - Set behavior: AiArmy.Behavior.REFILL
+--- * Enemies found
+---   - Set behavior: AiArmy.Behavior.BATTLE
 function AiArmy.Internal.Army:WaitBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
@@ -839,7 +889,7 @@ function AiArmy.Internal.Army:WaitBehavior()
         end
     end
     -- Check for enemies
-    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+    local Enemies = AiArmy.Internal:GetEnemiesInCircle(self.PlayerID, ArmyPosition, self.RodeLength);
     if Enemies[1] then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
         return;
@@ -848,7 +898,8 @@ end
 
 --- Army haistly retreats to home position.
 ---
---- 
+--- * Not close to home
+---   - Troops move to home position
 function AiArmy.Internal.Army:FallbackBehavior()
     -- Let troops flee to home position
     if GetDistance(self:GetArmyPosition(), self.HomePosition) > 1000 then
@@ -866,13 +917,17 @@ end
 
 --- Army is waiting to be refilled.
 --- 
---- 
+--- * Enemies found
+---   - Set behavior: AiArmy.Behavior.BATTLE
+---   - Set anchor: Enemy position
+--- * Army full
+---   - Set behavior: AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:RefillBehavior()
     self:ResetArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
 
     -- Check for enemies
-    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(self.PlayerID, ArmyPosition, self.RodeLength);
+    local Enemies = AiArmy.Internal:GetEnemiesInCircle(self.PlayerID, ArmyPosition, self.RodeLength);
     if Enemies[1] then
         self:SetBehavior(AiArmy.Behavior.BATTLE);
         self:SetAnchor(ArmyPosition, self.RodeLength);
@@ -887,10 +942,21 @@ end
 
 --- Army is advancing to the position.
 ---
---- 
+--- * Enemies found
+---   - Set behavior: AiArmy.Behavior.BATTLE
+---   - Set anchor: Enemy position
+---   - Calls battle behavior immediately
+--- * Scattered while walking
+---   - Set behavior: AiArmy.Behavior.REGROUP
+---   - Calls regroup behavior immediately
+--- * Move to positon
+---   - Walk to position
+--- * Position reached
+---   - Set behavior: AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:AdvanceBehavior()
     self:NormalizedArmySpeed();
     local ArmyPosition = self:GetArmyPosition();
+    local ArmyRotation = self:GetArmyRotation();
     local Location = ArmyPosition;
 
     if self.Position == nil then
@@ -905,33 +971,26 @@ function AiArmy.Internal.Army:AdvanceBehavior()
         return;
     end
 
-    -- Search enemies for each troop
-    for j= 1, table.getn(self.Troops) do
-        local Position = self.Anchor.Position;
-
-        local SearchFortification = false;
-        if self.Position ~= nil and not ArePositionsConnected(ArmyPosition, self.Position) then
-            SearchFortification = true;
-        end
-
-        local Enemies = {};
-        local Exploration = Logic.GetEntityExplorationRange(self.Troops[j]);
-        if SearchFortification then
-            Location = GetPosition(self.Troops[j]);
-            local RodeLength = math.max((Exploration * 100) - GetDistance(Position, Location), 0);
-            Enemies = AiArmy.Internal:GetEnemiesFortificationFilter(self.PlayerID, Position, RodeLength);
-        else
-            Location = GetPosition(self.Troops[j]);
-            local RodeLength = math.max((Exploration * 100) - GetDistance(Position, Location), 0);
-            Enemies = AiArmy.Internal:GetEnemiesNoFortificationFilter(self.PlayerID, Position, RodeLength);
-        end
-        if Enemies[1] then
-            self:SetBehavior(AiArmy.Behavior.BATTLE);
-            self:SetAnchor(Location, self.Anchor.RodeLength);
-            self:BattleBehavior();
-            return;
-        end
+    local Enemies = {};
+    -- Search enemies in vision cone
+    local ConeSize = self.RodeLength * 1.5;
+    if self.Position ~= nil and not ArePositionsConnected(ArmyPosition, self.Position) then
+        Enemies = AiArmy.Internal:GetEnemiesInConeFortificationFilter(self.PlayerID, ArmyPosition, ConeSize, ArmyRotation - 0);
+    else
+        Enemies = AiArmy.Internal:GetEnemiesInConeRegularFilter(self.PlayerID, ArmyPosition, ConeSize, ArmyRotation - 0);
     end
+    -- Search enemies close to the army
+    if not Enemies[1] then
+        Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, ArmyPosition, self.RodeLength);
+    end
+    -- Attack enemy
+    if Enemies[1] then
+        self:SetBehavior(AiArmy.Behavior.BATTLE);
+        self:SetAnchor(Location, self.Anchor.RodeLength);
+        self:BattleBehavior();
+        return;
+    end
+
     -- Move troops to destination
     local Reachable = GetReachablePosition(self.Troops[1], ArmyPosition, self.Troops[1]);
     if GetDistance(Reachable, self.Position) > 1000 then
@@ -949,7 +1008,12 @@ end
 
 --- Controls the battle against enemies.
 --- 
---- 
+--- * No enemies found
+---   - Set behavior: AiArmy.Behavior.REGROUP
+--- * Battle the enemies
+---   - Each troop searches enemies
+---   - Move troop to anchor if to far apart
+---   - Move troop to anchor if no enemy
 function AiArmy.Internal.Army:BattleBehavior()
     local ArmyPosition = self:GetArmyPosition();
 
@@ -965,7 +1029,7 @@ function AiArmy.Internal.Army:BattleBehavior()
             self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength
         );
     else
-        Enemies = AiArmy.Internal:GetEnemiesNoFortificationFilter(
+        Enemies = AiArmy.Internal:GetEnemiesRegularFilter(
             self.PlayerID, self.Anchor.Position, self.Anchor.RodeLength
         );
     end
@@ -1001,13 +1065,20 @@ end
 
 --- Controls the regrouping of the army.
 ---
---- 
+--- * Enemies encountered
+---   - Set behavior: AiArmy.Behavior.BATTLE
+---   - Set anchor: Position of enemy
+--- * Army is scattered
+---   - Move troops to army center
+--- * Army in gathered
+---   - If army has position --> AiArmy.Behavior.ADVANCE
+---   - If not --> AiArmy.Behavior.WAITING
 function AiArmy.Internal.Army:RegroupBehavior()
     local ArmyPosition = self:GetArmyPosition();
     self:NormalizedArmySpeed();
 
     -- Check for enemies
-    local Enemies = AiArmy.Internal:GetEnemiesInTerritory(
+    local Enemies = AiArmy.Internal:GetEnemiesInCircle(
         self.PlayerID, self.Anchor.Position, self.RodeLength
     );
     if Enemies[1] then
@@ -1259,6 +1330,25 @@ function AiArmy.Internal.Army:GetNumberOfLeader(_WithReinforcments)
     return Amount;
 end
 
+function AiArmy.Internal.Army:GetArmyRotation()
+    if self:GetNumberOfLeader(false) > 0 then
+        local Orientations = {};
+        for i= 1, table.getn(self.Troops) do
+            if Logic.IsLeader(self.Troops[i]) == 1 then
+                local SoldierList = {Logic.GetSoldiersAttachedToLeader(self.Troops[i])};
+                for j= 2, SoldierList[1] +1 do
+                    local Orientation = Logic.GetEntityOrientation(SoldierList[j]);
+                    table.insert(Orientations, Orientation);
+                end
+            end
+            local Orientation = Logic.GetEntityOrientation(self.Troops[i]);
+            table.insert(Orientations, Orientation);
+        end
+        return AverageAngle(unpack(Orientations));
+    end
+    return 0;
+end
+
 --- @return table
 function AiArmy.Internal.Army:GetArmyPosition()
     if self.Behavior ~= AiArmy.Behavior.REFILL then
@@ -1270,6 +1360,9 @@ function AiArmy.Internal.Army:GetArmyPosition()
 end
 
 function AiArmy.Internal.Army:IsAlive()
+    if self.Behavior == AiArmy.Behavior.REFILL then
+        return self:GetNumberOfLeader(true) > 0;
+    end
     return self:GetNumberOfLeader(true) > 0 and self:GetCurrentStregth(true) > self.DefeatThreshold;
 end
 
@@ -1295,7 +1388,7 @@ end
 function AiArmy.Internal.Army:IsScattered()
     for i= 1, table.getn(self.Troops) do
         if IsExisting(self.Troops[i]) then
-            if GetDistance(self:GetArmyPosition(), self.Troops[i]) > 1500 then
+            if GetDistance(self:GetArmyPosition(), self.Troops[i]) > 1200 then
                 return true;
             end
         end
@@ -1384,7 +1477,7 @@ end
 
 function AiArmy.Internal.Army:DebugShowCurrentPosition()
     DestroyEntity(self.Debug.Position);
-    if self.Debug.Active then
+    if self.Debug.ShowPosition then
         local Position = self:GetArmyPosition();
         local ID = Logic.CreateEntity(Entities.XD_CoordinateEntity, Position.X, Position.Y, 0, self.PlayerID);
         self.Debug.Position = ID;
