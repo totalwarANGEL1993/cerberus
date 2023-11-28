@@ -630,21 +630,28 @@ function AiArmy.Internal:GetEnemiesInCone(_PlayerID, _Position, _Area, _Angle, _
     local AreaCenter = GetConeCenter(_Position, _Area, _Angle);
 
     -- Debug
-    -- local AreaEnd = GetConeEnd(_Position, _Area, _Angle);
+    -- local ConeCenterID = 0;
+    -- local ConeEndID = 0;
     -- Logic.DestroyEffect(gvDebugConeCenter or 0);
     -- Logic.DestroyEffect(gvDebugConeEnd or 0);
-    -- local ConeCenterID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaCenter.X, AreaCenter.Y, 0);
-    -- local ConeEndID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaEnd.X, AreaEnd.Y, 0);
+    -- local AreaEnd = GetConeEnd(_Position, _Area, _Angle);
+    -- if IsValidPosition(AreaCenter) then
+    --     ConeCenterID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaCenter.X, AreaCenter.Y, 0)
+    -- end
+    -- if IsValidPosition(AreaEnd) then
+    --     ConeEndID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaEnd.X, AreaEnd.Y, 0)
+    -- end
     -- gvDebugConeCenter = ConeCenterID;
     -- gvDebugConeEnd = ConeEndID;
 
-    if not AreEntitiesOfDiplomacyStateInArea(_PlayerID, AreaCenter, _Area, Diplomacy.Hostile, _CategoryList) then
-        return Enemies;
-    end
-
-    for _,ID in ipairs(self:GetEnemiesInCircle(_PlayerID, AreaCenter, _Area, nil, _CategoryList)) do
-        if IsInCone(ID, _Position, _Area, _Angle, 50) then
-            table.insert(Enemies, ID);
+    if IsValidPosition(AreaCenter) then
+        if not AreEntitiesOfDiplomacyStateInArea(_PlayerID, AreaCenter, _Area, Diplomacy.Hostile, _CategoryList) then
+            return Enemies;
+        end
+        for _,ID in ipairs(self:GetEnemiesInCircle(_PlayerID, AreaCenter, _Area, nil, _CategoryList)) do
+            if IsInCone(ID, _Position, _Area, _Angle, 50) then
+                table.insert(Enemies, ID);
+            end
         end
     end
     return Enemies;
