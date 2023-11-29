@@ -348,7 +348,7 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
             -- Adds 1 refilled troop per second to the weakest army if possible
             local ArmyID = self:GetArmyAwardedRespawn(_Index);
             if ArmyID > 0 then
-                if AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL
+                if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
                 or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
                     local PlayerID = AiArmy.GetPlayer(ArmyID);
                     if PlayerID ~= 0 then
@@ -370,7 +370,7 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                 end
                 if DoSpawn then
                     for i= 1, Spawner.MaxSpawn do
-                        if AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL
+                        if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
                         or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
                             local ID = self:Spawn(_Index, ArmyID);
                             if ID > 0 then
