@@ -108,14 +108,14 @@ end
 --- @param _ID integer ID of refiller
 --- @return boolean IsSpawner Refiller is spawner
 function AiArmyRefiller.IsSpawner(_ID)
-    return AiArmyRefiller.GetInternalSpawnerID(_ID) ~= 0;
+    return AiArmyRefiller.GetSpawnerID(_ID) ~= 0;
 end
 
 --- Returns if the refiller is internally a trainer.
 --- @param _ID integer ID of refiller
 --- @return boolean IsTrainer Refiller is trainer
 function AiArmyRefiller.IsTrainer(_ID)
-    return AiArmyRefiller.GetInternalTrainerID(_ID) ~= 0;
+    return AiArmyRefiller.GetTrainerID(_ID) ~= 0;
 end
 
 --- Changes the owner of the refiller and all currently attached troops.
