@@ -38,20 +38,22 @@ AiArmyCommand = {
     Wait = 3,
     --- Commands the army to move to a position.
     Move = 4,
+    --- Commands the army to move to a position with larger vision cone.
+    Advance = 5,
     --- Commands the army to attack enemies.
-    Battle = 5,
+    Battle = 6,
     --- Commands the army to attack walls.
-    Siege = 6,
+    Siege = 7,
     --- Commands the army to regroupt at current position.
-    Regroup = 7,
+    Regroup = 8,
     --- Commands the army to fallback home.
-    Fallback = 8,
+    Fallback = 9,
     --- Command making the army waiting for refill.
-    Refill = 9,
+    Refill = 10,
     --- Special command that marks the end of a command chain.
-    Finish = 10,
+    Finish = 11,
     --- Calls a custom command.
-    Custom = 11,
+    Custom = 12,
 }
 
 -- -------------------------------------------------------------------------- --
@@ -250,6 +252,26 @@ function AiArmy.IsAlive(_ID)
     return false;
 end
 
+--- Returns the types the army will accept from a spawner.
+--- @param _ID integer ID of army
+--- @return table Allowed List of allowed types
+function AiArmy.GetAllowedTypes(_ID)
+    local AllowedTypes = {};
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AllowedTypes = AiArmyData_ArmyIdToArmyInstance[_ID]:GetAllowedTypes();
+    end
+    return AllowedTypes;
+end
+
+--- Sets the types the army will accept from a spawner.
+--- @param _ID integer ID of army
+--- @param _Types table? List of allowed types
+function AiArmy.SetAllowedTypes(_ID, _Types)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AllowedTypes = AiArmyData_ArmyIdToArmyInstance[_ID]:SetAllowedTypes(_Types);
+    end
+end
+
 --- Returns the number of leader attached to the army.
 --- @param _ID integer ID of army
 --- @return integer Amount Leader count of army
@@ -388,10 +410,10 @@ function AiArmy.SetAliveThreshold(_Threshold)
 end
 
 --- Returns a list of enemies of the army in the area.
---- @param _ID integer          ID of army
---- @param _Position? table     Area center
---- @param _RodeLength? integer Area size
---- @param _Categories? table   List of categories
+--- @param _ID integer             ID of army
+--- @param _Position? string|table Area center
+--- @param _RodeLength? integer    Area size
+--- @param _Categories? table      List of categories
 --- @return table Enemies List of enemies
 function AiArmy.GetEnemiesInCircle(_ID, _Position, _RodeLength, _Categories)
     local Enemies = {};
@@ -399,16 +421,17 @@ function AiArmy.GetEnemiesInCircle(_ID, _Position, _RodeLength, _Categories)
         local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         local Position = _Position or Army.HomePosition;
         local Area = _RodeLength or Army.RodeLength;
+        Position = (type(_Position) == "table" and _Position) or GetPosition(_Position);
         Enemies = AiArmy.Internal:GetEnemiesInCircle(Army.PlayerID, Position, Area, nil, _Categories);
     end
     return Enemies;
 end
 
 --- Returns a list of enemies of the army in the cone.
---- @param _ID integer          ID of army
---- @param _Position? table     Area center
---- @param _Angle integer       Rotation of cone
---- @param _Categories? table   List of categories
+--- @param _ID integer             ID of army
+--- @param _Position? string|table Area center
+--- @param _Angle integer          Rotation of cone
+--- @param _Categories? table      List of categories
 --- @return table Enemies List of enemies
 function AiArmy.GetEnemiesInCone(_ID, _Position, _RodeLength, _Angle, _Categories)
     local Enemies = {};
@@ -416,9 +439,21 @@ function AiArmy.GetEnemiesInCone(_ID, _Position, _RodeLength, _Angle, _Categorie
         local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
         local Position = _Position or Army.HomePosition;
         local Area = _RodeLength or Army.RodeLength;
+        Position = (type(_Position) == "table" and _Position) or GetPosition(_Position);
         Enemies = AiArmy.Internal:GetEnemiesInCone(Army.PlayerID, Position, Area, _Angle, _Categories);
     end
     return Enemies;
+end
+
+--- Returns true, if the army is currently doing nothing.
+--- @param _ID integer ID of army
+--- @return boolean Idling Army does nothing
+function AiArmy.IsArmyDoingNothing(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Command = AiArmyData_ArmyIdToArmyInstance[_ID]:GetCurrentCommand();
+        return Command == nil or Command[1][1] == AiArmyCommand.Idle;
+    end
+    return false;
 end
 
 --- Returns true, if the command with the given ID is active.
@@ -893,6 +928,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     HomePosition     = nil,
     DefeatThreshold  = 0.20,
     LastTick         = 0,
+    AllowedTypes     = {},
 
     Reinforcements   = {0},
     Troops           = {0},
@@ -1035,6 +1071,9 @@ function AiArmy.Internal.Army:ExecuteCommand()
     if CommandType == AiArmyCommand.Move then
         CommandDone = self:ExecuteMoveCommand(CommandData) == true;
     end
+    if CommandType == AiArmyCommand.Advance then
+        CommandDone = self:ExecuteAdvanceCommand(CommandData) == true;
+    end
     if CommandType == AiArmyCommand.Battle then
         CommandDone = self:ExecuteBattleCommand(CommandData) == true;
     end
@@ -1056,11 +1095,15 @@ function AiArmy.Internal.Army:ExecuteCommand()
     if CommandType == AiArmyCommand.Custom then
         CommandDone = self:ExecuteCustomCommand(CommandData) == true;
     end
+    self.Commands[1][1][2].Executed = true;
 
     -- Remove (and restart) command
     if CommandDone and self.Commands[1] and self.Commands[1][1][1] == CommandType then
         local Command = table.remove(self.Commands, 1);
-        self:PushCommand(Command[1], true);
+        if Command[2] then
+            Command[1][2].Executed = nil;
+            self:PushCommand(Command[1], true);
+        end
 
         GameCallback_Logic_OnCommandDone(
             self.ID,
@@ -1110,12 +1153,17 @@ end
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteWaitCommand(_Data)
-    local Position = _Data[3] or self:GetArmyPosition();
+    local Position = _Data[2] or self:GetArmyPosition();
     if type(Position) ~= "table" then
         Position = GetPosition(Position);
     end
+    -- HACK: Save start time
+    if not self.Commands[1][1][2].Executed then
+        self.Commands[1][1][2][4] = Logic.GetTime();
+        _Data[4] = Logic.GetTime();
+    end
     -- Finished command after timer ran out
-    if Logic.GetTime() > _Data[1] + _Data[2] then
+    if Logic.GetTime() > _Data[1] + _Data[4] then
         return true;
     end
     -- Finish command if army is defeated
@@ -1126,7 +1174,7 @@ function AiArmy.Internal.Army:ExecuteWaitCommand(_Data)
         return true;
     end
     -- Check if enemies are near
-    local AreaSize = _Data[4] or self.RodeLength;
+    local AreaSize = _Data[3] or self.RodeLength;
     local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
     if Enemies[1] then
         self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, AreaSize), false, 1);
@@ -1154,14 +1202,15 @@ function AiArmy.Internal.Army:ExecuteStopCommand(_Data)
     return true;
 end
 
---- comment
+--- Commands the army to move to the destination.
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
     local Position = self:GetArmyPosition();
     local Rotation = self:GetArmyRotation();
+    local Destination = _Data[1] or self.HomePosition;
     -- Finish command if army has arrived
-    if GetDistance(self:GetArmyPosition(), _Data[1]) <= (_Data[2] or 1000) then
+    if GetDistance(self:GetArmyPosition(), Destination) <= (_Data[2] or 1000) then
         return true;
     end
     -- Finish command if army is defeated
@@ -1179,7 +1228,7 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         return false;
     end
     -- Check if enemies are in vision cone and attack them
-    local AreaSize = self.RodeLength * 1.5;
+    local AreaSize = self.RodeLength * (_Data[4] or 1.0);
     local Enemies = AiArmy.Internal:GetEnemiesInConeRegularFilter(
         self.PlayerID, Position, AreaSize, Rotation
     );
@@ -1199,7 +1248,7 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         return false;
     end
     self:NormalizedArmySpeed();
-    Position = (type(_Data[1]) == "table" and _Data[1]) or GetPosition(_Data[1]);
+    Position = (type(Destination) == "table" and Destination) or GetPosition(Destination);
     -- Check if army should attack wall
     if ArePositionsConnected(Position, Position) then
         for i= self.Troops[1] +1, 2, -1 do
@@ -1212,6 +1261,15 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         self:ExecuteCommand();
     end
     return false;
+end
+
+--- Does the same as move but with a larger vision cone.
+--- @param _Data table Command Parameter
+--- @return boolean Done Command is done
+function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
+    local Data = CopyTable(_Data);
+    Data[4] = Data[4] or 1.5;
+    return self:ExecuteMoveCommand(Data);
 end
 
 --- Commands the army to attack enemies in it's vicinity.
@@ -1651,6 +1709,14 @@ end
 
 function AiArmy.Internal.Army:SetLastTick(_Time)
     self.LastTick = _Time;
+end
+
+function AiArmy.Internal.Army:GetAllowedTypes()
+    return self.AllowedTypes;
+end
+
+function AiArmy.Internal.Army:SetAllowedTypes(_Types)
+    self.AllowedTypes = _Types or {};
 end
 
 -- -------------------------------------------------------------------------- --
