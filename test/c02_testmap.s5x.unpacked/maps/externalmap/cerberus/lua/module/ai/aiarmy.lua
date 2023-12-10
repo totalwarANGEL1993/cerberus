@@ -3,6 +3,7 @@ Lib.Require("comfort/CopyTable");
 Lib.Require("comfort/GetConeCenter");
 Lib.Require("comfort/GetConeEnd");
 Lib.Require("comfort/GetDistance");
+Lib.Require("comfort/GetEnemiesInArea");
 Lib.Require("comfort/GetEntityCategoriesAsString");
 Lib.Require("comfort/GetGeometricCenter");
 Lib.Require("comfort/IsFighting");
@@ -27,6 +28,31 @@ Lib.Register("module/ai/AiArmy");
 ---
 
 AiArmy = AiArmy or {};
+
+AiArmyCommand = {
+    --- Commands the army to do nothing.
+    Idle = 1,
+    --- Commands the army to stop.
+    Stop = 2,
+    --- Commands the army to wait at a position.
+    Wait = 3,
+    --- Commands the army to move to a position.
+    Move = 4,
+    --- Commands the army to attack enemies.
+    Battle = 5,
+    --- Commands the army to attack walls.
+    Siege = 6,
+    --- Commands the army to regroupt at current position.
+    Regroup = 7,
+    --- Commands the army to fallback home.
+    Fallback = 8,
+    --- Command making the army waiting for refill.
+    Refill = 9,
+    --- Special command that marks the end of a command chain.
+    Finish = 10,
+    --- Calls a custom command.
+    Custom = 11,
+}
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -396,6 +422,7 @@ function AiArmy.GetEnemiesInCone(_ID, _Position, _RodeLength, _Angle, _Categorie
 end
 
 --- Returns true, if the command with the given ID is active.
+--- @param _ID integer ID of army
 --- @param _CommandID integer ID of command
 --- @return boolean Active Command is active
 function AiArmy.IsCommandActive(_ID, _CommandID)
@@ -406,6 +433,7 @@ function AiArmy.IsCommandActive(_ID, _CommandID)
 end
 
 --- Returns true, if the command with the given ID is enqueued.
+--- @param _ID integer ID of army
 --- @param _CommandID integer ID of command
 --- @return boolean Enqueued Command is enqueued
 function AiArmy.IsCommandEnqueued(_ID, _CommandID)
@@ -416,6 +444,7 @@ function AiArmy.IsCommandEnqueued(_ID, _CommandID)
 end
 
 --- Returns true, if a command of the given type enqueued.
+--- @param _ID integer ID of army
 --- @param _Command integer Type of command
 --- @return boolean Active Command is active
 function AiArmy.IsCommandOfTypeActive(_ID, _Command)
@@ -426,6 +455,7 @@ function AiArmy.IsCommandOfTypeActive(_ID, _Command)
 end
 
 --- Returns true, if a command of the given type enqueued.
+--- @param _ID integer ID of army
 --- @param _Command integer Type of command
 --- @return boolean Enqueued Command is enqueued
 function AiArmy.IsCommandOfTypeEnqueued(_ID, _Command)
@@ -436,6 +466,7 @@ function AiArmy.IsCommandOfTypeEnqueued(_ID, _Command)
 end
 
 --- Removes all commands from the command queue.
+--- @param _ID integer ID of army
 function AiArmy.ClearCommands(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
         AiArmyData_ArmyIdToArmyInstance[_ID]:ClearCommands();
@@ -445,14 +476,13 @@ end
 --- comment
 --- @param _Command integer Type of command
 --- @param ... any Parameters for command
---- @return table|nil Command Created command
-function AiArmy.CreateCommand(_ID, _Command, ...)
-    if AiArmyData_ArmyIdToArmyInstance[_ID] then
-        return AiArmyData_ArmyIdToArmyInstance[_ID]:CreateCommand(_Command, unpack(arg));
-    end
+--- @return table Command Created command
+function AiArmy.CreateCommand(_Command, ...)
+    return AiArmy.Internal.Army:CreateCommand(_Command, unpack(arg));
 end
 
 --- Pushes a command to the command queue.
+--- @param _ID integer ID of army
 --- @param _Command table Command to push
 --- @param _Repeat boolean Command is enqueued after finish
 --- @param _Index integer? Optional position in queue
@@ -463,6 +493,7 @@ function AiArmy.PushCommand(_ID, _Command, _Repeat, _Index)
 end
 
 --- Removes the current command.
+--- @param _ID integer ID of army
 --- @return table|nil Command Popped commad
 function AiArmy.PopCommand(_ID)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
@@ -489,7 +520,7 @@ end
 function GameCallback_Logic_OnCommandAborted(_ArmyID, _CommandID, _CommandType, ...)
 end
 
---- Called each time the execution of an command begins.
+--- Called each time before a command is processed.
 --- @param _ArmyID integer      ID of army
 --- @param _CommandID integer   ID of command
 --- @param _CommandType integer Type of command
@@ -625,103 +656,232 @@ function AiArmy.Internal:GetEnemiesRegularFilter(_PlayerID, _Position, _Area, _T
 end
 
 -- Returns the best target for the troop from the target list.
-function AiArmy.Internal:PriorityTarget(_TroopID, _Enemies)
+function AiArmy.Internal:PriorityTarget(_AreaSize, _TroopID, _Enemies)
     local EnemiesList = CopyTable(_Enemies);
     if table.getn(EnemiesList) > 1 then
         table.sort(EnemiesList, function(a, b)
-            local Priority1 = AiArmy.Internal:GetAttackingCosts(_TroopID, a);
-            local Priority2 = AiArmy.Internal:GetAttackingCosts(_TroopID, b);
-            return Priority1 < Priority2;
+            local Priority1 = AiArmy.Internal:GetAttackingCosts(_AreaSize, _TroopID, a);
+            local Priority2 = AiArmy.Internal:GetAttackingCosts(_AreaSize, _TroopID, b);
+            return Priority1 > Priority2;
         end);
     end
     return EnemiesList[1];
 end
 
-function AiArmy.Internal:GetAttackingCosts(_TroopID, _EnemyID)
-    -- Obtain base priority factor
+function AiArmy.Internal:GetAttackingCosts(_AreaSize, _TroopID, _EnemyID)
+    local TroopType = Logic.GetEntityType(_TroopID);
+    local TroopCategory = self:GetLeadingEntityCategory(_TroopID);
     local EnemyType = Logic.GetEntityType(_EnemyID);
-    local Priorities = self:GetPriorityFactorMap(_TroopID);
-    local Factor = 1.0;
-    if Priorities[EnemyType] then
-        Factor = Factor * (1/Priorities[EnemyType]);
-    else
-        for k, v in pairs(GetEntityCategoriesAsString(_EnemyID)) do
-            if Priorities[v] then
-                Factor = Factor * (1/Priorities[v]);
-            end
-        end
+    local EntityCategory = self:GetLeadingEntityCategory(_EnemyID);
+
+    -- Get config by troop category/type
+    local Config = AiArmyTargetingTypeMapping[TroopType];
+    if Config == nil then
+        Config = AiArmyTargetingCategoryMapping[TroopCategory];
     end
-    -- Adjust factor by threat potency
-    -- (Leaders with more soldiers will do more damage and are higher up on
-    -- the kill list)
-    if Factor > 0 and Logic.IsLeader(_EnemyID) == 1 then
-        local Maximum = Logic.LeaderGetMaxNumberOfSoldiers(_EnemyID);
-        if Maximum > 0 then
-            local Current = Logic.LeaderGetNumberOfSoldiers(_EnemyID);
-            Factor = Factor * (1/((Current+1)/(Maximum+1)));
+    assert(Config ~= nil);
+
+    -- Get priority by enemy category/type
+    local Priority = Config[EnemyType];
+    if Priority == nil then
+        Priority = Config[EntityCategory];
+    end
+    Priority = Priority or 10;
+
+    -- Add priority by troop strength
+    if Priority > 0 then
+        local GroupStrengthPriority = 30;
+        if Logic.IsLeader(_EnemyID) == 1 then
+            local Maximum = Logic.LeaderGetMaxNumberOfSoldiers(_EnemyID) + 1;
+            local Current = Logic.LeaderGetNumberOfSoldiers(_EnemyID) + 1;
+            GroupStrengthPriority = GroupStrengthPriority * (Current/Maximum);
+        end
+        Priority = Priority + GroupStrengthPriority;
+    end
+
+    -- Add priority by distance
+    if Priority > 0 then
+        local DistancePriority = 20;
+        local Distance = GetDistance(_TroopID, _EnemyID);
+        if _AreaSize >= Distance then
+            Priority = Priority + (DistancePriority * (1 / (Distance / 300)));
         else
-            Factor = Factor * 10;
+            Priority = 0;
         end
     end
-    -- Set costs by distance
-    if Factor > 0 then
-        local Costs = GetDistance(_TroopID, _EnemyID);
-        return Factor * Costs;
-    end
-    return Logic.WorldGetSize();
+    return Priority;
 end
 
-function AiArmy.Internal:GetPriorityFactorMap(_TroopID)
-    local Config = AiArmyConstants.Targeting;
-    local Army = AiArmy.Get(AiArmy.GetArmyOfTroop(_TroopID));
-    if Army and Army.Targeting then
-        Config = Army.Targeting;
-    end
-
+function AiArmy.Internal:GetLeadingEntityCategory(_TroopID)
     local Type = Logic.GetEntityType(_TroopID);
-    if Config[Type] then
-        return Config[Type];
-    end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.EvilLeader) == 1
     or Type == Entities.CU_Evil_LeaderSkirmisher then
-        return Config.LongRange;
+        return "Bow";
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Rifle) == 1
     or Type == Entities.PU_Hero10 then
-        return Config.Rifle;
+        return "Rifle";
     end
-    if Logic.IsEntityInCategory(_TroopID, EntityCategories.LongRange) == 1
+    if Logic.IsEntityInCategory(_TroopID, EntityCategories.Bow) == 1
     or Type == Entities.PU_Hero5 then
-        return Config.LongRange;
+        return "Bow";
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Spear) == 1 then
-        return Config.Spear;
+        return "Spear";
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.CavalryHeavy) == 1 then
-        return Config.CavalryHeavy;
+        return "CavalryHeavy";
+    end
+    if Logic.IsEntityInCategory(_TroopID, EntityCategories.CavalryLight) == 1 then
+        return "CavalryLight";
     end
     if Logic.IsEntityInCategory(_TroopID, EntityCategories.Cannon) == 1 then
-        return Config.Cannon;
+        return "Cannon";
     end
-    return Config.Sword;
+    return "Sword";
 end
 
 -- -------------------------------------------------------------------------- --
--- Model
+-- Config
 
-AiArmyCommand = {
-    Idle = 1,
-    Stop = 2,
-    Wait = 3,
-    Move = 4,
-    Battle = 5,
-    Siege = 6,
-    Regroup = 7,
-    Fallback = 8,
-    Refill = 9,
-    Finish = 10,
-    Custom = 11,
+AiArmyTargetingConfig = {
+    Sword = {
+        ["Rifle"] = 50,
+        ["LongRange"] = 40,
+        ["Cannon"] = 30,
+        ["Hero"] = 20,
+        ["Spear"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["CavalryHeavy"] = 0,
+        ["CavalryLight"] = 0,
+    },
+    Spear = {
+        ["CavalryHeavy"] = 40,
+        ["CavalryLight"] = 30,
+        ["Hero"] = 20,
+        ["MilitaryBuilding"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["Sword"] = 0,
+        ["Cannon"] = 0,
+    },
+    CavalryHeavy = {
+        ["MilitaryBuilding"] = 40,
+        ["Cannon"] = 30,
+        ["Rifle"] = 30,
+        ["LongRange"] = 20,
+        ["Sword"] = 20,
+        ["Hero"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["Spear"] = 0,
+    },
+    CavalryLight = {
+        ["Cannon"] = 30,
+        ["Spear"] = 20,
+        ["Sword"] = 20,
+        ["Hero"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["CavalryHeavy"] = 0,
+        ["CavalryLight"] = 0,
+        ["Rifle"] = 0,
+    },
+    Bow = {
+        ["MilitaryBuilding"] = 40,
+        ["Cannon"] = 40,
+        ["CavalryHeavy"] = 30,
+        ["CavalryLight"] = 20,
+        ["Spear"] = 20,
+        ["Hero"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["Rifle"] = 0,
+        ["Sword"] = 0,
+    },
+    Rifle = {
+        ["Cannon"] = 50,
+        ["EvilLeader"] = 50,
+        ["LongRange"] = 40,
+        ["Spear"] = 30,
+        ["Hero"] = 20,
+        ["CavalryHeavy"] = 10,
+        ["Sword"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["MilitaryBuilding"] = 0,
+    },
+    BuildingCannon = {
+        ["MilitaryBuilding"] = 30,
+        ["Hero"] = 20,
+        ["Cannon"] = 20,
+        ["EvilLeader"] = 10,
+        ["LongRange"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["CavalryHeavy"] = 0,
+        ["CavalryLight"] = 0,
+        ["Sword"] = 0,
+        ["Spear"] = 0,
+    },
+    TroopCannon = {
+        ["CavalryLight"] = 30,
+        ["EvilLeader"] = 30,
+        ["LongRange"] = 30,
+        ["Spear"] = 30,
+        ["Sword"] = 20,
+        ["Hero"] = 10,
+        ["Cannon"] = 10,
+        ["CavalryHeavy"] = 10,
+        ["DefendableBuilding"] = 0,
+        ["MilitaryBuilding"] = 0,
+    },
 }
+
+AiArmyTargetingCategoryMapping = {
+    ["Bow"] = AiArmyTargetingConfig.Bow,
+    ["CavalryHeavy"] = AiArmyTargetingConfig.CavalryHeavy,
+    ["CavalryLight"] = AiArmyTargetingConfig.CavalryLight,
+    ["Spear"] = AiArmyTargetingConfig.Spear,
+    ["Sword"] = AiArmyTargetingConfig.Sword,
+    ["Rifle"] = AiArmyTargetingConfig.Rifle,
+}
+
+AiArmyTargetingTypeMapping = {
+    [Entities.PV_Cannon1] = AiArmyTargetingConfig.TroopCannon,
+    [Entities.PV_Cannon2] = AiArmyTargetingConfig.BuildingCannon,
+    [Entities.PV_Cannon3] = AiArmyTargetingConfig.TroopCannon,
+    [Entities.PV_Cannon4] = AiArmyTargetingConfig.BuildingCannon,
+    [Entities.PU_LeaderRifle2] = AiArmyTargetingConfig.BuildingCannon,
+}
+
+AiArmyConstants = {
+    -- Holds the basic speed of the units.
+    BaseSpeed = {
+        ["Bow"] = 320,
+        ["CavalryLight"] = 500,
+        ["CavalryHeavy"] = 500,
+        ["Hero"] = 400,
+        ["Rifle"] = 320,
+
+        [Entities.PV_Cannon1] = 240,
+        [Entities.PV_Cannon2] = 260,
+        [Entities.PV_Cannon3] = 220,
+        [Entities.PV_Cannon4] = 180,
+
+        ["_Others"] = 360,
+    },
+
+    -- Configures how much a singular base speed influences the calculated
+    -- average speed of the army.
+    -- The factor must be between 0 and 1.
+    SpeedWeighting = {
+        ["CavalryLight"] = 0.4,
+        ["CavalryHeavy"] = 0.4,
+
+        [Entities.PV_Cannon3] = 0.3,
+        [Entities.PV_Cannon4] = 0.1,
+
+        ["_Others"] = 1.0
+    }
+}
+
+-- -------------------------------------------------------------------------- --
+-- Model
 
 AiArmy.Internal.Army = AiArmy.Internal.Army or {
     ID               = 0,
@@ -1071,27 +1231,28 @@ function AiArmy.Internal.Army:ExecuteBattleCommand(_Data)
         return true;
     end
     -- Finish command if army has defeated enemies
-    local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, (_Data[2] or self.RodeLength));
+    local AreaSize = _Data[2] or self.RodeLength;
+    local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
     if not Enemies[1] then
         return true;
     end
     -- Control fighting
     self:ResetArmySpeed();
     for j= 2, self.Troops[1] +1 do
-        if GetDistance(Position, self.Troops[j]) > (_Data[2] or self.RodeLength) then
+        if GetDistance(Position, self.Troops[j]) > AreaSize then
             --- @diagnostic disable-next-line: undefined-field
             Logic.MoveSettler(self.Troops[j], Position.X, Position.Y);
             self:LockOn(self.Troops[j], nil);
         else
             -- Move back
-            if GetDistance(self.Troops[j], Position) > (_Data[2] or self.RodeLength) then
+            if GetDistance(self.Troops[j], Position) > AreaSize then
                 --- @diagnostic disable-next-line: undefined-field
                 Logic.MoveSettler(self.Troops[j], Position.X, Position.Y);
             -- Attack enemies
             else
                 if not self.Targets[self.Troops[j]] then
                     if Enemies[1] then
-                        local TargetID = AiArmy.Internal:PriorityTarget(self.Troops[j], Enemies);
+                        local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], Enemies);
                         self:LockOn(self.Troops[j], TargetID);
                         Logic.GroupAttack(self.Troops[j], TargetID);
                     end
@@ -1135,14 +1296,14 @@ function AiArmy.Internal.Army:ExecuteSiegeCommand(_Data)
         else
             if Logic.IsEntityInCategory(self.Troops[j], EntityCategories.Melee) == 1 then
                 if not self.Targets[self.Troops[j]] and CloseEnemies[1] then
-                    local TargetID = AiArmy.Internal:PriorityTarget(self.Troops[j], CloseEnemies);
+                    local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], CloseEnemies);
                     local Location = GetPosition(TargetID);
                     self:LockOn(self.Troops[j], TargetID);
                     Logic.GroupAttackMove(self.Troops[j], Location.X, Location.Y);
                 end
             else
                 if not self.Targets[self.Troops[j]] then
-                    local TargetID = AiArmy.Internal:PriorityTarget(self.Troops[j], Enemies);
+                    local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], Enemies);
                     self:LockOn(self.Troops[j], TargetID);
                     Logic.GroupAttack(self.Troops[j], TargetID);
                 end
@@ -1157,13 +1318,18 @@ end
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteRegroupCommand(_Data)
     local Position = self:GetArmyPosition();
-    -- Regroup army and finish command
-    for i= self.Troops[1] +1, 2, -1 do
-        if Logic.IsEntityMoving(self.Troops[i]) == false then
-            Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
+    -- Finish command if regrouped
+    if not self:IsScattered() then
+        for i= self.Troops[1] +1, 2, -1 do
+            Logic.SettlerStand(self.Troops[i]);
         end
+        return true;
     end
-    return true;
+    -- Regroup army
+    for i= self.Troops[1] +1, 2, -1 do
+        Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
+    end
+    return false;
 end
 
 --- Commands the army to wait for refill.
@@ -1206,7 +1372,6 @@ function AiArmy.Internal.Army:ExecuteFallbackCommand(_Data)
     end
     -- Finish command if army is completly wiped
     if self:GetCurrentStregth(true) <= 0 then
-        self:DispatchTroopsToSpawner();
         return true;
     end
     -- Finish command if army arrived at home position
@@ -1218,8 +1383,9 @@ function AiArmy.Internal.Army:ExecuteFallbackCommand(_Data)
     self:ResetArmySpeed();
     for i= self.Troops[1] +1, 2, -1 do
         if Logic.IsEntityMoving(self.Troops[i]) == false then
-            --- @diagnostic disable-next-line: undefined-field
-            Logic.MoveSettler(self.Troops[i], self.HomePosition.X, self.HomePosition.Y, -1);
+            if GetDistance(self:GetArmyPosition(), Position) > 1200 then
+                Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
+            end
         end
     end
     return false;
@@ -1257,7 +1423,7 @@ function AiArmy.Internal.Army:ChangePlayer(_PlayerID)
     self.Troops = Troops;
     -- Change reinforcement
     local Reinforcements = {0};
-    for i= self.Reinforcements[1] +1, 2, 1 do
+    for i= self.Reinforcements[1] +1, 2, -1 do
         local ID = ChangePlayer(Reinforcements[i], _PlayerID);
         Reinforcements[1] = Reinforcements[1] + 1;
         table.insert(Reinforcements, ID);
@@ -1272,9 +1438,11 @@ function AiArmy.Internal.Army:ManageArmyMembers()
     for j= self.Reinforcements[1] +1, 2, -1 do
         if not IsValidEntity(self.Reinforcements[j]) then
             local ID = table.remove(self.Reinforcements, j);
+            self.Reinforcements[1] = self.Reinforcements[1] -1;
             AiArmyData_ReinforcementIdToArmyId[ID] = nil;
-        elseif GetDistance(self.Reinforcements[j], self:GetArmyPosition()) <= 2000 then
+        elseif GetDistance(self.Reinforcements[j], self:GetArmyPosition()) <= 1500 then
             local ID = table.remove(self.Reinforcements, j);
+            self.Reinforcements[1] = self.Reinforcements[1] -1;
             AiArmyData_ReinforcementIdToArmyId[ID] = nil;
             self:AddTroop(ID, false);
         else
@@ -1317,7 +1485,7 @@ function AiArmy.Internal.Army:ManageArmyMembers()
 
     -- Update troop targets
     for k,v in pairs(self.Targets) do
-        if not IsValidEntity(v[1]) or not IsValidEntity(v[2]) or Logic.GetTime() > v[3]+15 then
+        if not IsValidEntity(v[1]) or not IsValidEntity(v[2]) or Logic.GetTime() > v[3]+5 then
             self.Targets[k] = nil;
         end
     end
@@ -1437,8 +1605,12 @@ function AiArmy.Internal.Army:DispatchTroopsToSpawner()
             end
         else
             local Index = math.random(1, RefillerCount);
-            if AiArmyRefiller.AddTroop(PossibleRefillerIDs[Index], WeakenedList[i]) then
-                AiArmy.RemoveTroop(self.ID, WeakenedList[i]);
+            while (true) do
+                if AiArmyRefiller.AddTroop(PossibleRefillerIDs[Index], WeakenedList[i]) then
+                    AiArmy.RemoveTroop(self.ID, WeakenedList[i]);
+                    break;
+                end
+                Index = math.random(1, RefillerCount);
             end
         end
     end
@@ -1459,10 +1631,6 @@ end
 
 function AiArmy.Internal.Army:SetActive(_Active)
     self.Active = _Active == true;
-end
-
-function AiArmy.Internal.Army:SetTargeting(_Targeting)
-    self.Targeting = _Targeting;
 end
 
 function AiArmy.Internal.Army:SetRodeLength(_RodeLength)
@@ -1592,10 +1760,10 @@ function AiArmy.Internal.Army:NormalizedArmySpeed()
     end
     -- Calculate army
     for k, v in pairs(TroopSpeedTable) do
-        Dividend = Dividend + (v[1]*v[2]*AiArmyConstants.BaseSpeed[k]);
+        Dividend = Dividend + (v[1] * v[2] * AiArmyConstants.BaseSpeed[k]);
     end
     Dividend = Dividend + AiArmyConstants.SpeedWeighting["_Others"];
-    TroopSpeed = Dividend/(AbsoluteTroopAmount+1);
+    TroopSpeed = Dividend / (AbsoluteTroopAmount+1);
     -- Set speed factor
     for i= 2, self.Troops[1] +1, 1 do
         local First = self:GetTroopSpeedConfigKey(self.Troops[i]);
@@ -1626,15 +1794,13 @@ end
 
 function AiArmy.Internal.Army:GetTroopSpeedConfigKey(_TroopID)
     if IsValidEntity(_TroopID) then
-        local TypeName = Logic.GetEntityTypeName(Logic.GetEntityType(_TroopID));
-        if AiArmyConstants.BaseSpeed[TypeName] then
-            return TypeName;
-        else
-            for k, v in pairs(GetEntityCategoriesAsString(_TroopID)) do
-                if AiArmyConstants.BaseSpeed[v] then
-                    return v;
-                end
-            end
+        local Type = Logic.GetEntityType(_TroopID);
+        local Category = AiArmy.Internal:GetLeadingEntityCategory(_TroopID);
+        if AiArmyConstants.BaseSpeed[Type] then
+            return Type;
+        end
+        if AiArmyConstants.BaseSpeed[Category] then
+            return Category;
         end
     end
     return "_Others";
@@ -1668,159 +1834,4 @@ end
 function AiArmy.Internal.Army:SetKey(_Key, _Value)
     self.Data[_Key] = _Value;
 end
-
--- -------------------------------------------------------------------------- --
--- Config
-
---- Levels of targeting
----
-AiArmyTargetingBehavior = {
-    Sword = {
-        ["Hero"] = 1.0,
-        ["Rifle"] = 0.9,
-        ["LongRange"] = 0.8,
-        ["Cannon"] = 0.6,
-        ["Spear"] = 0.4,
-        ["DefendableBuilding"] = 0,
-        ["CavalryHeavy"] = 0,
-        ["CavalryLight"] = 0,
-    },
-    Spear = {
-        ["Hero"] = 1.0,
-        ["CavalryHeavy"] = 0.9,
-        ["CavalryLight"] = 0.8,
-        ["MilitaryBuilding"] = 0.4,
-        ["DefendableBuilding"] = 0,
-        ["Sword"] = 0,
-        ["Cannon"] = 0,
-    },
-    CavalryHeavy = {
-        ["Hero"] = 1.0,
-        ["Cannon"] = 0.9,
-        ["Rifle"] = 0.8,
-        ["LongRange"] = 0.8,
-        ["Sword"] = 0.8,
-        ["MilitaryBuilding"] = 0,
-        ["DefendableBuilding"] = 0,
-        ["Spear"] = 0,
-    },
-    LongRange = {
-        ["Hero"] = 1.0,
-        ["Cannon"] = 0.9,
-        ["CavalryHeavy"] = 0.8,
-        ["CavalryLight"] = 0.6,
-        ["Spear"] = 0.6,
-        ["DefendableBuilding"] = 0,
-        ["Rifle"] = 0,
-        ["Sword"] = 0,
-    },
-    Rifle = {
-        ["Hero"] = 1.0,
-        ["Cannon"] = 0.9,
-        ["EvilLeader"] = 0.9,
-        ["LongRange"] = 0.8,
-        ["Spear"] = 0.7,
-        ["CavalryHeavy"] = 0.4,
-        ["Sword"] = 0.4,
-        ["DefendableBuilding"] = 0,
-        ["MilitaryBuilding"] = 0,
-    },
-
-    -- Types -----------
-
-    [Entities.PV_Cannon1] = {
-        ["Hero"] = 1.0,
-        ["CavalryLight"] = 1.0,
-        ["EvilLeader"] = 1.0,
-        ["LongRange"] = 1.0,
-        ["Spear"] = 1.0,
-        ["Sword"] = 0.8,
-        ["Cannon"] = 0.5,
-        ["CavalryHeavy"] = 0.5,
-        ["DefendableBuilding"] = 0,
-        ["MilitaryBuilding"] = 0,
-    },
-    [Entities.PV_Cannon2] = {
-        ["Hero"] = 1.0,
-        ["MilitaryBuilding"] = 1.0,
-        ["Cannon"] = 0.5,
-        ["EvilLeader"] = 0.3,
-        ["LongRange"] = 0.3,
-        ["DefendableBuilding"] = 0,
-        ["CavalryHeavy"] = 0,
-        ["CavalryLight"] = 0,
-        ["Sword"] = 0,
-        ["Spear"] = 0,
-    },
-    [Entities.PV_Cannon3] = {
-        ["Hero"] = 1.0,
-        ["CavalryLight"] = 1.0,
-        ["EvilLeader"] = 1.0,
-        ["LongRange"] = 1.0,
-        ["Spear"] = 1.0,
-        ["Sword"] = 0.8,
-        ["Cannon"] = 0.5,
-        ["CavalryHeavy"] = 0.5,
-        ["DefendableBuilding"] = 0,
-        ["MilitaryBuilding"] = 0,
-    },
-    [Entities.PV_Cannon4] = {
-        ["Hero"] = 1.0,
-        ["MilitaryBuilding"] = 1.0,
-        ["Cannon"] = 0.5,
-        ["EvilLeader"] = 0.3,
-        ["LongRange"] = 0.3,
-        ["DefendableBuilding"] = 0,
-        ["CavalryHeavy"] = 0,
-        ["CavalryLight"] = 0,
-        ["Sword"] = 0,
-        ["Spear"] = 0,
-    },
-    -- Becase they are basically siege cannons...
-    [Entities.PU_LeaderRifle2] = {
-        ["Hero"] = 1.0,
-        ["MilitaryBuilding"] = 1.0,
-        ["Cannon"] = 0.5,
-        ["EvilLeader"] = 0.3,
-        ["LongRange"] = 0.3,
-        ["DefendableBuilding"] = 0,
-        ["CavalryHeavy"] = 0,
-        ["CavalryLight"] = 0,
-        ["Sword"] = 0,
-        ["Spear"] = 0,
-    },
-}
-
-AiArmyConstants = {
-    Targeting = AiArmyTargetingBehavior,
-
-    -- Holds the basic speed of the units.
-    BaseSpeed = {
-        ["Bow"] = 320,
-        ["CavalryLight"] = 500,
-        ["CavalryHeavy"] = 500,
-        ["Hero"] = 400,
-        ["Rifle"] = 320,
-
-        ["PV_Cannon1"] = 240,
-        ["PV_Cannon2"] = 260,
-        ["PV_Cannon3"] = 220,
-        ["PV_Cannon4"] = 180,
-
-        ["_Others"] = 360,
-    },
-
-    -- Configures how much a singular base speed influences the calculated
-    -- average speed of the army.
-    -- The factor must be between 0 and 1.
-    SpeedWeighting = {
-        ["CavalryLight"] = 0.4,
-        ["CavalryHeavy"] = 0.4,
-
-        ["PV_Cannon3"] = 0.3,
-        ["PV_Cannon4"] = 0.1,
-
-        ["_Others"] = 1.0
-    }
-}
 
