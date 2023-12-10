@@ -332,7 +332,7 @@ function AiTroopTrainer.Internal:ControllTrainer(_Index)
 
             -- Control training
             local ArmyID = self:GetArmyAwardedRespawn(self.Data.Trainers[_Index].ID);
-            if ArmyID > 0 and AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL then
+            if ArmyID > 0 and AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill) then
                 local PlayerID = AiArmy.GetPlayer(ArmyID);
                 if PlayerID == self.Data.Trainers[_Index].PlayerID then
                     local TroopID = self:Refill(self.Data.Trainers[_Index].ID, ArmyID);

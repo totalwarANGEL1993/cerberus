@@ -348,11 +348,12 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
             -- Adds 1 refilled troop per second to the weakest army if possible
             local ArmyID = self:GetArmyAwardedRespawn(_Index);
             if ArmyID > 0 then
-                if AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL
+                if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
                 or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
                     local PlayerID = AiArmy.GetPlayer(ArmyID);
                     if PlayerID ~= 0 then
-                        local TroopID = self:GetTroop(_Index, PlayerID);
+                        local Types = AiArmy.GetAllowedTypes(ArmyID);
+                        local TroopID = self:GetTroop(_Index, PlayerID, Types);
                         if TroopID > 0 then
                             AiArmy.AddTroop(ArmyID, TroopID, true);
                         end
@@ -370,9 +371,10 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
                 end
                 if DoSpawn then
                     for i= 1, Spawner.MaxSpawn do
-                        if AiArmy.GetBehavior(ArmyID) == AiArmy.Behavior.REFILL
+                        if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
                         or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
-                            local ID = self:Spawn(_Index, ArmyID);
+                            local Types = AiArmy.GetAllowedTypes(ArmyID);
+                            local ID = self:Spawn(_Index, ArmyID, Types);
                             if ID > 0 then
                                 AiArmy.AddTroop(ArmyID, ID, true);
                             end
@@ -418,34 +420,79 @@ function AiTroopSpawner.Internal:Tick(_Index)
     return false;
 end
 
-function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID)
+function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
     local TroopID = 0;
     local PlayerID = AiArmy.GetPlayer(_ArmyID);
     if PlayerID ~= 0 then
         local AllowedTypes = self.Data.Spawners[_Index].AllowedTypes;
-        TroopID = self:GetTroop(_Index, PlayerID);
-        local TypeAmount = table.getn(AllowedTypes);
-        if TroopID == 0 and TypeAmount > 0 then
-            local MaximumLeader = AiArmy.GetMaxNumberOfLeader(_ArmyID);
-            local CurrentLeader = AiArmy.GetNumberOfLeader(_ArmyID);
-            if CurrentLeader < MaximumLeader then
-                local TroopIndex = 0;
-                if self.Data.Spawners[_Index].Sequentially then
-                    self.Data.Spawners[_Index].AllowedTypes.Index = AllowedTypes.Index + 1
-                    TroopIndex = AllowedTypes.Index;
-                    if not AllowedTypes[TroopIndex] then
-                        if self.Data.Spawners[_Index].Endlessly then
-                            self.Data.Spawners[_Index].AllowedTypes.Index = 0;
-                            TroopIndex = 1;
-                        else
+        -- Check can spawn type
+        local HasAnyType = true;
+        if table.getn(_RequestedTypes) > 0 then
+            HasAnyType = false;
+            for i= 1, table.getn(_RequestedTypes) do
+                for j= 1, table.getn(AllowedTypes) do
+                    if _RequestedTypes[i][1] == AllowedTypes[j][1] then
+                        HasAnyType = true;
+                        break;
+                    end
+                end
+            end
+        end
+        -- Spawn type
+        if HasAnyType then
+            TroopID = self:GetTroop(_Index, PlayerID, _RequestedTypes);
+            local TypeAmount = table.getn(AllowedTypes);
+            if TroopID == 0 and TypeAmount > 0 then
+                local MaximumLeader = AiArmy.GetMaxNumberOfLeader(_ArmyID);
+                local CurrentLeader = AiArmy.GetNumberOfLeader(_ArmyID);
+                if CurrentLeader < MaximumLeader then
+                    local TroopIndex = 0;
+                    if self.Data.Spawners[_Index].Sequentially then
+                        while TroopIndex == 0 do
+                            self.Data.Spawners[_Index].AllowedTypes.Index = AllowedTypes.Index + 1
+                            TroopIndex = AllowedTypes.Index;
+                            if not AllowedTypes[AllowedTypes.Index] then
+                                if self.Data.Spawners[_Index].Endlessly then
+                                    self.Data.Spawners[_Index].AllowedTypes.Index = 0;
+                                    TroopIndex = 0;
+                                else
+                                    TroopIndex = 0;
+                                    break;
+                                end
+                            end
+                            if _RequestedTypes[1] then
+                                local TypeFound = false;
+                                for i= 1, table.getn(_RequestedTypes) do
+                                    local Type = self.Data.Spawners[_Index].AllowedTypes[AllowedTypes.Index];
+                                    if Type and _RequestedTypes[i][1] == Type[1] then
+                                        TypeFound = true;
+                                    end
+                                end
+                                if TypeFound then
+                                    break;
+                                end
+                                TroopIndex = 0;
+                            end
+                        end
+                    else
+                        while TroopIndex == 0 do
+                            TroopIndex = math.random(1, TypeAmount);
+                            local Type = self.Data.Spawners[_Index].AllowedTypes[TroopIndex][1];
+                            local TypeFound = false;
+                            for i= 1, table.getn(_RequestedTypes) do
+                                if _RequestedTypes[i][1] == Type then
+                                    TypeFound = true;
+                                end
+                            end
+                            if TypeFound then
+                                break;
+                            end
                             TroopIndex = 0;
                         end
                     end
-                else
-                    TroopIndex = math.random(1, TypeAmount);
-                end
-                if TroopIndex > 0 then
-                    TroopID = self:CreateTroop(_Index, PlayerID, TroopIndex);
+                    if TroopIndex > 0 then
+                        TroopID = self:CreateTroop(_Index, PlayerID, TroopIndex);
+                    end
                 end
             end
         end
@@ -471,15 +518,18 @@ function AiTroopSpawner.Internal:IsRefilling(_Index)
     return self.Data.Spawners[_Index].Refilling[1] ~= nil;
 end
 
-function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID)
+function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID, _RequestedTypes)
     for i= table.getn(self.Data.Spawners[_Index].Refilling), 1, -1 do
         local TroopID = self.Data.Spawners[_Index].Refilling[i];
-        if Logic.EntityGetPlayer(TroopID) == _PlayerID then
-            local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
-            local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
-            if MaxAmount == CurAmount then
-                table.remove(self.Data.Spawners[_Index].Refilling, i);
-                return TroopID;
+        local Type = Logic.GetEntityType(TroopID);
+        if not _RequestedTypes[1] or IsInTable(Type, _RequestedTypes) then
+            if Logic.EntityGetPlayer(TroopID) == _PlayerID then
+                local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
+                local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
+                if MaxAmount == CurAmount then
+                    table.remove(self.Data.Spawners[_Index].Refilling, i);
+                    return TroopID;
+                end
             end
         end
     end

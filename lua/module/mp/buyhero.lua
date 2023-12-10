@@ -309,6 +309,10 @@ function BuyHero.Internal:BuyHeroWindowClicked(_Type)
     if PlayerID == 17 then
         return;
     end
+    -- Do not trigger in pause mode
+    if Game.GameTimeGetFactor() == 0 then
+        return;
+    end
     -- Check can still pick hero
     local HeroCount = self:CountHeroes(PlayerID);
     local HeroesToBuy = self:GetNumberOfBuyableHeroes(PlayerID) - HeroCount;
