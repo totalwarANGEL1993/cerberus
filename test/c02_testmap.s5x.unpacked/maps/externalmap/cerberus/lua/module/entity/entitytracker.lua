@@ -102,6 +102,19 @@ function EntityTracker.IsLimitOfTypeExceeded(_Type, _PlayerID, _Upgrades)
 end
 
 -- -------------------------------------------------------------------------- --
+-- Callbacks
+
+--- Triggered when construction buttons are updated by the entity tracker.
+--- @param _PlayerID integer ID of GUI player
+function GameCallback_GUI_OnConstructionButtonsUpdated(_PlayerID)
+end
+
+--- Triggered when upgrade buttons are updated by the entity tracker.
+--- @param _PlayerID integer ID of GUI player
+function GameCallback_GUI_OnUpgradeButtonsUpdated(_PlayerID)
+end
+
+-- -------------------------------------------------------------------------- --
 -- Internal
 
 EntityTracker.Internal = EntityTracker.Internal or {
@@ -318,6 +331,7 @@ function EntityTracker.Internal:UpdateSelectionSerfConstrucButtons(_PlayerID)
                 GUIUpdate_BuildingButtons("Build_MasterBuilderWorkshop", Technologies.B_MasterBuilderWorkshop);
                 GUIUpdate_BuildingButtons("Build_Bridge", Technologies.B_Bridge);
             end
+            GameCallback_GUI_OnConstructionButtonsUpdated(_PlayerID);
         end
     end
 end
@@ -366,6 +380,7 @@ function EntityTracker.Internal:UpdateSelectionBuildingUpgradeButtons(_PlayerID,
             GUIUpdate_UpgradeButtons("Upgrade_Tavern1", Technologies.UP1_Tavern);
             GUIUpdate_UpgradeButtons("Upgrade_GunsmithWorkshop1", Technologies.UP1_GunsmithWorkshop);
         end
+        GameCallback_GUI_OnUpgradeButtonsUpdated(_PlayerID);
     end
 end
 
