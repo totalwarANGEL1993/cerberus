@@ -983,8 +983,9 @@ end
 function AiArmy.Internal.Army:PushCommand(_Command, _Repeat, _Index)
     if _Index then
         table.insert(self.Commands, _Index, {_Command, _Repeat});
+    else
+        table.insert(self.Commands, {_Command, _Repeat});
     end
-    table.insert(self.Commands, {_Command, _Repeat});
 end
 
 function AiArmy.Internal.Army:PopCommand()
@@ -1177,6 +1178,8 @@ function AiArmy.Internal.Army:ExecuteWaitCommand(_Data)
     local AreaSize = _Data[3] or self.RodeLength;
     local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
     if Enemies[1] then
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Refill), false, 1);
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Fallback), false, 1);
         self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, AreaSize), false, 1);
         self:ExecuteCommand();
         return false;
@@ -1228,13 +1231,12 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         return false;
     end
     -- Check if enemies are in vision cone and attack them
-    local AreaSize = self.RodeLength * (_Data[4] or 1.0);
+    local AreaSize = self.RodeLength * 1.0;
     local Enemies = AiArmy.Internal:GetEnemiesInConeRegularFilter(
         self.PlayerID, Position, AreaSize, Rotation
     );
     if Enemies[1] then
-        local Location = GetGeometricCenter(unpack(Enemies));
-        self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Location, self.RodeLength), false, 1);
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, self.RodeLength), false, 1);
         self:ExecuteCommand();
         return false;
     end
@@ -1267,16 +1269,67 @@ end
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
-    local Data = CopyTable(_Data);
-    Data[4] = Data[4] or 1.5;
-    return self:ExecuteMoveCommand(Data);
+    local Position = self:GetArmyPosition();
+    local Rotation = self:GetArmyRotation();
+    local Destination = _Data[1] or self.HomePosition;
+    -- Finish command if army has arrived
+    if GetDistance(self:GetArmyPosition(), Destination) <= (_Data[2] or 1000) then
+        return true;
+    end
+    -- Finish command if army is defeated
+    if self:GetCurrentStregth(true) <= self.DefeatThreshold then
+        self:ClearCommands();
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Fallback), false);
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Refill), false);
+        return true;
+    end
+    -- Regroup army if necessary
+    if self:IsScattered() then
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Regroup), false, 1);
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Stop), false, 1);
+        self:ExecuteCommand();
+        return false;
+    end
+    -- Check if enemies are in vision cone and attack them
+    local AreaSize = self.RodeLength * 1.5;
+    local Enemies = AiArmy.Internal:GetEnemiesInConeRegularFilter(
+        self.PlayerID, Position, AreaSize, Rotation
+    );
+    if Enemies[1] then
+        local Location = GetPosition(Enemies[1]);
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Location, self.RodeLength), false, 1);
+        self:ExecuteCommand();
+        return false;
+    end
+    -- Check if enemies are near to army and attack them
+    Enemies = AiArmy.Internal:GetEnemiesRegularFilter(
+        self.PlayerID, Position, self.RodeLength
+    );
+    if Enemies[1] then
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, self.RodeLength), false, 1);
+        self:ExecuteCommand();
+        return false;
+    end
+    self:NormalizedArmySpeed();
+    Position = (type(Destination) == "table" and Destination) or GetPosition(Destination);
+    -- Check if army should attack wall
+    if ArePositionsConnected(Position, Position) then
+        for i= self.Troops[1] +1, 2, -1 do
+            if Logic.IsEntityMoving(self.Troops[i]) == false or _Data[3] then
+                Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
+            end
+        end
+    else
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Siege, Position, AreaSize), false, 1);
+        self:ExecuteCommand();
+    end
+    return false;
 end
 
 --- Commands the army to attack enemies in it's vicinity.
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteBattleCommand(_Data)
-    local Rotation = self:GetArmyRotation();
     local Position = _Data[1] or self:GetArmyPosition();
     if type(Position) ~= "table" then
         Position = GetPosition(Position);
@@ -1292,28 +1345,25 @@ function AiArmy.Internal.Army:ExecuteBattleCommand(_Data)
     local AreaSize = _Data[2] or self.RodeLength;
     local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
     if not Enemies[1] then
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Regroup), false, 2);
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Stop), false, 2);
         return true;
     end
     -- Control fighting
     self:ResetArmySpeed();
     for j= 2, self.Troops[1] +1 do
-        if GetDistance(Position, self.Troops[j]) > AreaSize then
+        -- Move back
+        if GetDistance(self.Troops[j], Position) > AreaSize then
             --- @diagnostic disable-next-line: undefined-field
             Logic.MoveSettler(self.Troops[j], Position.X, Position.Y);
             self:LockOn(self.Troops[j], nil);
+        -- Attack enemies
         else
-            -- Move back
-            if GetDistance(self.Troops[j], Position) > AreaSize then
-                --- @diagnostic disable-next-line: undefined-field
-                Logic.MoveSettler(self.Troops[j], Position.X, Position.Y);
-            -- Attack enemies
-            else
-                if not self.Targets[self.Troops[j]] then
-                    if Enemies[1] then
-                        local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], Enemies);
-                        self:LockOn(self.Troops[j], TargetID);
-                        Logic.GroupAttack(self.Troops[j], TargetID);
-                    end
+            if not self.Targets[self.Troops[j]] then
+                if Enemies[1] then
+                    local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], Enemies);
+                    self:LockOn(self.Troops[j], TargetID);
+                    Logic.GroupAttack(self.Troops[j], TargetID);
                 end
             end
         end
