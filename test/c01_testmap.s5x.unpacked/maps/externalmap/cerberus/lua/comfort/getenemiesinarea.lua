@@ -6,6 +6,8 @@ Lib.Register("comfort/GetEnemiesInArea");
 
 -- Helper list of entities
 GetEntitiesOfDiplomacyStateInArea_RelevantTypes = {};
+-- Black list of entities
+GetEntitiesOfDiplomacyStateInArea_BlacklistedTypes = {};
 -- If changed, AreEnemiesInArea must also be changed!
 GetEntitiesOfDiplomacyStateInArea_RelevantCategories = {
     "Cannon",
@@ -107,7 +109,7 @@ function GetEnemiesInArea_Helper_FillRelevantTypes(_Categories)
             local InAnyCategory = false;
             for i= 1, table.getn(Categories) do
                 if Logic.IsEntityTypeInCategory(v, EntityCategories[Categories[i]]) == 1 then
-                    InAnyCategory = true;
+                    InAnyCategory = not GetEntitiesOfDiplomacyStateInArea_BlacklistedTypes[v];
                     break;
                 end
             end

@@ -1,4 +1,3 @@
-Lib.Require("comfort/AreEnemiesInArea");
 Lib.Require("comfort/GetDistance");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/ai/AiTroopSpawner");
