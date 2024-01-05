@@ -118,8 +118,6 @@ function Job.AddTributeCondition(_TributeID, _Condition)
     Job.Internal.Data.TributeCondition[_TributeID] = _Condition;
 end
 
--- TODO: Add delay functions
-
 -- -------------------------------------------------------------------------- --
 -- Internal
 
