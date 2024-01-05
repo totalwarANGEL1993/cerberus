@@ -6,6 +6,11 @@ Lib.Register("module/mp/Syncer");
 --- Synchronizer script
 --- 
 --- This script provides synchronized calls for Multiplayer.
+---
+--- Each action synchronized must be fully consistant. This means, if only a
+--- player is involved then nothing must be checked. If any entity is changed
+--- then it must be checkt that the entity is owned to the player involved in
+--- the action.
 --- 
 --- If the map is played in Singleplayer then each call is executed directly.
 --- 

@@ -420,20 +420,18 @@ function AiTroopSpawner.Internal:Tick(_Index)
 end
 
 function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
+    assert(table.getn(_RequestedTypes) > 0);
     local TroopID = 0;
     local PlayerID = AiArmy.GetPlayer(_ArmyID);
     if PlayerID ~= 0 then
         local AllowedTypes = self.Data.Spawners[_Index].AllowedTypes;
         -- Check can spawn type
-        local HasAnyType = true;
-        if table.getn(_RequestedTypes) > 0 then
-            HasAnyType = false;
-            for i= 1, table.getn(_RequestedTypes) do
-                for j= 1, table.getn(AllowedTypes) do
-                    if _RequestedTypes[i][1] == AllowedTypes[j][1] then
-                        HasAnyType = true;
-                        break;
-                    end
+        local HasAnyType = false;
+        for i= 1, table.getn(_RequestedTypes) do
+            for j= 1, table.getn(AllowedTypes) do
+                if _RequestedTypes[i][1] == AllowedTypes[j][1] then
+                    HasAnyType = true;
+                    break;
                 end
             end
         end
