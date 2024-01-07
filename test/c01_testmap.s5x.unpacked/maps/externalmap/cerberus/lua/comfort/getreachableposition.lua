@@ -37,8 +37,6 @@ function GetReachablePosition(_Entity, _Target, _Fallback)
 end
 
 function GetReachablePosition_Helper_CUtil(_Entity, _Target)
-    local WorldX, WorldY = Logic.WorldGetSize();
-
     -- Get target position
     local TargetX, TargetY, TargetZ;
     if type(_Target) == "table" then
@@ -46,26 +44,37 @@ function GetReachablePosition_Helper_CUtil(_Entity, _Target)
     else
         TargetX, TargetY, TargetZ = Logic.EntityGetPos(GetID(_Target));
     end
+    TargetX = math.floor(TargetX + 0.5);
+    TargetY = math.floor(TargetY + 0.5);
     -- Evaluate reachable position
-    local PrevDistance = WorldX ^ 2;
-    local ReachableX, ReachableY = 0, 0;
-    for x = TargetX - 2000, TargetX + 2000, 50 do
-        for y = TargetY - 2000, TargetY + 2000, 50 do
-            if y > 0 and x > 0 and x < WorldX and y < WorldY then
-                local Distance = (x - TargetX)^2 + (y - TargetY)^2
-                local height, blockingtype, sector, terrainType = CUtil.GetTerrainInfo(x, y);
-                if sector > 0 and (height > CUtil.GetWaterHeight(x/100, y/100)) then
-                    if PrevDistance > Distance then
-                        ReachableX, ReachableY = x, y;
-                        PrevDistance = Distance;
+    local MaxOffset = 2000;
+    local CurrentOffset = 0;
+    local OffsetStep = 100;
+    while CurrentOffset <= MaxOffset do
+        if CurrentOffset == 0 then
+            local WaterHeight = CUtil.GetWaterHeight(TargetX/100, TargetY/100);
+            local Height, Blocking, Sector, Terrain = CUtil.GetTerrainInfo(TargetX, TargetY);
+            if Height > WaterHeight and (Sector ~= 0 and (Blocking == 0 or Blocking == 4)) then
+                local ReachablePosition = {X= TargetX, Y= TargetY, Z= TargetZ};
+                if IsValidPosition(ReachablePosition) then
+                    return ReachablePosition;
+                end
+            end
+        else
+            for x = TargetX - CurrentOffset, TargetX + CurrentOffset, OffsetStep do
+                for y = TargetY - CurrentOffset, TargetY + CurrentOffset, OffsetStep do
+                    local WaterHeight = CUtil.GetWaterHeight(x/100, y/100);
+                    local Height, Blocking, Sector, Terrain = CUtil.GetTerrainInfo(x, y);
+                    if Height > WaterHeight and (Sector ~= 0 and (Blocking == 0 or Blocking == 4)) then
+                        local ReachablePosition = {X= x, Y= y, Z= Height};
+                        if IsValidPosition(ReachablePosition) then
+                            return ReachablePosition;
+                        end
                     end
                 end
             end
         end
-    end
-    if ReachableX ~= 0 and ReachableY ~= 0 then
-        local NewPosition = {X= ReachableX, Y= ReachableY, Z= 0};
-        return NewPosition;
+        CurrentOffset = CurrentOffset + OffsetStep;
     end
 end
 
