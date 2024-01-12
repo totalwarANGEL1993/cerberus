@@ -71,16 +71,20 @@ function Job.Destroy(_Function, ...)
     return Job.Internal:StartJob(Events.LOGIC_EVENT_ENTITY_DESTROYED, _Function, unpack(arg));
 end
 
---- Creates a trigger that is invoked when a tribute is payed.
---- 
---- * Event.GetTributeUniqueID() returns the ID of the tribute.
+--- Creates a trigger that is invoked when diplomacy changes between players.
+---
+--- The player will be called for both players each in reversed order.
+---
+--- * Event.GetSourcePlayerID() returns first player
+--- * Event.GetTargetPlayerID() returns second player
+--- * Event.GetDiplomacyState() returns diplomacy state
 ---
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
 --- @return number ID ID of trigger
-function Job.Tribute(_Function, ...)
+function Job.Diplomacy(_Function, ...)
     Job.Internal:Install();
-    return Job.Internal:StartJob(Events.LOGIC_EVENT_TRIBUTE_PAID, _Function, unpack(arg));
+    return Job.Internal:StartJob(Events.LOGIC_EVENT_DIPLOMACY_CHANGED, _Function, unpack(arg));
 end
 
 --- Creates a trigger that is invoked when a trade is completed.
@@ -95,6 +99,18 @@ end
 function Job.Trade(_Function, ...)
     Job.Internal:Install();
     return Job.Internal:StartJob(Events.LOGIC_EVENT_GOODS_TRADED, _Function, unpack(arg));
+end
+
+--- Creates a trigger that is invoked when a tribute is payed.
+--- 
+--- * Event.GetTributeUniqueID() returns the ID of the tribute.
+---
+--- @param _Function function Function to call
+--- @param ... any            List of parameters
+--- @return number ID ID of trigger
+function Job.Tribute(_Function, ...)
+    Job.Internal:Install();
+    return Job.Internal:StartJob(Events.LOGIC_EVENT_TRIBUTE_PAID, _Function, unpack(arg));
 end
 
 --- Adds a condition to a specific tribute or to all tributes.
