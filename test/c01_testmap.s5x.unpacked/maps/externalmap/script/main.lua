@@ -1,5 +1,6 @@
 function OnMapStart()
     Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\briefingtestcases.lua");
+    Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\triggertestcases.lua");
 
     Camera.ZoomSetFactorMax(2.0);
     CreateMapEntities();
@@ -33,8 +34,8 @@ function OnMapStart()
 
     Tools.GiveResouces(1, 99999, 9999, 9999, 9999, 9999, 9999);
 
-    CreateTroopSpawnersTest()
-    CreateAttackArmiesTest()
+    --CreateTroopSpawnersTest()
+    --CreateAttackArmiesTest()
 
 
     UseWeatherSet("HighlandsWeatherSet");
