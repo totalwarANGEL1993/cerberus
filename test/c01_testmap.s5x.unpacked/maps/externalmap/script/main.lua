@@ -12,6 +12,7 @@ function OnMapStart()
 
     Lib.Require("comfort/ArePositionsConnected");
     Lib.Require("comfort/GetReachablePosition");
+    Lib.Require("comfort/GetUpgradeCategoryByEntityType");
     Lib.Require("comfort/IsDeadWrapper");
     Lib.Require("module/ai/AiArmy");
     Lib.Require("module/ai/AiTroopSpawner");
