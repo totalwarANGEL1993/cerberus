@@ -387,13 +387,13 @@ function BuyHero.Internal:GetNumberOfBuyableHeroes(_PlayerID)
 end
 
 function BuyHero.Internal:CountHeroes(_PlayerID)
+    if GameCallback_GUI_BuyHero_CountHeroes then
+        return GameCallback_GUI_BuyHero_CountHeroes(_PlayerID);
+    end
     return table.getn(self:GetHeroes(_PlayerID));
 end
 
 function BuyHero.Internal:GetHeroes(_PlayerID)
-    if GameCallback_GUI_BuyHero_CountHeroes then
-        return GameCallback_GUI_BuyHero_CountHeroes(_PlayerID);
-    end
     local HeroList = {};
     Logic.GetHeroes(_PlayerID, HeroList);
     return HeroList;

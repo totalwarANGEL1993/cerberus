@@ -36,7 +36,9 @@ function GetUpgradeCategoryByEntityType(_Type)
         -- Save building or settler to not compare strings the second time
         if  not GetUpgradeCategoryByEntityType_IsBuildingCache[_Type]
         and not GetUpgradeCategoryByEntityType_IsSettlerCache[_Type] then
-            if string.find(TypeName, "CU_") or string.find(TypeName, "PU_") then
+            if string.find(TypeName, "CU_") or string.find(TypeName, "PV_")
+            or string.find(TypeName, "PU_") or string.find(TypeName, "CV_")
+            or string.find(TypeName, "XA_") then
                 GetUpgradeCategoryByEntityType_IsSettlerCache[_Type] = true;
             end
             if string.find(TypeName, "CB_") or string.find(TypeName, "PB_")
