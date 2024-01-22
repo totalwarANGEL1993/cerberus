@@ -44,6 +44,8 @@ end
 
 --- Creates a new trainer.
 ---
+--- If any error occurs, 0 will be returned.
+---
 --- Possible fields for definition:
 --- * ScriptName   (Required) Scriptname of spawner
 --- * SpawnPoint   (Optional) Scriptname of position
