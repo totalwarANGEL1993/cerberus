@@ -1,4 +1,5 @@
 Lib.Require("comfort/GetDistance");
+Lib.Require("comfort/IsFighting");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/ai/AiTroopSpawner");
 
@@ -26,10 +27,11 @@ AiArmySpawnerData_SpawnerIdToSpawnerInstance = {};
 --- Possible fields for definition:
 --- * ScriptName   (Required) Scriptname of spawner
 --- * SpawnPoint   (Optional) Scriptname of position
+---                (If an entity ScriptName.. "Spawn" exists, it will be taken automatically)
 --- * SpawnAmount  (Optional) Max amount to spawn per cycle
 --- * SpawnTimer   (Optional) Time between spawn cycles
 --- * Sequentially (Optional) Order of spawns is sequentially
---- * Endlessly    (Optional) Spawns repeat infinite
+--- * Endlessly    (Optional) If sequentially, type list repeat endlessly
 --- * AllowedTypes (Optional) List of types {Type, Experience}
 ---
 --- @param _Data table Troop Spawner definition
@@ -351,7 +353,7 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
 
             -- Assign refilled troop
             -- Adds 1 refilled troop per second to the weakest army if possible
-            local ArmyID = self:GetArmyAwardedRespawn(_Index);
+            local ArmyID = self:GetArmyToRefill(_Index);
             if ArmyID > 0 then
                 if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
                 or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
@@ -368,7 +370,7 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
 
             -- Control respawn
             -- Respawns n troops per cycle or adds an existing troop
-            ArmyID = self:GetArmyAwardedRespawn(_Index);
+            ArmyID = self:GetArmyToRefill(_Index);
             if ArmyID > 0 then
                 local DoSpawn = true;
                 if AiArmy.IsInitallyFilled(ArmyID) == true then
@@ -459,7 +461,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                                     self.Data.Spawners[_Index].AllowedTypes.Index = 0;
                                     TroopIndex = 0;
                                 else
-                                    TroopIndex = 0;
+                                    TroopIndex = -1;
                                     break;
                                 end
                             end
@@ -474,7 +476,6 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                                 if TypeFound then
                                     break;
                                 end
-                                TroopIndex = 0;
                             end
                         end
                     else
@@ -536,6 +537,7 @@ function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID, _RequestedTypes)
             end
         end
     end
+    -- At least one leader is refilling
     if self.Data.Spawners[_Index].Refilling[1] then
         return -1;
     end
@@ -543,7 +545,7 @@ function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID, _RequestedTypes)
 end
 
 -- Returns the army attached to the spawner with the least amount of troops.
-function AiTroopSpawner.Internal:GetArmyAwardedRespawn(_Index)
+function AiTroopSpawner.Internal:GetArmyToRefill(_Index)
     local LastArmyID = 0;
     local LastStrength = 999;
     local Spawner = self.Data.Spawners[_Index];

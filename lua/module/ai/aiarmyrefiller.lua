@@ -28,6 +28,7 @@ AiArmyRefiller = AiArmyRefiller or {};
 --- Possible fields for definition:
 --- * ScriptName   (Required) Scriptname of spawner
 --- * SpawnPoint   (Optional) Scriptname of position
+---                (If an entity ScriptName.. "Spawn" exists, it will be taken automatically)
 --- * SpawnAmount  (Optional) Max amount to spawn per cycle
 --- * SpawnTimer   (Optional) Time between spawn cycles
 --- * Sequentially (Optional) Order of spawns is sequentially
@@ -49,6 +50,7 @@ end
 --- Possible fields for definition:
 --- * ScriptName   (Required) Scriptname of spawner
 --- * SpawnPoint   (Optional) Scriptname of position
+---                (If an entity ScriptName.. "Spawn" exists, it will be taken automatically)
 --- * AllowedTypes (Optional) List of upgrade categories
 ---
 --- @param _Data table Troop Trainer definition
