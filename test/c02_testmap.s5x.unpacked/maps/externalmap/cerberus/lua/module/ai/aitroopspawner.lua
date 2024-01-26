@@ -70,6 +70,8 @@ function AiTroopSpawner.ClearAllowedTypes(_ID)
 end
 
 --- Adds an army to the spawner.
+---
+--- The player ID of the army must match the player ID of the spawner!
 --- @param _ID integer        ID of spawner
 --- @param _ArmyID integer    ID of army
 function AiTroopSpawner.AddArmy(_ID, _ArmyID)
@@ -282,6 +284,10 @@ end
 
 function AiTroopSpawner.Internal:AddArmy(_ID, _ArmyID)
     if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        local ScriptName = AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].ScriptName;
+        local SpawnerPlayerID = GetPlayer(ScriptName);
+        local ArmyPlayerID = AiArmy.GetPlayer(_ArmyID);
+        assert(SpawnerPlayerID == ArmyPlayerID, "Spawner player ID must match army player ID!");
         self:RemoveArmy(_ID, _ArmyID);
         table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Armies, _ArmyID);
     end

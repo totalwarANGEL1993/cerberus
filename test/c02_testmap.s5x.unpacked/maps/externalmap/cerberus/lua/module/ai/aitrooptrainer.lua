@@ -64,6 +64,8 @@ function AiTroopTrainer.ClearAllowedTypes(_ID)
 end
 
 --- Adds an army to the trainer.
+---
+--- The player ID of the army must match the player ID of the trainer!
 --- @param _ID integer        ID of trainer
 --- @param _ArmyID integer    ID of army
 function AiTroopTrainer.AddArmy(_ID, _ArmyID)
@@ -197,7 +199,6 @@ function AiTroopTrainer.Internal:CreateTrainer(_Data)
 
     local Spawner = {
         ID           = ID,
-        PlayerID     = _Data.PlayerID,
         ScriptName   = _Data.ScriptName,
         SpawnPoint   = _Data.SpawnPoint,
         AllowedTypes = AllowedTypes,
@@ -261,14 +262,15 @@ function AiTroopTrainer.Internal:ChangePlayer(_ID, _PlayerID)
         AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Refilling = Refilling;
         -- Finally change player of building
         ChangePlayer(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].ScriptName, _PlayerID);
-        AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].PlayerID = _PlayerID;
     end
 end
 
 function AiTroopTrainer.Internal:AddArmy(_ID, _ArmyID)
-    local Trainer = AiArmyTrainerData_TrainerIdToTrainerInstance[_ID];
-    local PlayerID = AiArmy.GetPlayer(_ArmyID);
-    if Trainer and Trainer.PlayerID == PlayerID then
+    if AiArmyTrainerData_TrainerIdToTrainerInstance[_ID] then
+        local ScriptName = AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].ScriptName;
+        local TrainerPlayerID = GetPlayer(ScriptName);
+        local ArmyPlayerID = AiArmy.GetPlayer(_ArmyID);
+        assert(TrainerPlayerID ~= ArmyPlayerID, "Trainer player ID must match army player ID!");
         self:RemoveArmy(_ID, _ArmyID);
         table.insert(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Armies, _ArmyID);
     end
@@ -333,12 +335,9 @@ function AiTroopTrainer.Internal:ControllTrainer(_Index)
             -- Control training
             local ArmyID = self:GetArmyAwardedRespawn(self.Data.Trainers[_Index].ID);
             if ArmyID > 0 and AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill) then
-                local PlayerID = AiArmy.GetPlayer(ArmyID);
-                if PlayerID == self.Data.Trainers[_Index].PlayerID then
-                    local TroopID = self:Refill(self.Data.Trainers[_Index].ID, ArmyID);
-                    if TroopID ~= 0 then
-                        AiArmy.AddTroop(ArmyID, TroopID, true);
-                    end
+                local TroopID = self:Refill(self.Data.Trainers[_Index].ID, ArmyID);
+                if TroopID ~= 0 then
+                    AiArmy.AddTroop(ArmyID, TroopID, true);
                 end
             end
         end
@@ -346,7 +345,6 @@ function AiTroopTrainer.Internal:ControllTrainer(_Index)
 end
 
 function AiTroopTrainer.Internal:ControlTrainedUnits(_EntityID)
-    local PlayerID = Logic.EntityGetPlayer(_EntityID);
     if Logic.IsEntityInCategory(_EntityID, EntityCategories.Cannon) == 1
     or Logic.IsLeader(_EntityID) == 1 then
         local Trainer;
@@ -355,10 +353,8 @@ function AiTroopTrainer.Internal:ControlTrainedUnits(_EntityID)
                 Trainer = self.Data.Trainers[i];
             end
         end
-        if Trainer and Trainer.PlayerID == PlayerID then
-            if not IsTraining(_EntityID) then
-                self:AddTroop(Trainer.ID, _EntityID);
-            end
+        if not IsTraining(_EntityID) then
+            self:AddTroop(Trainer.ID, _EntityID);
         end
     end
 end
@@ -371,18 +367,15 @@ function AiTroopTrainer.Internal:ControlTroopRefilling(_ID)
             if not IsExisting(Trainer.Refilling[i]) then
                 table.remove(Trainer.Refilling, i);
             else
-                local PlayerID = Logic.EntityGetPlayer(TroopID);
                 local SpawnPos = GetPosition(Trainer.SpawnPoint);
-                if Trainer.PlayerID == PlayerID then
-                    if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
-                        Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
-                    else
-                        if not AreEnemiesInArea(Logic.EntityGetPlayer(TroopID), SpawnPos, AiTroopSpawner.NoEnemyDistance) then
-                            local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
-                            local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
-                            if MaxAmount > CurAmount and not IsFighting(TroopID)  and IsValidEntity(TroopID) then
-                                Tools.CreateSoldiersForLeader(ID, 1);
-                            end
+                if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
+                    Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
+                else
+                    if not AreEnemiesInArea(Logic.EntityGetPlayer(TroopID), SpawnPos, AiTroopSpawner.NoEnemyDistance) then
+                        local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
+                        local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
+                        if MaxAmount > CurAmount and not IsFighting(TroopID)  and IsValidEntity(TroopID) then
+                            Tools.CreateSoldiersForLeader(ID, 1);
                         end
                     end
                 end
@@ -392,12 +385,10 @@ function AiTroopTrainer.Internal:ControlTroopRefilling(_ID)
 end
 
 function AiTroopTrainer.Internal:Refill(_ID, _ArmyID)
-    local Trainer = AiArmyTrainerData_TrainerIdToTrainerInstance[_ID];
     local TroopID = 0;
-    local PlayerID = AiArmy.GetPlayer(_ArmyID);
-    if Trainer and PlayerID == Trainer.PlayerID then
+    if AiArmyTrainerData_TrainerIdToTrainerInstance[_ID] then
         TroopID = self:GetTroop(_ID);
-        local TypeAmount = table.getn(Trainer.AllowedTypes);
+        local TypeAmount = table.getn(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].AllowedTypes);
         if TroopID == 0 and TypeAmount > 0 then
             self:OrderTroop(_ID, math.random(1, TypeAmount));
         end
@@ -445,7 +436,7 @@ function AiTroopTrainer.Internal:GetTroop(_ID)
     if Trainer then
         for i= table.getn(Trainer.Refilling), 1, -1 do
             local TroopID = Trainer.Refilling[i];
-            if Logic.EntityGetPlayer(TroopID) == Trainer.PlayerID then
+            if Logic.EntityGetPlayer(TroopID) == GetPlayer(Trainer.ScriptName) then
                 local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                 local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
                 if MaxAmount == CurAmount then
@@ -467,7 +458,7 @@ function AiTroopTrainer.Internal:GetArmyAwardedRefill(_ID)
         if IsExisting(Trainer.ScriptName) then
             for i= table.getn(Trainer.Armies), 1, -1 do
                 local ArmyID = Trainer.Armies[i];
-                if AiArmy.IsActive(ArmyID) and AiArmy.GetPlayer(ArmyID) == Trainer.PlayerID then
+                if AiArmy.IsActive(ArmyID) then
                     if AiArmy.GetNumberOfLeader(ArmyID) < AiArmy.GetMaxNumberOfLeader(ArmyID) then
                         local Strength = AiArmy.GetNumberOfLeader(ArmyID);
                         if Strength < LastStrength then
