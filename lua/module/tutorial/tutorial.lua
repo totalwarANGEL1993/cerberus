@@ -14,7 +14,7 @@ Lib.Register("module/tutorial/Tutorial");
 --- While a tutorial is running messages can not be added to the screen unless
 --- GUI.AddStaticNote is used.
 ---
---- Version 1.0.3
+--- Version 1.0.4
 ---
 
 Tutorial = Tutorial or {};
@@ -45,11 +45,12 @@ end
 --- a condition is fulfilled.
 ---
 --- Fields:
---- * Text        Text to print
---- * Arrow       (Optional) Position of arrow
---- * ArrowWidget (Optional) Name of widget used for the arrow
---- * Condition   (Optional) Next page condition function
---- * Action      (Optional) Page display action function
+--- * Text         Text to print
+--- * Arrow        (Optional) Position of arrow
+--- * ArrowWidget  (Optional) Name of widget used for the arrow
+--- * ClickCatcher (Optional) Shows the click catcher widget
+--- * Condition    (Optional) Next page condition function
+--- * Action       (Optional) Page display action function
 --- 
 --- @param _Page table Tutorial message
 function Tutorial.AddMessage(_Page)
@@ -109,6 +110,7 @@ function Tutorial.Internal:OnSaveGameLoaded()
         self:OverwriteMessageFunctions();
         self:PrintTutorialMessage();
         self:ShowTutorialBackground();
+        self:ShowTutorialClickCatcher();
         self:ActivateHotkey();
     end
 end
@@ -127,6 +129,7 @@ end
 function Tutorial.Internal:Stop()
     GUI.ClearNotes();
     self:HideTutorialArrow();
+    self:HideTutorialClickCatcher();
     self:HideTutorialBackground();
 
     self.Data.Iterator = 0
@@ -181,6 +184,9 @@ function Tutorial.Internal:PrintTutorialMessage()
     GUI.AddStaticNote(self.Data.Messages[self.Data.Iterator].Text);
     -- Display arrow
     self:ShowTutorialArrow();
+    -- Click catcher
+    self:HideTutorialClickCatcher();
+    self:ShowTutorialClickCatcher();
     -- Call action
     if self.Data.Messages[self.Data.Iterator].Action then
         self.Data.Messages[self.Data.Iterator].Action(self.Data.Messages[self.Data.Iterator]);
@@ -265,6 +271,20 @@ end
 
 function Tutorial.Internal:HideTutorialBackground()
     XGUIEng.ShowWidget("TutorialMessageBG", 0);
+end
+
+function Tutorial.Internal:ShowTutorialClickCatcher()
+    local Data = self.Data.Messages[self.Data.Iterator];
+    local Widget = Data.ArrowWidget or "TutorialArrow";
+    if Data and Data.ClickCatcher then
+        XGUIEng.ShowWidget("Movie", 1);
+        XGUIEng.ShowAllSubWidgets("Movie", 0);
+        XGUIEng.ShowWidget("MovieInvisibleClickCatcher", 1);
+    end
+end
+
+function Tutorial.Internal:HideTutorialClickCatcher()
+    XGUIEng.ShowWidget("Movie", 0);
 end
 
 function Tutorial.Internal:ActivateHotkey()
