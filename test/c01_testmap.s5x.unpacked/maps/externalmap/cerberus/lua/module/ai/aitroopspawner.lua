@@ -525,7 +525,7 @@ function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID, _RequestedTypes)
     for i= table.getn(self.Data.Spawners[_Index].Refilling), 1, -1 do
         local TroopID = self.Data.Spawners[_Index].Refilling[i];
         local Type = Logic.GetEntityType(TroopID);
-        if not _RequestedTypes[1] or IsInTable(Type, _RequestedTypes) then
+        if not _RequestedTypes[1] or self:IsInTroopTable(Type, _RequestedTypes) then
             if Logic.EntityGetPlayer(TroopID) == _PlayerID then
                 local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                 local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
@@ -540,6 +540,16 @@ function AiTroopSpawner.Internal:GetTroop(_Index, _PlayerID, _RequestedTypes)
         return -1;
     end
     return 0;
+end
+
+function AiTroopSpawner.Internal:IsInTroopTable(_Type, _RequestedTypes)
+    local RequestedTypes = CopyTable(_RequestedTypes);
+    for i= table.getn(RequestedTypes), 1, -1 do
+        if RequestedTypes[i][1] == _Type then
+            return true;
+        end
+    end
+    return false;
 end
 
 -- Returns the army attached to the spawner with the least amount of troops.
