@@ -58,9 +58,9 @@ function EntityMover.Internal:MoveAndVanish(_Entity, _Target)
 end
 
 function EntityMover.Internal:MoveAndVanishController()
-    for Entity, Target in pairs(self.Data.MovingOnWaypoints) do
+    for Entity, Target in pairs(self.Data.MoveAndVanish) do
         if not IsExisting(Entity) then
-            self.Data.MovingOnWaypoints[Entity] = nil;
+            self.Data.MoveAndVanish[Entity] = nil;
             return;
         end
         if not Logic.IsEntityMoving(GetID(Entity)) then
@@ -75,7 +75,7 @@ function EntityMover.Internal:MoveAndVanishController()
             DestroyEntity(EntityID);
             EntityID = Logic.CreateEntity(Entities.XD_ScriptEntity, x, y, Orientation, PlayerID);
             Logic.SetEntityName(EntityID, ScriptName);
-            self.Data.MovingOnWaypoints[Entity] = nil;
+            self.Data.MoveAndVanish[Entity] = nil;
         end
     end
 end
