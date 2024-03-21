@@ -1,5 +1,6 @@
 Lib.Require("comfort/CreateNameForEntity");
 Lib.Require("comfort/GetMaxAmountOfPlayer");
+Lib.Require("comfort/CopyTable");
 Lib.Register("module/io/Interaction");
 
 --- 
@@ -159,19 +160,21 @@ function Interaction.Internal:HeroesLookAtNpc(_HeroID, _NpcID)
     end
 end
 
-function Interaction.Internal:GetNearestHero(_PlayerID, _NpcID, _Distance)
-    local PlayerID = Logic.EntityGetPlayer(_PlayerID);
+function Interaction.Internal:GetNearestHero(_Npc, _Distance)
+    local NpcID = GetID(_Npc);
     local HeroesTable = {};
-    Logic.GetHeroes(PlayerID, HeroesTable);
-
-    local x1, y1, z1   = Logic.EntityGetPos(_NpcID);
+    for PlayerID = 1, GetMaxAmountOfPlayer() do
+        local PlayerHeroTable = {};
+        Logic.GetHeroes(PlayerID, PlayerHeroTable);
+        HeroesTable = CopyTable(PlayerHeroTable, HeroesTable);
+    end
+    local x1, y1, z1   = Logic.EntityGetPos(NpcID);
     local BestDistance = _Distance or Logic.WorldGetSize();
     local BestHero     = nil;
-
     for k, v in pairs(HeroesTable) do
         if v and IsExisting(v) then
             local x2, y2, z2 = Logic.EntityGetPos(v);
-            local Distance   = ((x2-x1)^2)+((y2-y1)^2);
+            local Distance   = math.sqrt(((x2-x1)^2)+((y2-y1)^2));
             if Distance < BestDistance then
                 BestDistance = Distance;
                 BestHero = v;
