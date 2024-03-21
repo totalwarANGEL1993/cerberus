@@ -208,10 +208,10 @@ function NonPlayerCharacter.Internal:OnNpcFolowInteraction(_NpcScriptName, _Data
     local NpcID = GetID(_NpcScriptName);
     if _Data.Target then
         if IsNear(_NpcScriptName, _Data.Target, 1200) then
-            _Data:Callback(HeroID);
             _Data.TalkedTo = HeroID;
             Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
             Interaction.Internal:Deactivate(_NpcScriptName);
+            _Data:Callback(HeroID);
         else
             if _Data.WayCallback then
                 _Data:WayCallback(HeroID);
