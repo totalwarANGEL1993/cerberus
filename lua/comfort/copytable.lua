@@ -9,27 +9,34 @@ Lib.Register("comfort/CopyTable");
 --- @return table Found Value was found
 ---
 function CopyTable(_Source, _Dest)
-    _Dest = _Dest or {};
-    assert(_Source ~= nil, "CopyTable: Source is nil!");
-    assert(type(_Dest) == "table");
-
-    local Result = {};
-    if type(_Source[1]) == "number" and type(_Dest[1]) == "number" then
-        Result = _Dest;
-        for i= 1, table.getn(_Source) do
-            if type(_Source[i]) == "table" then
-                table.insert(Result, CopyTable(_Source[i]));
-            else
-                table.insert(Result, _Source[i]);
-            end
+    local Result = _Dest or {};
+    assert(type(_Source) == "table", "CopyTable: Source is nil!");
+    assert(type(Result) == "table");
+    -- Amend array part
+    local LastIndex = 0;
+    for i= 1, table.getn(_Source) do
+        LastIndex = LastIndex + 1;
+        if type(_Source[i]) == "table" then
+            table.insert(Result, CopyTable(_Source[i]));
+        else
+            table.insert(Result, _Source[i]);
         end
-    else
-        Result = _Dest;
-        for k,v in pairs(_Source) do
+    end
+    -- Overwrite associative part
+    for k,v in pairs(_Source) do
+        if type(k) == "number" then
+            if k <= 0 or k > LastIndex then
+                if type(v) == "table" then
+                    Result[k] = Result[k] or CopyTable(v);
+                else
+                    Result[k] = Result[k] or v;
+                end
+            end
+        else
             if type(v) == "table" then
-                Result[k] = _Dest[k] or CopyTable(v);
+                Result[k] = Result[k] or CopyTable(v);
             else
-                Result[k] = _Dest[k] or v;
+                Result[k] = Result[k] or v;
             end
         end
     end
