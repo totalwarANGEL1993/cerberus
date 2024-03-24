@@ -1575,13 +1575,12 @@ function AiArmy.Internal.Army:ManageArmyMembers()
     for j= self.CleanUp[1] +1, 2, -1 do
         local Alive = IsValidEntity(self.CleanUp[j]);
         local Fighting = IsFighting(self.CleanUp[j]);
-        local Moving = Logic.IsEntityMoving(self.CleanUp[j]);
-        if not Alive or not Fighting or not Moving then
+        if not Alive or not Fighting then
             local ID = table.remove(self.CleanUp, j);
             self.CleanUp[1] = self.CleanUp[1] -1;
             AiArmyData_TroopIdToArmyId[ID] = nil;
             self:LockOn(ID, nil);
-            if not Fighting and not Moving then
+            if not Fighting then
                 local Soldiers = {Logic.GetSoldiersAttachedToLeader(ID)};
                 for i= Soldiers[1] +1, 1, -1 do
                     SetHealth(Soldiers[i], 0);
