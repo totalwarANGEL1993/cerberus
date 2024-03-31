@@ -1,5 +1,6 @@
 function OnMapStart()
     Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\briefingtestcases.lua");
+    Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\npctestcases.lua");
     Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\triggertestcases.lua");
 
     Camera.ZoomSetFactorMax(2.0);
@@ -22,6 +23,7 @@ function OnMapStart()
     Lib.Require("module/lua/Overwrite");
     Lib.Require("module/mp/BuyHero");
     Lib.Require("module/mp/Syncer");
+    Lib.Require("module/io/NonPlayerCharacter");
     Lib.Require("module/io/NonPlayerMerchant");
     Lib.Require("module/quest/QuestSystem");
     Lib.Require("module/ui/Clock");

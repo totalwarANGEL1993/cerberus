@@ -30,6 +30,10 @@ function Interaction.Npc(_PlayerID)
     return Interaction.Internal.LastInteractionNpc[_PlayerID];
 end
 
+function Interaction.Install()
+    Interaction.Internal:Install();
+end
+
 -- -------------------------------------------------------------------------- --
 -- Callback
 
@@ -190,18 +194,45 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
 
     local Data = self.Data.IO[ScriptName];
     if Data then
-        if Data.Hero and _HeroID ~= GetID(Data.Hero) then
-            if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
-                Message(self:GetLocalizedMessage(Data.HeroInfo));
+        -- Check heroes
+        if Data.Hero then
+            local HeroTable = (type(Data.Hero) ~= "table" and {Data.Hero}) or Data.Hero;
+            -- Check if talking to the hero
+            local AnyHero = false;
+            for i= 1, table.getn(HeroTable) do
+                if _HeroID == GetID(HeroTable[i]) then
+                    AnyHero = true;
+                    break;
+                end
             end
-            return false;
-        end
-        if Data.Player and PlayerID ~= Data.Player then
-            if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
-                Message(self:GetLocalizedMessage(Data.PlayerInfo));
+            -- Deny if hero is not listed
+            if not AnyHero then
+                if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
+                    Message(self:GetLocalizedMessage(Data.HeroInfo));
+                end
+                return false;
             end
-            return false;
         end
+        -- Check players
+        if Data.Player then
+            local PlayerTable = (type(Data.Player) ~= "table" and {Data.Player}) or Data.Player;
+            -- Check if talking to the player
+            local AnyPlayer = false;
+            for i= 1, table.getn(PlayerTable) do
+                if PlayerTable[i] == PlayerID then
+                    AnyPlayer = true;
+                    break;
+                end
+            end
+            -- Deny if player is not listed
+            if not AnyPlayer then
+                if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
+                    Message(self:GetLocalizedMessage(Data.PlayerInfo));
+                end
+                return false;
+            end
+        end
+        -- Pass test
         return true;
     end
     return false;
