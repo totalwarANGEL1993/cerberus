@@ -1,6 +1,7 @@
 function OnMapStart()
     Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\briefingtestcases.lua");
     Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\npctestcases.lua");
+    Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\questtestcases.lua");
     Script.Load("E:\\Repositories\\cerberus\\test\\c01_testmap.s5x.unpacked\\maps\\externalmap\\script\\triggertestcases.lua");
 
     Camera.ZoomSetFactorMax(2.0);
