@@ -181,6 +181,9 @@ end
 function GameCallback_Logic_BriefingPageShown(_PlayerID, _Briefing, _PageID)
 end
 
+function GameCallback_Logic_BriefingOptionSelected(_PlayerID, _Briefing, _PageID, _OptionID, _NextPageID)
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -230,17 +233,21 @@ function BriefingSystem.Internal:CreateScriptEvents()
     -- Multiple choice option selected
     self.Events.PostOptionSelected = Syncer.CreateEvent(function( _PlayerID, _PageID, _OptionID)
         if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
-            local Page = BriefingSystem.Internal.Data.Book[_PlayerID][_PageID];
+            local Briefing = BriefingSystem.Internal.Data.Book[_PlayerID];
+            local Page = Briefing[_PageID];
             if Page then
                 if Page.MC then
                     for k, v in pairs(Page.MC) do
                         if v and v.ID == _OptionID then
+                            local NextPageID = 0;
                             if type(v[2]) == "function" then
-                                BriefingSystem.Internal.Data.Book[_PlayerID].Page = BriefingSystem.Internal:GetPageID(v[2](v), _PlayerID) -1;
+                                NextPageID = BriefingSystem.Internal:GetPageID(v[2](v), _PlayerID) -1;
                             else
-                                BriefingSystem.Internal.Data.Book[_PlayerID].Page = BriefingSystem.Internal:GetPageID(v[2], _PlayerID) -1;
+                                NextPageID = BriefingSystem.Internal:GetPageID(v[2], _PlayerID) -1;
                             end
+                            BriefingSystem.Internal.Data.Book[_PlayerID].Page = NextPageID;
                             BriefingSystem.Internal.Data.Book[_PlayerID][_PageID].MC.Selected = _OptionID;
+                            GameCallback_Logic_BriefingOptionSelected(_PlayerID, Briefing, _PageID, _OptionID, NextPageID);
                             BriefingSystem.Internal:NextPage(_PlayerID, false);
                             return;
                         end

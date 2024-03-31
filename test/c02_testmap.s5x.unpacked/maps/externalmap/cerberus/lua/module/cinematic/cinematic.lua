@@ -231,6 +231,53 @@ function Cinematic.Internal:EnableCinematicMode(_PlayerID, _RestoreCamera, _Rest
     Input.CutsceneMode();
     Sound.PlayFeedbackSound(0,0);
 
+    self:ShowCinematicInterface();
+end
+
+function Cinematic.Internal:DisableCinematicMode(_PlayerID)
+    -- Global invulnerability only in singleplayer
+    if XNetwork.Manager_DoesExist() == 0 then
+        Logic.SetGlobalInvulnerability(0);
+    end
+
+    -- The following only for receiving player
+    local GuiPlayer = GUI.GetPlayerID();
+    if _PlayerID ~= GuiPlayer or GuiPlayer == 17 then
+        return;
+    end
+    if self.Local.RestorePosition then
+        Camera.ScrollSetLookAt(self.Local.RestorePosition.X, self.Local.RestorePosition.Y);
+        self.Local.RestorePosition = nil;
+    end
+    if self.Local.SelectedEntities then
+        for i= 1, table.getn(self.Local.SelectedEntities), 1 do
+            GUI.SelectEntity(self.Local.SelectedEntities[i]);
+        end
+        self.Local.SelectedEntities = nil;
+    end
+
+    GUIAction_ToggleMenu("NetworkWindow", 0);
+    LocalMusic.SongLength = 0;
+    gvCamera.DefaultFlag = 1;
+    gvInterfaceCinematicFlag = 0;
+
+    self:HideCinematicInterface();
+
+    Camera.FollowEntity(0);
+    Camera.ScrollUpdateZMode(0);
+    Camera.SetControlMode(0);
+    Camera.RotSetFlipBack(1);
+    Camera.ZoomSetFOV(42);
+    Display.SetRenderFogOfWar(1);
+    Display.SetRenderSky(0);
+    GUI.EnableBattleSignals(true);
+    GUI.SetFeedbackSoundOutputState(1);
+    GUI.ActivateSelectionState();
+    Input.GameMode();
+    Stream.Stop();
+end
+
+function Cinematic.Internal:ShowCinematicInterface()
     XGUIEng.ShowWidget("Cinematic",1);
     XGUIEng.ShowWidget("Cinematic_Text",0);
     XGUIEng.ShowWidget("Cinematic_Headline",0);
@@ -261,33 +308,7 @@ function Cinematic.Internal:EnableCinematicMode(_PlayerID, _RestoreCamera, _Rest
     XGUIEng.ShowWidget("Movie",0);
 end
 
-function Cinematic.Internal:DisableCinematicMode(_PlayerID)
-    -- Global invulnerability only in singleplayer
-    if XNetwork.Manager_DoesExist() == 0 then
-        Logic.SetGlobalInvulnerability(0);
-    end
-
-    -- The following only for receiving player
-    local GuiPlayer = GUI.GetPlayerID();
-    if _PlayerID ~= GuiPlayer or GuiPlayer == 17 then
-        return;
-    end
-    if self.Local.RestorePosition then
-        Camera.ScrollSetLookAt(self.Local.RestorePosition.X, self.Local.RestorePosition.Y);
-        self.Local.RestorePosition = nil;
-    end
-    if self.Local.SelectedEntities then
-        for i= 1, table.getn(self.Local.SelectedEntities), 1 do
-            GUI.SelectEntity(self.Local.SelectedEntities[i]);
-        end
-        self.Local.SelectedEntities = nil;
-    end
-
-    GUIAction_ToggleMenu("NetworkWindow", 0);
-    LocalMusic.SongLength = 0;
-    gvCamera.DefaultFlag = 1;
-    gvInterfaceCinematicFlag = 0;
-
+function Cinematic.Internal:HideCinematicInterface()
     XGUIEng.ShowWidget("Cinematic",0);
     XGUIEng.ShowWidget("CinematicMiniMapContainer",0);
 
@@ -305,19 +326,6 @@ function Cinematic.Internal:DisableCinematicMode(_PlayerID)
     XGUIEng.ShowWidget("MiniMap",1);
     XGUIEng.ShowWidget("MiniMapOverlay",1);
     XGUIEng.ShowWidget("MinimapButtons",1);
-
-    Camera.FollowEntity(0);
-    Camera.ScrollUpdateZMode(0);
-    Camera.SetControlMode(0);
-    Camera.RotSetFlipBack(1);
-    Camera.ZoomSetFOV(42);
-    Display.SetRenderFogOfWar(1);
-    Display.SetRenderSky(0);
-    GUI.EnableBattleSignals(true);
-    GUI.SetFeedbackSoundOutputState(1);
-    GUI.ActivateSelectionState();
-    Input.GameMode();
-    Stream.Stop();
 end
 
 function Cinematic.Internal:SetPageStyle(_DisableMap, _MCAmount, _PageStyle)

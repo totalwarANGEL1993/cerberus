@@ -104,6 +104,7 @@ end
 --- Creates a trigger that is invoked when a tribute is payed.
 --- 
 --- * Event.GetTributeUniqueID() returns the ID of the tribute.
+--- * Event.GetSourcePlayerID() returns the ID of the player.
 ---
 --- @param _Function function Function to call
 --- @param ... any            List of parameters
@@ -217,16 +218,23 @@ function Job.Internal:StartJob(_EventType, _Function, ...)
         "InlineJob_Executor_" ..Sequence,
         1,
         {},
-        {Sequence}
+        {Sequence, _EventType}
     );
 end
 
 function Job.Internal:CreateExecutor(_Index)
-    _G["InlineJob_Executor_" .._Index] = function(i)
+    _G["InlineJob_Executor_" .._Index] = function(i, _EventType)
         if Job.Internal.Data.Function[i](unpack(Job.Internal.Data.Parameter[i])) then
             _G["InlineJob_Executor_" .._Index] = nil;
             Job.Internal.Data.Function[i] = nil;
             Job.Internal.Data.Parameter[i] = nil;
+            -- HACK: Close tribute window 
+            if _EventType == Events.LOGIC_EVENT_TRIBUTE_PAID then
+                if GUI.GetPlayerID() == Event.GetSourcePlayerID() then
+                    Sound.PlayGUISound(Sounds.OnKlick_Select_helias, 127);
+                    XGUIEng.ShowWidget("TradeWindow", 0);
+                end
+            end
             return true;
         end
     end
