@@ -1,5 +1,6 @@
 Lib.Require("comfort/CreateNameForEntity");
 Lib.Require("comfort/GetMaxAmountOfPlayer");
+Lib.Require("comfort/CopyTable");
 Lib.Register("module/io/Interaction");
 
 --- 
@@ -27,6 +28,10 @@ end
 --- @return string Npc ID of last NPC
 function Interaction.Npc(_PlayerID)
     return Interaction.Internal.LastInteractionNpc[_PlayerID];
+end
+
+function Interaction.Install()
+    Interaction.Internal:Install();
 end
 
 -- -------------------------------------------------------------------------- --
@@ -159,19 +164,21 @@ function Interaction.Internal:HeroesLookAtNpc(_HeroID, _NpcID)
     end
 end
 
-function Interaction.Internal:GetNearestHero(_PlayerID, _NpcID, _Distance)
-    local PlayerID = Logic.EntityGetPlayer(_PlayerID);
+function Interaction.Internal:GetNearestHero(_Npc, _Distance)
+    local NpcID = GetID(_Npc);
     local HeroesTable = {};
-    Logic.GetHeroes(PlayerID, HeroesTable);
-
-    local x1, y1, z1   = Logic.EntityGetPos(_NpcID);
+    for PlayerID = 1, GetMaxAmountOfPlayer() do
+        local PlayerHeroTable = {};
+        Logic.GetHeroes(PlayerID, PlayerHeroTable);
+        HeroesTable = CopyTable(PlayerHeroTable, HeroesTable);
+    end
+    local x1, y1, z1   = Logic.EntityGetPos(NpcID);
     local BestDistance = _Distance or Logic.WorldGetSize();
     local BestHero     = nil;
-
     for k, v in pairs(HeroesTable) do
         if v and IsExisting(v) then
             local x2, y2, z2 = Logic.EntityGetPos(v);
-            local Distance   = ((x2-x1)^2)+((y2-y1)^2);
+            local Distance   = math.sqrt(((x2-x1)^2)+((y2-y1)^2));
             if Distance < BestDistance then
                 BestDistance = Distance;
                 BestHero = v;
@@ -187,18 +194,45 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
 
     local Data = self.Data.IO[ScriptName];
     if Data then
-        if Data.Hero and _HeroID ~= GetID(Data.Hero) then
-            if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
-                Message(self:GetLocalizedMessage(Data.HeroInfo));
+        -- Check heroes
+        if Data.Hero then
+            local HeroTable = (type(Data.Hero) ~= "table" and {Data.Hero}) or Data.Hero;
+            -- Check if talking to the hero
+            local AnyHero = false;
+            for i= 1, table.getn(HeroTable) do
+                if _HeroID == GetID(HeroTable[i]) then
+                    AnyHero = true;
+                    break;
+                end
             end
-            return false;
-        end
-        if Data.Player and PlayerID ~= Data.Player then
-            if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
-                Message(self:GetLocalizedMessage(Data.PlayerInfo));
+            -- Deny if hero is not listed
+            if not AnyHero then
+                if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
+                    Message(self:GetLocalizedMessage(Data.HeroInfo));
+                end
+                return false;
             end
-            return false;
         end
+        -- Check players
+        if Data.Player then
+            local PlayerTable = (type(Data.Player) ~= "table" and {Data.Player}) or Data.Player;
+            -- Check if talking to the player
+            local AnyPlayer = false;
+            for i= 1, table.getn(PlayerTable) do
+                if PlayerTable[i] == PlayerID then
+                    AnyPlayer = true;
+                    break;
+                end
+            end
+            -- Deny if player is not listed
+            if not AnyPlayer then
+                if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
+                    Message(self:GetLocalizedMessage(Data.PlayerInfo));
+                end
+                return false;
+            end
+        end
+        -- Pass test
         return true;
     end
     return false;

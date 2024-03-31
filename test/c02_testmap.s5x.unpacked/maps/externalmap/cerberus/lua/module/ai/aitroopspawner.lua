@@ -61,6 +61,10 @@ function AiTroopSpawner.AddAllowedType(_ID, _Type, _Exp)
     end
 end
 
+function AiTroopSpawner.IsAllowedType(_ID, _Type)
+    return AiTroopSpawner.Internal:IsAllowedType(_ID, _Type);
+end
+
 --- Removes all allowed types from the unit roster.
 --- @param _ID integer ID of spawner
 function AiTroopSpawner.ClearAllowedTypes(_ID)
@@ -198,9 +202,7 @@ function AiTroopSpawner.Internal:Install()
         self.IsInstalled = true;
 
         self.ControllerJobID = Job.Second(function()
-            for i= table.getn(AiTroopSpawner.Internal.Data.Spawners), 1, -1 do
-                AiTroopSpawner.Internal:ControllSpawner(i);
-            end
+            AiTroopSpawner.Internal:ControllSpawner();
         end);
     end
 end
@@ -312,18 +314,6 @@ function AiTroopSpawner.Internal:AddTroop(_ID, _TroopID)
     return false;
 end
 
-function AiTroopSpawner.Internal:CanTroopBeAdded(_ID, _TroopID)
-    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
-        local Type = Logic.GetEntityType(_TroopID);
-        for i= 1, table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes) do
-            if Type == AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes[i][1] then
-                return true;
-            end
-        end
-    end
-    return false;
-end
-
 function AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID)
     if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
         for i= table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling), 1, -1 do
@@ -334,60 +324,99 @@ function AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID)
     end
 end
 
-function AiTroopSpawner.Internal:ControllSpawner(_Index)
-    -- Control spawner
-    local Spawner = self.Data.Spawners[_Index];
-    if Spawner then
-        if IsExisting(Spawner.ScriptName) then
-            -- Clear invalid armies
-            for i= table.getn(Spawner.Armies), 1, -1 do
-                if not AiArmy.Get(Spawner.Armies[i]) then
-                    table.remove(Spawner.Armies, i);
-                end
+function AiTroopSpawner.Internal:CanTroopBeAdded(_ID, _TroopID)
+    local Type = Logic.GetEntityType(_TroopID);
+    return self:IsAllowedType(_ID, Type);
+end
+
+function AiTroopSpawner.Internal:IsAllowedType(_ID, _Type)
+    if AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID] then
+        for i= 1, table.getn(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes) do
+            if _Type == AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].AllowedTypes[i][1] then
+                return true;
             end
+        end
+    end
+    return false;
+end
 
-            -- Control refilling troops
-            self:ControlTroopRefilling(_Index);
-
-            -- Assign refilled troop
-            -- Adds 1 refilled troop per second to the weakest army if possible
-            local ArmyID = self:GetArmyAwardedRespawn(_Index);
-            if ArmyID > 0 then
-                if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
-                or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
-                    local PlayerID = AiArmy.GetPlayer(ArmyID);
-                    if PlayerID ~= 0 then
-                        local Types = AiArmy.GetAllowedTypes(ArmyID);
-                        local TroopID = self:GetTroop(_Index, PlayerID, Types);
-                        if TroopID > 0 then
-                            AiArmy.AddTroop(ArmyID, TroopID, true);
-                        end
+function AiTroopSpawner.Internal:ControllSpawner(_Index)
+    -- Manage refillig of existing troops
+    for Index = table.getn(self.Data.Spawners), 1, -1 do
+        local Spawner = self.Data.Spawners[Index];
+        -- Clear invalid armies
+        for i= table.getn(Spawner.Armies), 1, -1 do
+            if not AiArmy.Get(Spawner.Armies[i]) then
+                table.remove(Spawner.Armies, i);
+            end
+        end
+        -- Control refilling troops
+        self:ControlTroopRefilling(Index);
+        -- Assign refilled troop
+        -- Adds 1 refilled troop per second to the weakest army if possible
+        local ArmyID = self:GetArmyForRespawn(Index);
+        if ArmyID > 0 then
+            if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
+            or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
+                local PlayerID = AiArmy.GetPlayer(ArmyID);
+                if PlayerID ~= 0 then
+                    local Types = AiArmy.GetAllowedTypes(ArmyID);
+                    local TroopID = self:GetTroop(Index, PlayerID, Types);
+                    if TroopID > 0 then
+                        AiArmy.AddTroop(ArmyID, TroopID, true);
                     end
                 end
             end
-
-            -- Control respawn
-            -- Respawns n troops per cycle or adds an existing troop
-            ArmyID = self:GetArmyAwardedRespawn(_Index);
-            if ArmyID > 0 then
-                local DoSpawn = true;
-                if AiArmy.IsInitallyFilled(ArmyID) == true then
-                    DoSpawn = self:Tick(_Index) == true;
+        end
+        -- Tick internal clock
+        self:Tick(Index);
+    end
+    -- Get armies for respawn
+    local ArmySpawnerMap = {};
+    for Index = table.getn(AiTroopSpawner.Internal.Data.Spawners), 1, -1 do
+        local Spawner = AiTroopSpawner.Internal.Data.Spawners[Index];
+        local ArmyList = Spawner.Armies;
+        for i= 1, table.getn(ArmyList) do
+            local ArmyID = ArmyList[i];
+            if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
+            or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
+                local SpawnerIDs = AiTroopSpawner.GetSpawnersOfArmy(ArmyList[i]);
+                ArmySpawnerMap[ArmyID] = ArmySpawnerMap[ArmyID] or {};
+                for j= 1, table.getn(SpawnerIDs) do
+                    if AiTroopSpawner.IsAlive(SpawnerIDs[j]) then
+                        ArmySpawnerMap[ArmyID][SpawnerIDs[j]] = true;
+                    end
                 end
-                if DoSpawn then
-                    for i= 1, Spawner.MaxSpawn do
-                        if AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
-                        or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
-                            local Types = AiArmy.GetAllowedTypes(ArmyID);
-                            local ID = self:Spawn(_Index, ArmyID, Types);
-                            if ID > 0 then
-                                AiArmy.AddTroop(ArmyID, ID, true);
-                            end
+            end
+        end
+    end
+    -- Manage spawning of new troops
+    for ArmyID, SpawnerList in pairs(ArmySpawnerMap) do
+        for SpawnerID,_ in pairs(SpawnerList) do
+            local Index = self:GetIndexByID(SpawnerID);
+            local Spawner = self.Data.Spawners[Index];
+            for j= 1, Spawner.MaxSpawn do
+                if AiArmy.GetMaxNumberOfLeader(ArmyID) > AiArmy.GetNumberOfLeader(ArmyID)
+                or AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
+                or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
+                    local DoSpawn = true;
+                    if AiArmy.IsInitallyFilled(ArmyID) == true then
+                        DoSpawn = Spawner.Tick == true;
+                    end
+                    if DoSpawn then
+                        local Types = AiArmy.GetAllowedTypes(ArmyID);
+                        local CreatedID = self:Spawn(Index, ArmyID, Types);
+                        if CreatedID > 0 then
+                            AiArmy.AddTroop(ArmyID, CreatedID, true);
                         end
                     end
                 end
             end
         end
+    end
+    -- Reset flags
+    for Index = table.getn(self.Data.Spawners), 1, -1 do
+        self.Data.Spawners[Index].Tick = false;
     end
 end
 
@@ -420,6 +449,7 @@ function AiTroopSpawner.Internal:Tick(_Index)
     self.Data.Spawners[_Index].Timer = Spawn.Timer -1;
     if Spawn.Timer < 0 then
         self.Data.Spawners[_Index].Timer = Spawn.TimerMax;
+        self.Data.Spawners[_Index].Tick = true;
         return true;
     end
     return false;
@@ -552,10 +582,19 @@ function AiTroopSpawner.Internal:IsInTroopTable(_Type, _RequestedTypes)
     return false;
 end
 
+function AiTroopSpawner.Internal:GetIndexByID(_ID)
+    for k,v in pairs(self.Data.Spawners) do
+        if v.ID == _ID then
+            return k;
+        end
+    end
+    return 0;
+end
+
 -- Returns the army attached to the spawner with the least amount of troops.
-function AiTroopSpawner.Internal:GetArmyAwardedRespawn(_Index)
-    local LastArmyID = 0;
-    local LastStrength = 999;
+function AiTroopSpawner.Internal:GetArmyForRespawn(_Index)
+    local SelectedArmyID = 0;
+    local LastStrength = 9999;
     local Spawner = self.Data.Spawners[_Index];
     if Spawner then
         if IsExisting(Spawner.ScriptName) then
@@ -566,13 +605,13 @@ function AiTroopSpawner.Internal:GetArmyAwardedRespawn(_Index)
                         local Strength = AiArmy.GetNumberOfLeader(ArmyID);
                         if Strength < LastStrength then
                             LastStrength = Strength;
-                            LastArmyID = ArmyID;
+                            SelectedArmyID = ArmyID;
                         end
                     end
                 end
             end
         end
     end
-    return LastArmyID;
+    return SelectedArmyID;
 end
 

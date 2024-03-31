@@ -100,6 +100,7 @@ function NonPlayerCharacter.Internal:CreateNpc(_Data)
     Data.LookAt      = (_Data.LookAt == nil and true) or _Data.LookAt == true;
     Data.ScriptName  = _Data.ScriptName;
     Data.Follow      = _Data.Follow;
+    Data.Distance    = _Data.Distance or 2000;
     Data.Target      = _Data.Target;
     Data.Waypoints   = _Data.Waypoints or {};
     Data.WayCallback = _Data.WayCallback;
@@ -193,13 +194,13 @@ end
 function NonPlayerCharacter.Internal:OnNpcRegularInteraction(_NpcScriptName, _Data, _HeroScriptName)
     local HeroID = GetID(_HeroScriptName);
     local NpcID = GetID(_NpcScriptName);
-    _Data:Callback(HeroID);
     _Data.TalkedTo = HeroID;
     Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
     Interaction.Internal:Deactivate(_NpcScriptName);
     if _Data.LookAt then
         LookAt(_NpcScriptName, _HeroScriptName);
     end
+    _Data:Callback(HeroID);
     return _Data;
 end
 
@@ -208,10 +209,10 @@ function NonPlayerCharacter.Internal:OnNpcFolowInteraction(_NpcScriptName, _Data
     local NpcID = GetID(_NpcScriptName);
     if _Data.Target then
         if IsNear(_NpcScriptName, _Data.Target, 1200) then
-            _Data:Callback(HeroID);
             _Data.TalkedTo = HeroID;
             Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
             Interaction.Internal:Deactivate(_NpcScriptName);
+            _Data:Callback(HeroID);
         else
             if _Data.WayCallback then
                 _Data:WayCallback(HeroID);
@@ -230,10 +231,10 @@ function NonPlayerCharacter.Internal:OnNpcWaypointInteraction(_NpcScriptName, _D
     local NpcID = GetID(_NpcScriptName);
     local LastWaypoint = _Data.Waypoints[table.getn(_Data.Waypoints)];
     if IsNear(_Data.ScriptName, LastWaypoint, 1200) then
-        _Data:Callback(HeroID);
         _Data.TalkedTo = HeroID;
         Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
         Interaction.Internal:Deactivate(_NpcScriptName);
+        _Data:Callback(HeroID);
     else
         if _Data.WayCallback then
             _Data:WayCallback(HeroID);
@@ -268,10 +269,10 @@ function NonPlayerCharacter.Internal:OnTickNpcFollowController(_ScriptName, _Dat
     if type(_Data.Follow) == "string" then
         FollowID = GetID(_Data.Follow);
     else
-        FollowID = Interaction.Internal:GetNearestHero(2000);
+        FollowID = Interaction.Internal:GetNearestHero(_ScriptName, 2000);
     end
     if FollowID ~= nil and IsAlive(FollowID) then
-        if _Data.Target and IsNear(_ScriptName, _Data.Target, 1200) then
+        if _Data.Target and IsNear(_ScriptName, _Data.Target, _Data.Distance or 1200) then
             Move(_ScriptName, _Data.Target);
             _Data.Arrived = true;
         end
@@ -290,7 +291,7 @@ function NonPlayerCharacter.Internal:OnTickNpcWaypointController(_ScriptName, _D
     if _Data.Waypoints.LastTime < CurrentTime then
         _Data.Waypoints.LastTime = CurrentTime + (_Data.Waittime or (2*60));
         -- Set waypoint
-        if IsNear(_ScriptName, _Data.Waypoints[_Data.Waypoints.Current], _Data.ArrivedDistance or 1200) then
+        if IsNear(_ScriptName, _Data.Waypoints[_Data.Waypoints.Current], _Data.Distance or 1200) then
             _Data.Waypoints.Current = _Data.Waypoints.Current +1;
             if _Data.Waypoints.Current > table.getn(_Data.Waypoints) then
                 _Data.Arrived = true;
@@ -310,11 +311,11 @@ function NonPlayerCharacter.Internal:OnTickNpcWalkerController(_ScriptName, _Dat
     _Data.Wanderer.LastTime = _Data.Wanderer.LastTime or 0;
     _Data.Wanderer.Current = _Data.Wanderer.Current or 1;
 
-    if not Interaction.Internal:GetNearestHero(2000) then
+    if not Interaction.Internal:GetNearestHero(_ScriptName, 2000) then
         local CurrentTime = Logic.GetTime();
         if _Data.Wanderer.LastTime < CurrentTime then
             _Data.Wanderer.LastTime = CurrentTime + (_Data.Waittime or (5*60));
-            if IsNear(_ScriptName, _Data.Wanderer[_Data.Wanderer.Current], _Data.ArrivedDistance or 1200) then
+            if IsNear(_ScriptName, _Data.Wanderer[_Data.Wanderer.Current], _Data.Distance or 1200) then
                 -- Select random waypoint
                 local NewWaypoint;
                 repeat

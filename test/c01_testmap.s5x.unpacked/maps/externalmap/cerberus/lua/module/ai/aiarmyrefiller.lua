@@ -164,6 +164,23 @@ function AiArmyRefiller.ClearAllowedTypes(_ID)
     end
 end
 
+function AiArmyRefiller.IsAllowedType(_ID, _Type)
+    local SpawnerID = AiArmyRefiller.Internal:GetSpawnerID(_ID);
+    if SpawnerID ~= 0 then
+        AiTroopSpawner.IsAllowedType(_ID, _Type);
+    end
+    return {};
+end
+
+function AiArmyRefiller.IsAllowedCategory(_ID, _Category)
+    local TrainerID = AiArmyRefiller.Internal:GetTrainerID(_ID);
+    if TrainerID ~= 0 then
+        -- FIXME
+        return {};
+    end
+    return {};
+end
+
 --- Adds an army to the refiller.
 --- @param _ID integer        ID of refiller
 --- @param _ArmyID integer    ID of army
@@ -331,14 +348,14 @@ end
 
 function AiArmyRefiller.Internal:GetByEntity(_Entity)
     for k, v in pairs(self.Data.Refillers.Spawner) do
-        local SpawnerID = AiTroopSpawner.Get(v[1]);
-        if SpawnerID ~= 0 and AiTroopSpawner.Get(_Entity) == SpawnerID then
+        local SpawnerID = AiTroopSpawner.Get(_Entity);
+        if SpawnerID ~= 0 and v[1] == SpawnerID then
             return k;
         end
     end
     for k, v in pairs(self.Data.Refillers.Trainer) do
-        local TrainerID = AiTroopTrainer.Get(v[1]);
-        if TrainerID ~= 0 and AiTroopTrainer.Get(_Entity) == TrainerID then
+        local TrainerID = AiTroopTrainer.Get(_Entity);
+        if TrainerID ~= 0 and v[1] == TrainerID then
             return k;
         end
     end

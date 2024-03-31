@@ -252,7 +252,7 @@ function BuyHero.Internal:BuyHeroCallback(_PlayerID, _Type)
 
         local Orientation = Logic.GetEntityOrientation(CastleID);
         local Position = GetCirclePosition(CastleID, 800, 180);
-        ID = Logic.CreateEntity(_Type, Position.X, Position.Y, 0, _PlayerID);
+        local ID = Logic.CreateEntity(_Type, Position.X, Position.Y, 0, _PlayerID);
         Logic.RotateEntity(ID, Orientation +180);
         GameCallback_Logic_BuyHero_OnHeroSelected(_PlayerID, ID, _Type);
     end
