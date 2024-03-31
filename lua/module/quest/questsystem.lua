@@ -7,7 +7,7 @@ Lib.Require("comfort/GetResourceName");
 Lib.Require("comfort/KeyOf");
 
 Lib.Require("module/cinematic/BriefingSystem");
-Lib.Require("module/io/NonPlayerCharacter");
+Lib.Require("module/io/Interaction");
 Lib.Require("module/mp/Syncer");
 Lib.Require("module/trigger/Job");
 Lib.Require("module/ui/Placeholder");
@@ -132,6 +132,7 @@ function QuestSystem.Internal:Install()
         self.IsInstalled = true;
 
         Placeholder.Install();
+        Interaction.Install();
         for i= 1, GetMaxAmountOfPlayer() do
             self.Data[i] = {
                 QuestInfo = {},
@@ -151,8 +152,8 @@ Quest = {
     
     Conditions  = {{Condition.Time, 5}},
     Objectives  = {{Objective.Script, AnyFunction, ...}},
-    Rewards     = {{Reward.Victory}},
-    Reprisals   = {{Reward.Defeat}},
+    Rewards     = {{Effect.Victory}},
+    Reprisals   = {{Effect.Defeat}},
 }
 ]]
 
@@ -361,6 +362,11 @@ function QuestSystem.Internal:RestartQuestObjectives(_QuestID)
         if self.Quests[_QuestID].Objectives[i][1] == Objective.Steal then
             self.Quests[_QuestID].Objectives[i][4] = nil;
         end
+        -- Reset NPC
+        if self.Quests[_QuestID].Objectives[i][1] == Objective.NPC then
+            self.Quests[_QuestID].Objectives[i][5] = nil;
+            self.Quests[_QuestID].Objectives[i][6] = nil;
+        end
     end
 end
 
@@ -495,14 +501,9 @@ function QuestSystem.Internal:CheckQuestObjective(_QuestID, _Index)
         Completed = true;
 
     elseif Behavior[1] == Objective.NPC then
-        if Interaction.Internal.Data.IO[Behavior[2]] then
-            local HeroID;
-            if Interaction.Internal.Data.IO[Behavior[2]].Hero then
-                HeroID = GetID(Interaction.Internal.Data.IO[Behavior[2]].Hero);
-            end
-            if NonPlayerCharacter.Internal:TalkedToNpc(Behavior[2], HeroID) then
-                Completed = true;
-            end
+        if self:TalkedToNpc(_QuestID, _Index) then
+            self:RemoveQuestMarkers(_QuestID);
+            Completed = true;
         end
 
     elseif Behavior[1] == Objective.Destroy then
@@ -744,7 +745,7 @@ function QuestSystem.Internal:ApplyQuestResult(_QuestID, _ResultType, _Index)
             Text = Behavior[3];
         end
         if PlayerID == -1 or PlayerID == GUI.GetPlayerID() then
-            Message(Text);
+            Message(self:GetLocalizedMessage(Text));
         end
 
     elseif Behavior[1] == Effect.Briefing then
@@ -902,21 +903,20 @@ function QuestSystem.Internal:ShowQuestMarkers(_QuestID)
                     if type(Position) ~= "table" then
                         Position = GetPosition(Position);
                     end
-                    self.Quests[_QuestID].Objectives[i][8] = Logic.CreateEffect(
+                    local EffectID = Logic.CreateEffect(
                         GGL_Effects.FXTerrainPointer,
-                        Position.X, Position.Y,
-                        1
+                        Position.X,
+                        Position.Y,
+                        QuestData.Receiver
                     );
+                    self.Quests[_QuestID].Objectives[i][8] = EffectID;
                 end
             elseif QuestData.Objectives[i][1] == Objective.NPC then
-                if not self:IsNpcInUseByAnyOtherActiveQuest(_QuestID, QuestData.Objectives[i][2]) then
+                if not self:IsNpcUsedByOtherQuestOfPlayer(_QuestID, QuestData.Receiver, QuestData.Objectives[i][2]) then
                     if not QuestData.Objectives[i][5] then
-                        NonPlayerCharacter.Create{
-                            ScriptName   = QuestData.Objectives[i][2],
-                            Hero         = QuestData.Objectives[i][2],
-                            WrongHeroMsg = QuestData.Objectives[i][2],
-                            Callback     = function() end,
-                        };
+                        if GUI.GetPlayerID() == QuestData.Receiver then
+                            EnableNpcMarker(QuestData.Objectives[i][2]);
+                        end
                         self.Quests[_QuestID].Objectives[i][5] = true;
                     end
                 end
@@ -935,8 +935,10 @@ function QuestSystem.Internal:RemoveQuestMarkers(_QuestID)
                     Logic.DestroyEffect(QuestData.Objectives[i][8]);
                 end
             elseif QuestData.Objectives[i][1] == Objective.NPC then
-                if not self:IsNpcInUseByAnyOtherActiveQuest(QuestData.Objectives[i][2]) then
-                    NonPlayerCharacter.Delete(QuestData.Objectives[i][2]);
+                if not self:IsNpcUsedByOtherQuestOfPlayer(_QuestID, QuestData.Receiver, QuestData.Objectives[i][2]) then
+                    if GUI.GetPlayerID() == QuestData.Receiver then
+                        DisableNpcMarker(QuestData.Objectives[i][2]);
+                    end
                     self.Quests[_QuestID].Objectives[i][5] = false;
                 end
             end
@@ -944,16 +946,18 @@ function QuestSystem.Internal:RemoveQuestMarkers(_QuestID)
     end
 end
 
-function QuestSystem.Internal:IsNpcInUseByAnyOtherActiveQuest(_QuestID, _NPC)
+function QuestSystem.Internal:IsNpcUsedByOtherQuestOfPlayer(_QuestID, _PlayerID, _NPC)
     local QuestData = self.Quests[_QuestID];
-    for i= 1, table.getn(QuestSystem.Quests) do
-        local Other = QuestSystem.Quests[i];
+    for i= 1, table.getn(self.Quests) do
+        local Other = self.Quests[i];
         if QuestData.Name ~= Other.Name then
             if Other.State == QuestState.Active then
-                for j= 1, table.getn(Other.Objectives), 1 do
-                    if Other.Objectives[j][1] == Objective.NPC then
-                        if GetID(Other.Objectives[j][2]) == GetID(_NPC) then
-                            return true;
+                if Other.Receiver == _PlayerID then
+                    for j= 1, table.getn(Other.Objectives), 1 do
+                        if Other.Objectives[j][1] == Objective.NPC then
+                            if GetID(Other.Objectives[j][2]) == GetID(_NPC) then
+                                return true;
+                            end
                         end
                     end
                 end
@@ -1042,6 +1046,13 @@ function QuestSystem.Internal:InitJobs()
             end
         end
     end);
+
+    -- NPC interaction
+    self.Orig_GameCallback_NPCInteraction = GameCallback_NPCInteraction;
+    GameCallback_NPCInteraction = function(_HeroID, _NpcID)
+        QuestSystem.Internal.Orig_GameCallback_NPCInteraction(_HeroID, _NpcID);
+        QuestSystem.Internal:OnQuestNpcInteraction(_NpcID, _HeroID);
+    end
 end
 
 function QuestSystem.Internal:ObjectiveDestroyedEntitiesHandler(_AttackingPlayer, _AttackingID, _DefendingPlayer, _DefendingID)
@@ -1136,6 +1147,36 @@ function QuestSystem.Internal:QuestPaydayEvent(_PlayerID)
     end
 end
 
+function QuestSystem.Internal:TalkedToNpc(_QuestID, _BehaviorIndex)
+    return self.Quests[_QuestID].Objectives[_BehaviorIndex][6];
+end
+
+function QuestSystem.Internal:OnQuestNpcInteraction(_NpcID, _HeroID)
+    local PlayerID = Logic.EntityGetPlayer(_HeroID);
+    for QuestID = 1, table.getn(self.Quests) do
+        local Quest = self.Quests[QuestID];
+        if Quest.State == QuestState.Active then
+            for j= 1, table.getn(Quest.Objectives), 1 do
+                if Quest.Objectives[j][1] == Objective.NPC then
+                    if GetID(Quest.Objectives[j][2]) == GetID(_NpcID) then
+                        if Quest.Objectives[j][3] then
+                            if GetID(Quest.Objectives[j][3]) ~= GetID(_HeroID) then
+                                if Quest.Objectives[j][4] and GUI.GetPlayerID() == PlayerID then
+                                    Message(self:GetLocalizedMessage(Quest.Objectives[j][4]));
+                                end
+                            else
+                                self.Quests[QuestID].Objectives[j][6] = true;
+                            end
+                        else
+                            self.Quests[QuestID].Objectives[j][6] = true;
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
 -- -------------------------------------------------------------------------- --
 
 function QuestSystem.Internal:ContainsObjective(_QuestID, _Objective)
@@ -1147,5 +1188,18 @@ function QuestSystem.Internal:ContainsObjective(_QuestID, _Objective)
         end
     end
     return false;
+end
+
+function QuestSystem.Internal:GetLocalizedMessage(_Msg)
+    local Language = GetLanguage();
+    local Msg = _Msg;
+
+    if type(Msg) == "table" then
+        Msg = Msg[Language];
+    end
+    if string.find(Msg, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
+        Msg = XGUIEng.GetStringTableText(Msg);
+    end
+    return Msg;
 end
 
