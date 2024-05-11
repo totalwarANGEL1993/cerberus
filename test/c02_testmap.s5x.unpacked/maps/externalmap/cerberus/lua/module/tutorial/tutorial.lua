@@ -48,6 +48,7 @@ end
 --- * Text         Text to print
 --- * Arrow        (Optional) Position of arrow
 --- * ArrowWidget  (Optional) Name of widget used for the arrow
+--- * ArrowUpdate  (Optional) Must return true, if arrow should be visible
 --- * ClickCatcher (Optional) Shows the click catcher widget
 --- * Condition    (Optional) Next page condition function
 --- * Action       (Optional) Page display action function
@@ -230,13 +231,20 @@ function Tutorial.Internal:NextPageTrigger()
     if not self.Data.Messages[self.Data.Iterator] then
         return true;
     end
+    local MessageData = self.Data.Messages[self.Data.Iterator];
+    -- Arrow update
+    if MessageData.ArrowUpdate then
+        local Widget = MessageData.ArrowWidget or "TutorialArrow";
+        local Alpha = (MessageData.ArrowUpdate(MessageData) and 255) or 0;
+        XGUIEng.SetMaterialColor(Widget, 0, 255, 255, 255, Alpha);
+    end
     -- No condition
-    if not self.Data.Messages[self.Data.Iterator].Condition then
+    if not MessageData.Condition then
         self:PrintTutorialMessage();
         return true;
     end
     -- Condition fulfilled
-    if self.Data.Messages[self.Data.Iterator].Condition(self.Data.Messages[self.Data.Iterator]) then
+    if MessageData.Condition(MessageData) then
         self.Data.Messages[self.Data.Iterator].Trigger = nil;
         self:HideTutorialArrow();
         self.Data.Iterator = self.Data.Iterator +1;
@@ -252,6 +260,7 @@ function Tutorial.Internal:ShowTutorialArrow()
     if Data and Data.Arrow then
         local Position = self.Data.Messages[self.Data.Iterator].Arrow;
         XGUIEng.SetWidgetPosition(Widget, Position[1], Position[2]);
+        XGUIEng.SetMaterialColor(Widget, 0, 255, 255, 255, 255);
         XGUIEng.SetWidgetSize(Widget, 30, 30);
         XGUIEng.ShowWidget(Widget, 1);
     end
