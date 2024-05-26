@@ -50,6 +50,7 @@ end
 --- * ArrowWidget  (Optional) Name of widget used for the arrow
 --- * ArrowUpdate  (Optional) Must return true, if arrow should be visible
 --- * ClickCatcher (Optional) Shows the click catcher widget
+--- * SlowMotion   (Optional) Time is decelerated to a minimum.
 --- * Condition    (Optional) Next page condition function
 --- * Action       (Optional) Page display action function
 --- 
@@ -214,7 +215,7 @@ function Tutorial.Internal:ActivateNextPageTrigger()
         if self.Data.Messages[Iterator] then
             if self.Data.Messages[Iterator].Condition then
                 if not self.Data.Messages[Iterator].Trigger then
-                    self.Data.Messages[Iterator].Trigger = Job.Second(function()
+                    self.Data.Messages[Iterator].Trigger = Job.Turn(function()
                         return Tutorial.Internal:NextPageTrigger();
                     end);
                 end
@@ -238,8 +239,13 @@ function Tutorial.Internal:NextPageTrigger()
         local Alpha = (MessageData.ArrowUpdate(MessageData) and 255) or 0;
         XGUIEng.SetMaterialColor(Widget, 0, 255, 255, 255, Alpha);
     end
+    -- Slow Moition
+    if MessageData.SlowMotion then
+        Game.GameTimeSetFactor(0.01);
+    end
     -- No condition
     if not MessageData.Condition then
+        Game.GameTimeReset();
         self:PrintTutorialMessage();
         return true;
     end
@@ -249,6 +255,7 @@ function Tutorial.Internal:NextPageTrigger()
         self:HideTutorialArrow();
         self.Data.Iterator = self.Data.Iterator +1;
         self:ActivateNextPageTrigger();
+        Game.GameTimeReset();
         self:PrintTutorialMessage();
         return true;
     end
