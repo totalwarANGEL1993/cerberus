@@ -18,7 +18,6 @@ function OnMapStart()
     Lib.Require("comfort/IsDeadWrapper");
     Lib.Require("module/ai/AiArmy");
     Lib.Require("module/ai/AiTroopSpawner");
-    -- Lib.Require("module/ai/AiArmyManager");
     Lib.Require("module/archive/Archive");
     Lib.Require("module/cinematic/BriefingSystem");
     Lib.Require("module/lua/Overwrite");
@@ -124,50 +123,6 @@ function CreateAttackArmiesTest()
     AiTroopSpawner.AddArmy(P6ArcherySpawner, P6Army1);
     AiTroopSpawner.AddArmy(P6StableSpawner, P6Army1);
     AiTroopSpawner.AddArmy(P6FoundrySpawner, P6Army1);
-
-    -- P6Army1Manager = AiArmyManager.Create(P6Army1);
-    -- AiArmyManager.AddAttackTarget(P6Army1Manager, "Player6_AttackTarget1");
-    -- AiArmyManager.AddAttackTarget(P6Army1Manager, "Player6_AttackTarget2");
-    -- AiArmyManager.AddAttackTarget(P6Army1Manager, "Player6_AttackTarget3");
-    -- AiArmyManager.AddAttackTarget(P6Army1Manager, "Player6_AttackTarget4");
-    -- AiArmyManager.AddGuardPosition(P6Army1Manager, "Player6_PatrolPoint1");
-    -- AiArmyManager.AddGuardPosition(P6Army1Manager, "Player6_PatrolPoint2");
-    -- AiArmyManager.AddGuardPosition(P6Army1Manager, "Player6_PatrolPoint3");
-
-
-    -- P6Army2 = AiArmy.New(6, 8, GetPosition("Player6_PatrolPoint2"), 3500);
-    -- AiTroopSpawner.AddArmy(P6BarracksSpawner, P6Army2);
-    -- AiTroopSpawner.AddArmy(P6ArcherySpawner, P6Army2);
-    -- AiTroopSpawner.AddArmy(P6StableSpawner, P6Army2);
-    -- AiTroopSpawner.AddArmy(P6FoundrySpawner, P6Army2);
-
-    -- P6Army2Manager = AiArmyManager.Create(P6Army2);
-    -- AiArmyManager.AddAttackTarget(P6Army2Manager, "Player6_AttackTarget1");
-    -- AiArmyManager.AddAttackTarget(P6Army2Manager, "Player6_AttackTarget2");
-    -- AiArmyManager.AddAttackTarget(P6Army2Manager, "Player6_AttackTarget3");
-    -- AiArmyManager.AddAttackTarget(P6Army2Manager, "Player6_AttackTarget4");
-    -- AiArmyManager.AddGuardPosition(P6Army2Manager, "Player6_PatrolPoint1");
-    -- AiArmyManager.AddGuardPosition(P6Army2Manager, "Player6_PatrolPoint2");
-    -- AiArmyManager.AddGuardPosition(P6Army2Manager, "Player6_PatrolPoint3");
-
-
-    -- P6Army3 = AiArmy.New(6, 8, GetPosition("Player6_PatrolPoint3"), 3500);
-    -- AiTroopSpawner.AddArmy(P6BarracksSpawner, P6Army3);
-    -- AiTroopSpawner.AddArmy(P6ArcherySpawner, P6Army3);
-    -- AiTroopSpawner.AddArmy(P6StableSpawner, P6Army3);
-    -- AiTroopSpawner.AddArmy(P6FoundrySpawner, P6Army3);
-
-    -- P6Army3Manager = AiArmyManager.Create(P6Army3);
-    -- AiArmyManager.AddAttackTarget(P6Army3Manager, "Player6_AttackTarget1");
-    -- AiArmyManager.AddAttackTarget(P6Army3Manager, "Player6_AttackTarget2");
-    -- AiArmyManager.AddAttackTarget(P6Army3Manager, "Player6_AttackTarget3");
-    -- AiArmyManager.AddAttackTarget(P6Army3Manager, "Player6_AttackTarget4");
-    -- AiArmyManager.AddGuardPosition(P6Army3Manager, "Player6_PatrolPoint1");
-    -- AiArmyManager.AddGuardPosition(P6Army3Manager, "Player6_PatrolPoint2");
-    -- AiArmyManager.AddGuardPosition(P6Army3Manager, "Player6_PatrolPoint3");
-
-
-    -- AiArmyManager.Synchronize(P6Army1Manager, P6Army2Manager, P6Army3Manager);
 end
 
 function MakeTestArmiesAttack()

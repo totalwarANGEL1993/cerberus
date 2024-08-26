@@ -198,12 +198,12 @@ end
 function Tutorial.Internal:OnEnterPressed()
     if self.Data.Running then
         local Iterator = self.Data.Iterator;
-        if not self.Data.Messages[Iterator].Trigger then
+        if not self.Data.Messages[Iterator].NextTrigger then
             -- Continue to next page
             self:HideTutorialArrow();
             self.Data.Iterator = Iterator +1;
-            self:ActivateNextPageTrigger();
             self:PrintTutorialMessage();
+            self:ActivateNextPageTrigger();
         end
     end
 end
@@ -213,12 +213,10 @@ function Tutorial.Internal:ActivateNextPageTrigger()
         local Iterator = self.Data.Iterator;
         -- Start condition job of next page
         if self.Data.Messages[Iterator] then
-            if self.Data.Messages[Iterator].Condition then
-                if not self.Data.Messages[Iterator].Trigger then
-                    self.Data.Messages[Iterator].Trigger = Job.Turn(function()
-                        return Tutorial.Internal:NextPageTrigger();
-                    end);
-                end
+            if not self.Data.Messages[Iterator].NextTrigger then
+                self.Data.Messages[Iterator].NextTrigger = Job.Turn(function()
+                    return Tutorial.Internal:NextPageTrigger();
+                end);
             end
         end
     end
@@ -251,12 +249,12 @@ function Tutorial.Internal:NextPageTrigger()
     end
     -- Condition fulfilled
     if MessageData.Condition(MessageData) then
-        self.Data.Messages[self.Data.Iterator].Trigger = nil;
+        self.Data.Messages[self.Data.Iterator].NextTrigger = nil;
         self:HideTutorialArrow();
         self.Data.Iterator = self.Data.Iterator +1;
-        self:ActivateNextPageTrigger();
         Game.GameTimeReset();
         self:PrintTutorialMessage();
+        self:ActivateNextPageTrigger();
         return true;
     end
 end
