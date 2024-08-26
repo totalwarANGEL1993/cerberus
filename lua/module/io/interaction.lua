@@ -1,6 +1,7 @@
 Lib.Require("comfort/CreateNameForEntity");
 Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/CopyTable");
+Lib.Require("comfort/Localize");
 Lib.Register("module/io/Interaction");
 
 --- 
@@ -30,6 +31,26 @@ function Interaction.Npc(_PlayerID)
     return Interaction.Internal.LastInteractionNpc[_PlayerID];
 end
 
+-- Creates a new NPC.
+-- DO NOT USE MANUALLY!
+function Interaction.CreateNpc(_Data)
+    Interaction.Internal:CreateNpc(_Data);
+end
+
+-- Activates an existing inactive NPC.
+-- DO NOT USE MANUALLY!
+function Interaction.Activate(_ScriptName)
+    Interaction.Internal:Activate(_ScriptName);
+end
+
+-- Deactivates an existing active NPC.
+-- DO NOT USE MANUALLY!
+function Interaction.Deactivate(_ScriptName)
+    Interaction.Internal:Deactivate(_ScriptName);
+end
+
+-- Installs the core NPC stuff.
+-- DO NOT USE MANUALLY!
 function Interaction.Install()
     Interaction.Internal:Install();
 end
@@ -208,7 +229,7 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
             -- Deny if hero is not listed
             if not AnyHero then
                 if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
-                    Message(self:GetLocalizedMessage(Data.HeroInfo));
+                    Message(Localize(Data.HeroInfo));
                 end
                 return false;
             end
@@ -227,7 +248,7 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
             -- Deny if player is not listed
             if not AnyPlayer then
                 if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
-                    Message(self:GetLocalizedMessage(Data.PlayerInfo));
+                    Message(Localize(Data.PlayerInfo));
                 end
                 return false;
             end
@@ -236,19 +257,6 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
         return true;
     end
     return false;
-end
-
-function Interaction.Internal:GetLocalizedMessage(_Msg)
-    local Language = GetLanguage();
-    local Msg = _Msg;
-
-    if type(Msg) == "table" then
-        Msg = Msg[Language];
-    end
-    if string.find(Msg, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
-        Msg = XGUIEng.GetStringTableText(Msg);
-    end
-    return Msg;
 end
 
 function Interaction.Internal:OverrideNpcInteraction()

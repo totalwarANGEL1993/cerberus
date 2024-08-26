@@ -65,13 +65,13 @@ end
 --- (The TalkedTo value is reset.)
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerMerchant.Activate(_ScriptName)
-    Interaction.Internal:Activate(_ScriptName);
+    Interaction.Activate(_ScriptName);
 end
 
 --- Deactivates an existing active merchant NPC.
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerMerchant.Deactivate(_ScriptName)
-    Interaction.Internal:Deactivate(_ScriptName);
+    Interaction.Deactivate(_ScriptName);
 end
 
 --- Returns the amount of offerts.
@@ -172,7 +172,7 @@ end
 
 function NonPlayerMerchant.Internal:CreateNpc(_Data)
     self:Install();
-    Interaction.Internal:CreateNpc(_Data);
+    Interaction.CreateNpc(_Data);
 
     local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
     Data.IsMerchant = true;

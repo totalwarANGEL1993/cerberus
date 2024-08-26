@@ -1,5 +1,6 @@
 Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/Round");
+Lib.Require("comfort/Localize");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Require("module/ui/Placeholder");
 Lib.Require("module/mp/Syncer");
@@ -825,27 +826,9 @@ function BriefingSystem.Internal:AdjustBriefingPageCamHeight(_Page)
     return _Page;
 end
 
-function BriefingSystem.Internal:GetTextLocalized(_Text)
-    -- Create local copy of text
-    local Text = _Text;
-    if type(Text) == "table" then
-        Text = CopyTable(Text);
-    end
-    -- Localize text
-    local Language = GetLanguage();
-    if type(Text) == "table" then
-        Text = Text[Language];
-    end
-    -- String table text or replace placeholders
-    if string.find(Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
-        Text = XGUIEng.GetStringTableText(Text);
-    end
-    return Text;
-end
-
 function BriefingSystem.Internal:PrintHeadline(_Text)
     -- Create local copy of text
-    local Text = self:GetTextLocalized(_Text);
+    local Text = Localize(_Text);
     -- Add title format
     if not string.find(string.sub(Text, 1, 2), "@") then
         Text = "@center " ..Text;
@@ -858,7 +841,7 @@ end
 
 function BriefingSystem.Internal:PrintText(_Text)
     -- Create local copy of text
-    local Text = self:GetTextLocalized(_Text);
+    local Text = Localize(_Text);
     -- Replace placeholders
     Text = Placeholder.Replace(Text);
 
@@ -885,17 +868,9 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                     -- Fix buttons (doesn't work here)
                     XGUIEng.DisableButton("CinematicMC_Button" ..i, 1);
                     XGUIEng.DisableButton("CinematicMC_Button" ..i, 0);
-                    -- Localize text
-                    local Text = _Page.MC[i][1];
-                    if type(Text) == "table" then
-                        Text = Text[Language];
-                    end
-                    -- String table text and replace placeholders
-                    if string.find(Text, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
-                        Text = XGUIEng.GetStringTableText(Text);
-                    end
-                    Text = Placeholder.Replace(Text);
                     -- Set text
+                    local Text = Localize(_Page.MC[i][1]);
+                    Text = Placeholder.Replace(Text);
                     XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
                 end
             end

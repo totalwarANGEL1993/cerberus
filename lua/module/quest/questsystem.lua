@@ -1,7 +1,7 @@
 Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/GetHeadquarters");
 Lib.Require("comfort/GetMaxAmountOfPlayer");
-Lib.Require("comfort/GetLanguage");
+Lib.Require("comfort/Localize");
 Lib.Require("comfort/GetPlayerEntities");
 Lib.Require("comfort/GetResourceName");
 Lib.Require("comfort/KeyOf");
@@ -745,7 +745,8 @@ function QuestSystem.Internal:ApplyQuestResult(_QuestID, _ResultType, _Index)
             Text = Behavior[3];
         end
         if PlayerID == -1 or PlayerID == GUI.GetPlayerID() then
-            Message(self:GetLocalizedMessage(Text));
+            Text = Placeholder.Replace(Localize(Text));
+            Message(Text);
         end
 
     elseif Behavior[1] == Effect.Briefing then
@@ -1162,7 +1163,9 @@ function QuestSystem.Internal:OnQuestNpcInteraction(_NpcID, _HeroID)
                         if Quest.Objectives[j][3] then
                             if GetID(Quest.Objectives[j][3]) ~= GetID(_HeroID) then
                                 if Quest.Objectives[j][4] and GUI.GetPlayerID() == PlayerID then
-                                    Message(self:GetLocalizedMessage(Quest.Objectives[j][4]));
+                                    local Text = Quest.Objectives[j][4];
+                                    Text = Placeholder.Replace(Localize(Text));
+                                    Message(Text);
                                 end
                             else
                                 self.Quests[QuestID].Objectives[j][6] = true;
@@ -1188,18 +1191,5 @@ function QuestSystem.Internal:ContainsObjective(_QuestID, _Objective)
         end
     end
     return false;
-end
-
-function QuestSystem.Internal:GetLocalizedMessage(_Msg)
-    local Language = GetLanguage();
-    local Msg = _Msg;
-
-    if type(Msg) == "table" then
-        Msg = Msg[Language];
-    end
-    if string.find(Msg, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
-        Msg = XGUIEng.GetStringTableText(Msg);
-    end
-    return Msg;
 end
 

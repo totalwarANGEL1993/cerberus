@@ -49,13 +49,13 @@ end
 --- (The TalkedTo value is reset.)
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerCharacter.Activate(_ScriptName)
-    Interaction.Internal:Activate(_ScriptName);
+    Interaction.Activate(_ScriptName);
 end
 
 --- Deactivates an existing active NPC.
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerCharacter.Deactivate(_ScriptName)
-    Interaction.Internal:Deactivate(_ScriptName);
+    Interaction.Deactivate(_ScriptName);
 end
 
 --- Checks if any hero has talked to the NPC.
@@ -93,7 +93,7 @@ end
 
 function NonPlayerCharacter.Internal:CreateNpc(_Data)
     self:Install();
-    Interaction.Internal:CreateNpc(_Data);
+    Interaction.CreateNpc(_Data);
 
     local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
     Data.IsCharacter = true;
