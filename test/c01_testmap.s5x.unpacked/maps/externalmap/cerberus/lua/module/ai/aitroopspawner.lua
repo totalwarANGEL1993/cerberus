@@ -422,22 +422,29 @@ end
 
 function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
     local Spawner = self.Data.Spawners[_Index];
-    for i= table.getn(Spawner.Refilling), 1, -1 do
-        local TroopID = Spawner.Refilling[i];
-        if not IsExisting(Spawner.Refilling[i]) then
-            table.remove(self.Data.Spawners[_Index].Refilling, i);
-        else
-            local SpawnPos = GetPosition(Spawner.SpawnPoint);
-            if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
-                local Task = Logic.GetCurrentTaskList(TroopID);
-                if (not Task or not string.find(Task, "WALK")) then
-                    Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
-                end
+    if IsExisting(Spawner.ScriptName) then
+        for i= table.getn(Spawner.Refilling), 1, -1 do
+            local TroopID = Spawner.Refilling[i];
+            if not IsExisting(Spawner.Refilling[i]) then
+                table.remove(self.Data.Spawners[_Index].Refilling, i);
             else
-                local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
-                local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
-                if MaxAmount > CurAmount and not IsFighting(TroopID) and IsValidEntity(TroopID) then
-                    Tools.CreateSoldiersForLeader(TroopID, 1);
+                local SpawnPos = GetPosition(Spawner.SpawnPoint);
+                if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then
+                    if Logic.IsEntityMoving(TroopID) == false then
+                        Logic.MoveSettler(TroopID, SpawnPos.X, SpawnPos.Y);
+                    end
+                else
+                    local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
+                    local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
+                    if MaxAmount > CurAmount and not IsFighting(TroopID) and IsValidEntity(TroopID) then
+                        local PlayerID = Logic.EntityGetPlayer(TroopID);
+                        local SoldierType = Logic.LeaderGetSoldiersType(TroopID);
+                        local Position = GetPosition(Spawner.SpawnPoint);
+                        local SoldierID = Logic.CreateEntity(SoldierType, Position.X, Position.Y, 0, PlayerID);
+                        if IsExisting(SoldierID) then
+                            Logic.LeaderGetOneSoldier(TroopID);
+                        end
+                    end
                 end
             end
         end

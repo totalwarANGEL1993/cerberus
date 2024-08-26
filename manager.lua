@@ -1,7 +1,6 @@
 LibWriter = {
     ComponentList = {
         "module/ai/aiarmy",
-        "module/ai/aiarmymanager",
         "module/ai/aiarmyrefiller",
         "module/ai/aitroopspawner",
         "module/ai/aitrooptrainer",

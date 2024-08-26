@@ -48,7 +48,9 @@ end
 --- * Text         Text to print
 --- * Arrow        (Optional) Position of arrow
 --- * ArrowWidget  (Optional) Name of widget used for the arrow
+--- * ArrowUpdate  (Optional) Must return true, if arrow should be visible
 --- * ClickCatcher (Optional) Shows the click catcher widget
+--- * SlowMotion   (Optional) Time is decelerated to a minimum.
 --- * Condition    (Optional) Next page condition function
 --- * Action       (Optional) Page display action function
 --- 
@@ -196,12 +198,12 @@ end
 function Tutorial.Internal:OnEnterPressed()
     if self.Data.Running then
         local Iterator = self.Data.Iterator;
-        if not self.Data.Messages[Iterator].Trigger then
+        if not self.Data.Messages[Iterator].NextTrigger then
             -- Continue to next page
             self:HideTutorialArrow();
             self.Data.Iterator = Iterator +1;
-            self:ActivateNextPageTrigger();
             self:PrintTutorialMessage();
+            self:ActivateNextPageTrigger();
         end
     end
 end
@@ -211,12 +213,10 @@ function Tutorial.Internal:ActivateNextPageTrigger()
         local Iterator = self.Data.Iterator;
         -- Start condition job of next page
         if self.Data.Messages[Iterator] then
-            if self.Data.Messages[Iterator].Condition then
-                if not self.Data.Messages[Iterator].Trigger then
-                    self.Data.Messages[Iterator].Trigger = Job.Second(function()
-                        return Tutorial.Internal:NextPageTrigger();
-                    end);
-                end
+            if not self.Data.Messages[Iterator].NextTrigger then
+                self.Data.Messages[Iterator].NextTrigger = Job.Turn(function()
+                    return Tutorial.Internal:NextPageTrigger();
+                end);
             end
         end
     end
@@ -230,18 +230,31 @@ function Tutorial.Internal:NextPageTrigger()
     if not self.Data.Messages[self.Data.Iterator] then
         return true;
     end
+    local MessageData = self.Data.Messages[self.Data.Iterator];
+    -- Arrow update
+    if MessageData.ArrowUpdate then
+        local Widget = MessageData.ArrowWidget or "TutorialArrow";
+        local Alpha = (MessageData.ArrowUpdate(MessageData) and 255) or 0;
+        XGUIEng.SetMaterialColor(Widget, 0, 255, 255, 255, Alpha);
+    end
+    -- Slow Moition
+    if MessageData.SlowMotion then
+        Game.GameTimeSetFactor(0.01);
+    end
     -- No condition
-    if not self.Data.Messages[self.Data.Iterator].Condition then
+    if not MessageData.Condition then
+        Game.GameTimeReset();
         self:PrintTutorialMessage();
         return true;
     end
     -- Condition fulfilled
-    if self.Data.Messages[self.Data.Iterator].Condition(self.Data.Messages[self.Data.Iterator]) then
-        self.Data.Messages[self.Data.Iterator].Trigger = nil;
+    if MessageData.Condition(MessageData) then
+        self.Data.Messages[self.Data.Iterator].NextTrigger = nil;
         self:HideTutorialArrow();
         self.Data.Iterator = self.Data.Iterator +1;
-        self:ActivateNextPageTrigger();
+        Game.GameTimeReset();
         self:PrintTutorialMessage();
+        self:ActivateNextPageTrigger();
         return true;
     end
 end
@@ -252,6 +265,7 @@ function Tutorial.Internal:ShowTutorialArrow()
     if Data and Data.Arrow then
         local Position = self.Data.Messages[self.Data.Iterator].Arrow;
         XGUIEng.SetWidgetPosition(Widget, Position[1], Position[2]);
+        XGUIEng.SetMaterialColor(Widget, 0, 255, 255, 255, 255);
         XGUIEng.SetWidgetSize(Widget, 30, 30);
         XGUIEng.ShowWidget(Widget, 1);
     end

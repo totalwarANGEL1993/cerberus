@@ -437,7 +437,13 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
                     local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                     local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
                     if MaxAmount > CurAmount and not IsFighting(TroopID) and IsValidEntity(TroopID) then
-                        Tools.CreateSoldiersForLeader(TroopID, 1);
+                        local PlayerID = Logic.EntityGetPlayer(TroopID);
+                        local SoldierType = Logic.LeaderGetSoldiersType(TroopID);
+                        local Position = GetPosition(Spawner.SpawnPoint);
+                        local SoldierID = Logic.CreateEntity(SoldierType, Position.X, Position.Y, 0, PlayerID);
+                        if IsExisting(SoldierID) then
+                            Logic.LeaderGetOneSoldier(TroopID);
+                        end
                     end
                 end
             end
