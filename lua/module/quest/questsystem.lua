@@ -16,7 +16,7 @@ Lib.Require("module/quest/QuestConstants");
 Lib.Register("module/quest/QuestSystem");
 
 --- 
---- 
+--- Replica of the quest system of Settlers 6.
 ---
 --- Version 1.0.0
 --- 
@@ -26,18 +26,45 @@ QuestSystem = QuestSystem or {};
 -- -------------------------------------------------------------------------- --
 -- API
 
+--- Creates a new quest.
+--- 
+--- #### Example
+--- ```lua
+--- CreateQuest {
+---     Name        = "foo",
+---     Receiver    = 1,
+---     State       = QuestState.Inactive,
+---     Result      = 0,
+---     Time        = -1,
+--- 
+---     Conditions  = {{Condition.Time, 5}},
+---     Objectives  = {{Objective.Script, AnyFunction, ...}},
+---     Rewards     = {{Effect.Victory}},
+---     Reprisals   = {{Effect.Defeat}},
+--- }
+--- ```
+--- @param _Data table Data table of quest
+--- @return integer QuestID ID of quest
 function CreateQuest(_Data)
     return QuestSystem.Internal:CreateQuest(_Data);
 end
 
+--- Returns the ID of the quest.
+--- @param _QuestName string Name of quest
+--- @return integer QuestID ID of quest
 function GetQuestID(_QuestName)
     return QuestSystem.Internal:GetQuestIDByName(_QuestName);
 end
 
+--- Checks if the quest exists.
+--- @param _QuestName string Name of quest
+--- @return boolean Exist Quest exist
 function IsValidQuest(_QuestName)
-    return QuestSystem.Internal:GetQuestIDByName(_QuestName) ~= 0;
+    return GetQuestID(_QuestName) ~= 0;
 end
 
+--- Activates the quest.
+--- @param _QuestName string Name of quest
 function StartQuest(_QuestName)
     local QuestID = GetQuestID(_QuestName);
     if QuestID > 0 then
@@ -48,21 +75,27 @@ function StartQuest(_QuestName)
     end
 end
 
-function RestartQuest(_QuestName)
+--- Resets the quest.
+--- @param _QuestName string Name of quest
+function ResetQuest(_QuestName)
     local QuestID = GetQuestID(_QuestName);
     if QuestID > 0 then
         local QuestData = QuestSystem.Internal[QuestID];
         if QuestData.State == QuestState.Done and QuestData.Result ~= QuestResult.None then
-            QuestSystem.Internal:RestartQuest(QuestID);
+            QuestSystem.Internal:ResetQuest(QuestID);
         end
     end
 end
 
-function RestartQuestForceActive(_QuestName)
-    RestartQuest(_QuestName);
+--- Resets the quest and starts it immedaitly.
+--- @param _QuestName string Name of quest
+function ResetQuestForceActive(_QuestName)
+    ResetQuest(_QuestName);
     StartQuest(_QuestName);
 end
 
+--- Makes the quest fail.
+--- @param _QuestName string Name of quest
 function FailQuest(_QuestName)
     local QuestID = GetQuestID(_QuestName);
     if QuestID > 0 then
@@ -73,6 +106,8 @@ function FailQuest(_QuestName)
     end
 end
 
+--- Makes the the quest succeed.
+--- @param _QuestName string Name of quest
 function WinQuest(_QuestName)
     local QuestID = GetQuestID(_QuestName);
     if QuestID > 0 then
@@ -83,6 +118,8 @@ function WinQuest(_QuestName)
     end
 end
 
+--- Interrupts an active or not triggered quest.
+--- @param _QuestName string Name of quest
 function InterruptQuest(_QuestName)
     local QuestID = GetQuestID(_QuestName);
     if QuestID > 0 then
@@ -111,7 +148,7 @@ end
 function GameCallback_Logic_OnQuestInterrupt(_QuestID, _PlayerID)
 end
 
-function GameCallback_Logic_OnQuestRestart(_QuestID, _PlayerID)
+function GameCallback_Logic_OnQuestReset(_QuestID, _PlayerID)
 end
 
 -- -------------------------------------------------------------------------- --
@@ -322,22 +359,22 @@ function QuestSystem.Internal:SucceedQuest(_QuestID)
     end
 end
 
-function QuestSystem.Internal:RestartQuest(_QuestID)
+function QuestSystem.Internal:ResetQuest(_QuestID)
     if self.Quests[_QuestID].State == QuestState.Done then
         self.Quests[_QuestID].Result = QuestResult.None;
         self.Quests[_QuestID].State = QuestState.Inactive;
         self.Quests[_QuestID].StartTime = nil;
         self.Quests[_QuestID].FinishTime = nil;
 
-        self:RestartQuestObjectives(_QuestID);
-        self:RestartQuestConditions(_QuestID);
-        self:RestartQuestCallbacks(_QuestID);
+        self:ResetQuestObjectives(_QuestID);
+        self:ResetQuestConditions(_QuestID);
+        self:ResetQuestCallbacks(_QuestID);
 
-        GameCallback_Logic_OnQuestRestart(_QuestID, self.Quests[_QuestID].Receiver);
+        GameCallback_Logic_OnQuestReset(_QuestID, self.Quests[_QuestID].Receiver);
     end
 end
 
-function QuestSystem.Internal:RestartQuestObjectives(_QuestID)
+function QuestSystem.Internal:ResetQuestObjectives(_QuestID)
     for i= 1, table.getn(self.Quests[_QuestID].Objectives) do
         -- Reset completed
         self.Quests[_QuestID].Objectives[i].Completed = nil;
@@ -370,7 +407,7 @@ function QuestSystem.Internal:RestartQuestObjectives(_QuestID)
     end
 end
 
-function QuestSystem.Internal:RestartQuestCallbacks(_QuestID)
+function QuestSystem.Internal:ResetQuestCallbacks(_QuestID)
     for i= 1, table.getn(self.Quests[_QuestID].Rewards), 1 do
         -- Reset custom
         if self.Quests[_QuestID].Rewards[i][1] == Objective.Script then
@@ -389,7 +426,7 @@ function QuestSystem.Internal:RestartQuestCallbacks(_QuestID)
     end
 end
 
-function QuestSystem.Internal:RestartQuestConditions(_QuestID)
+function QuestSystem.Internal:ResetQuestConditions(_QuestID)
     for i= 1, table.getn(self.Quests[_QuestID].Conditions) do
         -- Reset custom
         if self.Quests[_QuestID].Conditions[i][1] == Objective.Script then
@@ -795,10 +832,17 @@ function QuestSystem.Internal:ApplyQuestResult(_QuestID, _ResultType, _Index)
             self:TriggerQuest(QuestID);
         end
 
+    elseif Behavior[1] == Effect.QuestReset then
+        local QuestID = self:GetQuestIDByName(Behavior[2]);
+        if QuestID ~= 0 then
+            self:ResetQuest(QuestID);
+        end
+
     elseif Behavior[1] == Effect.QuestRestart then
         local QuestID = self:GetQuestIDByName(Behavior[2]);
         if QuestID ~= 0 then
-            self:RestartQuest(QuestID);
+            self:ResetQuest(QuestID);
+            self:TriggerQuest(QuestID);
         end
 
     elseif Behavior[1] == Effect.Technology then
