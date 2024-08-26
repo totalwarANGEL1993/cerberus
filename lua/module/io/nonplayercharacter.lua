@@ -16,9 +16,12 @@ NonPlayerCharacter = NonPlayerCharacter or {}
 
 --- Creates a new NPC.
 ---
+--- If a NPC does not have a callback they will remain active until they are
+--- deactivated manually.
+---
 --- Possible fields for definition:
 --- * ScriptName     (Required) ScriptName of NPC
---- * Callback       (Required) Callback for interaction
+--- * Callback       (Optional) Callback for interaction
 --- * LookAt         (Optional) NPC looks at hero (Default: true)
 --- * Hero           (Optional) ScriptName of hero who can talk to NPC
 --- * WrongHeroMsg   (Optional) Wrong hero message
@@ -196,11 +199,13 @@ function NonPlayerCharacter.Internal:OnNpcRegularInteraction(_NpcScriptName, _Da
     local NpcID = GetID(_NpcScriptName);
     _Data.TalkedTo = HeroID;
     Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
-    Interaction.Internal:Deactivate(_NpcScriptName);
     if _Data.LookAt then
         LookAt(_NpcScriptName, _HeroScriptName);
     end
-    _Data:Callback(HeroID);
+    if _Data.Callback then
+        Interaction.Internal:Deactivate(_NpcScriptName);
+        _Data:Callback(HeroID);
+    end
     return _Data;
 end
 
@@ -211,8 +216,10 @@ function NonPlayerCharacter.Internal:OnNpcFolowInteraction(_NpcScriptName, _Data
         if IsNear(_NpcScriptName, _Data.Target, 1200) then
             _Data.TalkedTo = HeroID;
             Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
-            Interaction.Internal:Deactivate(_NpcScriptName);
-            _Data:Callback(HeroID);
+            if _Data.Callback then
+                Interaction.Internal:Deactivate(_NpcScriptName);
+                _Data:Callback(HeroID);
+            end
         else
             if _Data.WayCallback then
                 _Data:WayCallback(HeroID);
@@ -234,7 +241,9 @@ function NonPlayerCharacter.Internal:OnNpcWaypointInteraction(_NpcScriptName, _D
         _Data.TalkedTo = HeroID;
         Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
         Interaction.Internal:Deactivate(_NpcScriptName);
-        _Data:Callback(HeroID);
+        if _Data.Callback then
+            _Data:Callback(HeroID);
+        end
     else
         if _Data.WayCallback then
             _Data:WayCallback(HeroID);

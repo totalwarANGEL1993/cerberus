@@ -49,6 +49,12 @@ function Interaction.Deactivate(_ScriptName)
     Interaction.Internal:Deactivate(_ScriptName);
 end
 
+-- Checks, if the entity is an npc.
+-- DO NOT USE MANUALLY!
+function Interaction.IsNpc(_ScriptName)
+    return Interaction.Internal:IsNpc(_ScriptName);
+end
+
 -- Installs the core NPC stuff.
 -- DO NOT USE MANUALLY!
 function Interaction.Install()
@@ -121,7 +127,7 @@ function Interaction.Internal:CreateNpc(_Data)
 
     local Data = {
         ScriptName = _Data.ScriptName,
-        Callback   = _Data.Callback or function() end,
+        Callback   = _Data.Callback,
         Active     = false,
         Hero       = _Data.Hero,
         HeroInfo   = _Data.WrongHeroMsg,
@@ -155,7 +161,7 @@ end
 
 function Interaction.Internal:Activate(_ScriptName)
     local ID = GetID(_ScriptName);
-    if Logic.IsSettler(ID) == 1 then
+    if self.Data.IO[_ScriptName] and Logic.IsSettler(ID) == 1 then
         Logic.SetOnScreenInformation(ID, 1);
         self.Data.IO[_ScriptName].Active = true;
         GameCallback_Logic_OnNpcActivated(_ScriptName, self.Data.IO[_ScriptName]);
@@ -164,11 +170,15 @@ end
 
 function Interaction.Internal:Deactivate(_ScriptName)
     local ID = GetID(_ScriptName);
-    if Logic.IsSettler(ID) == 1 then
+    if self.Data.IO[_ScriptName] and Logic.IsSettler(ID) == 1 then
         Logic.SetOnScreenInformation(ID, 0);
         self.Data.IO[_ScriptName].Active = false;
         GameCallback_Logic_OnNpcDeactivated(_ScriptName, self.Data.IO[_ScriptName]);
     end
+end
+
+function Interaction.Internal:IsNpc(_ScriptName)
+    return self.Data.IO[_ScriptName] ~= nil;
 end
 
 function Interaction.Internal:HeroesLookAtNpc(_HeroID, _NpcID)
