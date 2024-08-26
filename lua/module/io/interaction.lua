@@ -98,6 +98,12 @@ end
 function GameCallback_Logic_OnNpcDeactivated(_Name, _Data)
 end
 
+--- Called when a npc is updated.
+--- @param _Name string Script name of npc
+--- @param _Data table  Data object of npc
+function GameCallback_Logic_OnNpcUpdated(_Name, _Data)
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -123,7 +129,7 @@ function Interaction.Internal:Install()
 end
 
 function Interaction.Internal:CreateNpc(_Data)
-    Interaction.Internal:DeleteNpc(_Data.ScriptName);
+    self:DeleteNpc(_Data.ScriptName);
 
     local Data = {
         ScriptName = _Data.ScriptName,
@@ -175,6 +181,19 @@ function Interaction.Internal:Deactivate(_ScriptName)
         self.Data.IO[_ScriptName].Active = false;
         GameCallback_Logic_OnNpcDeactivated(_ScriptName, self.Data.IO[_ScriptName]);
     end
+end
+
+function Interaction.Internal:UpdateNpc(_Data)
+    local Data = self.Data.IO[_Data.ScriptName];
+    if not Data then
+        return self:CreateNpc(_Data);
+    end
+    Data.Callback   = _Data.Callback or Data.Callback;
+    Data.Hero       = _Data.Hero or Data.Hero;
+    Data.HeroInfo   = _Data.WrongHeroMsg or Data.HeroInfo;
+    Data.Player     = _Data.Player or Data.Player;
+    Data.PlayerInfo = _Data.WrongPlayerMsg or Data.PlayerInfo;
+    GameCallback_Logic_OnNpcUpdated(_Data.ScriptName, Data);
 end
 
 function Interaction.Internal:IsNpc(_ScriptName)
