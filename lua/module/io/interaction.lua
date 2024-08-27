@@ -31,6 +31,20 @@ function Interaction.Npc(_PlayerID)
     return Interaction.Internal.LastInteractionNpc[_PlayerID];
 end
 
+-- Checks, if the npc is active.
+--- @param _ScriptName string Scriptname of npc
+--- @return boolean Active NPC is active
+function Interaction.IsActive(_ScriptName)
+    return Interaction.Internal:IsActive(_ScriptName);
+end
+
+-- Checks, if the entity is an NPC.
+--- @param _ScriptName string Scriptname of npc
+--- @return boolean IsNPC Entity is NPC
+function Interaction.IsNpc(_ScriptName)
+    return Interaction.Internal:IsNpc(_ScriptName);
+end
+
 -- Creates a new NPC.
 -- DO NOT USE MANUALLY!
 function Interaction.CreateNpc(_Data)
@@ -47,12 +61,6 @@ end
 -- DO NOT USE MANUALLY!
 function Interaction.Deactivate(_ScriptName)
     Interaction.Internal:Deactivate(_ScriptName);
-end
-
--- Checks, if the entity is an npc.
--- DO NOT USE MANUALLY!
-function Interaction.IsNpc(_ScriptName)
-    return Interaction.Internal:IsNpc(_ScriptName);
 end
 
 -- Installs the core NPC stuff.
@@ -177,7 +185,10 @@ end
 function Interaction.Internal:Deactivate(_ScriptName)
     local ID = GetID(_ScriptName);
     if self.Data.IO[_ScriptName] and Logic.IsSettler(ID) == 1 then
-        Logic.SetOnScreenInformation(ID, 0);
+        -- Only disable NPC if not used in any active quest
+        if not QuestSystem or not QuestSystem.IsQuestNpcUsedByQuest(_ScriptName) then
+            Logic.SetOnScreenInformation(ID, 0);
+        end
         self.Data.IO[_ScriptName].Active = false;
         GameCallback_Logic_OnNpcDeactivated(_ScriptName, self.Data.IO[_ScriptName]);
     end
@@ -198,6 +209,10 @@ end
 
 function Interaction.Internal:IsNpc(_ScriptName)
     return self.Data.IO[_ScriptName] ~= nil;
+end
+
+function Interaction.Internal:IsActive(_ScriptName)
+    return self:IsNpc(_ScriptName) and self.Data.IO[_ScriptName].Active == true;
 end
 
 function Interaction.Internal:HeroesLookAtNpc(_HeroID, _NpcID)
@@ -296,22 +311,25 @@ function Interaction.Internal:OverrideNpcInteraction()
         local PlayerID = Logic.EntityGetPlayer(_HeroID);
         local HeroScriptName = CreateNameForEntity(_HeroID);
         local NpcScriptName = CreateNameForEntity(_NpcID);
-        Interaction.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
-        Interaction.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
+        -- NPCs of quests always have priority over NPC system!
+        if not QuestSystem or not QuestSystem.IsQuestNpcUsedByQuest(NpcScriptName) then
+            Interaction.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
+            Interaction.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
 
-        if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
-            local NpcID = _NpcID;
-            local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
-            if MerchantID ~= 0 then
-                NpcID = MerchantID;
-            end
-            local ScriptName = Logic.GetEntityName(NpcID);
-            local Data = Interaction.Internal.Data.IO[ScriptName];
-            if Data then
-                if Data.IsMerchant then
-                    GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID, Data);
-                else
-                    GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID, Data);
+            if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
+                local NpcID = _NpcID;
+                local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
+                if MerchantID ~= 0 then
+                    NpcID = MerchantID;
+                end
+                local ScriptName = Logic.GetEntityName(NpcID);
+                local Data = Interaction.Internal.Data.IO[ScriptName];
+                if Data then
+                    if Data.IsMerchant then
+                        GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID, Data);
+                    else
+                        GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID, Data);
+                    end
                 end
             end
         end

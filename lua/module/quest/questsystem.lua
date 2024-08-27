@@ -130,6 +130,12 @@ function InterruptQuest(_QuestName)
     end
 end
 
+--- Checks if a NPC is used by quests.
+--- DO NOT USE THIS MANUALLY!
+function QuestSystem.IsQuestNpcUsedByQuest(_NPC, _PlayerID, _QuestID)
+    return QuestSystem.Internal:IsQuestNpcUsedByQuest(_NPC, _PlayerID, _QuestID);
+end
+
 -- -------------------------------------------------------------------------- --
 -- Callbacks
 
@@ -957,13 +963,11 @@ function QuestSystem.Internal:ShowQuestMarkers(_QuestID)
                     self.Quests[_QuestID].Objectives[i][8] = EffectID;
                 end
             elseif QuestData.Objectives[i][1] == Objective.NPC then
-                if not self:IsNpcUsedByOtherQuestOfPlayer(_QuestID, QuestData.Receiver, QuestData.Objectives[i][2]) then
-                    if not QuestData.Objectives[i][5] then
-                        if GUI.GetPlayerID() == QuestData.Receiver then
-                            EnableNpcMarker(QuestData.Objectives[i][2]);
-                        end
-                        self.Quests[_QuestID].Objectives[i][5] = true;
+                if not QuestData.Objectives[i][5] then
+                    if GUI.GetPlayerID() == QuestData.Receiver then
+                        EnableNpcMarker(QuestData.Objectives[i][2]);
                     end
+                    self.Quests[_QuestID].Objectives[i][5] = true;
                 end
             end
         end
@@ -980,9 +984,13 @@ function QuestSystem.Internal:RemoveQuestMarkers(_QuestID)
                     Logic.DestroyEffect(QuestData.Objectives[i][8]);
                 end
             elseif QuestData.Objectives[i][1] == Objective.NPC then
-                if not self:IsNpcUsedByOtherQuestOfPlayer(_QuestID, QuestData.Receiver, QuestData.Objectives[i][2]) then
-                    if GUI.GetPlayerID() == QuestData.Receiver then
-                        DisableNpcMarker(QuestData.Objectives[i][2]);
+                if self.Quests[_QuestID].Objectives[i][5] then
+                    local ScriptName = QuestData.Objectives[i][2];
+                    if not self:IsQuestNpcUsedByQuest(ScriptName, QuestData.Receiver, _QuestID) then
+                        if  GUI.GetPlayerID() == QuestData.Receiver
+                        and not Interaction.IsActive(ScriptName) then
+                            DisableNpcMarker(ScriptName);
+                        end
                     end
                     self.Quests[_QuestID].Objectives[i][5] = false;
                 end
@@ -991,13 +999,13 @@ function QuestSystem.Internal:RemoveQuestMarkers(_QuestID)
     end
 end
 
-function QuestSystem.Internal:IsNpcUsedByOtherQuestOfPlayer(_QuestID, _PlayerID, _NPC)
-    local QuestData = self.Quests[_QuestID];
+function QuestSystem.Internal:IsQuestNpcUsedByQuest(_NPC, _PlayerID, _QuestID)
+    local QuestData = (_QuestID ~= nil and self.Quests[_QuestID]) or nil;
     for i= 1, table.getn(self.Quests) do
         local Other = self.Quests[i];
-        if QuestData.Name ~= Other.Name then
+        if not QuestData or QuestData.Name ~= Other.Name then
             if Other.State == QuestState.Active then
-                if Other.Receiver == _PlayerID then
+                if not _PlayerID or Other.Receiver == _PlayerID then
                     for j= 1, table.getn(Other.Objectives), 1 do
                         if Other.Objectives[j][1] == Objective.NPC then
                             if GetID(Other.Objectives[j][2]) == GetID(_NPC) then
