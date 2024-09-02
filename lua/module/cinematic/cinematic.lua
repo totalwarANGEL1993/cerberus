@@ -8,6 +8,8 @@ Lib.Register("module/cinematic/Cinematic");
 --- This file is supposed to be used as dependency for other scripts. Only use
 --- the functions, if you know what you are doing!
 --- 
+--- Note: GameCallback_Escape is turned into an asynchronus call.
+--- 
 --- Version 1.2.0
 --- 
 Cinematic = Cinematic or {}
@@ -117,6 +119,13 @@ function Cinematic.Hide(_PlayerID)
 end
 
 -- -------------------------------------------------------------------------- --
+
+-- Allows to overwrite the usage of escape.
+function GameCallback_Logic_PlayerEscape(_PlayerID)
+    return true;
+end
+
+-- -------------------------------------------------------------------------- --
 -- Internal
 
 Cinematic.Internal = Cinematic.Internal or {
@@ -132,9 +141,22 @@ function Cinematic.Internal:Install()
         self.IsInstalled = true;
 
         Camera.ZoomSetFOV(42);
+        Input.KeyBindDown(Keys.Escape, "GameCallback_Escape()", 15);
+
+        self:OverrideEscape();
         self:InitRestoreAfterLoad();
+
         for PlayerID = 1, GetMaxAmountOfPlayer() do
             self.Data.EventStatus[PlayerID] = {};
+        end
+    end
+end
+
+function Cinematic.Internal:OverrideEscape()
+    self.Orig_GameCallback_Escape = GameCallback_Escape;
+    GameCallback_Escape = function()
+        if GameCallback_Logic_PlayerEscape(GUI.GetPlayerID()) then
+            Cinematic.Internal.Orig_GameCallback_Escape();
         end
     end
 end
@@ -144,6 +166,7 @@ function Cinematic.Internal:InitRestoreAfterLoad()
 	Mission_OnSaveGameLoaded = function()
 		Cinematic.Internal.Orig_Mission_OnSaveGameLoaded();
         Camera.ZoomSetFOV(42);
+        Input.KeyBindDown(Keys.Escape, "GameCallback_Escape()", 15);
 	end
 end
 

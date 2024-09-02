@@ -16,9 +16,12 @@ NonPlayerCharacter = NonPlayerCharacter or {}
 
 --- Creates a new NPC.
 ---
+--- If a NPC does not have a callback they will remain active until they are
+--- deactivated manually.
+---
 --- Possible fields for definition:
 --- * ScriptName     (Required) ScriptName of NPC
---- * Callback       (Required) Callback for interaction
+--- * Callback       (Optional) Callback for interaction
 --- * LookAt         (Optional) NPC looks at hero (Default: true)
 --- * Hero           (Optional) ScriptName of hero who can talk to NPC
 --- * WrongHeroMsg   (Optional) Wrong hero message
@@ -28,6 +31,24 @@ NonPlayerCharacter = NonPlayerCharacter or {}
 --- @param _Data table NPC definition table
 function NonPlayerCharacter.Create(_Data)
     NonPlayerCharacter.Internal:CreateNpc(_Data);
+end
+
+--- Updates the data of the npc.
+--- 
+--- If the npc does not exist, it is automatically initalized.
+---
+--- Possible fields for definition:
+--- * ScriptName     (Required) ScriptName of NPC
+--- * Callback       (Optional) Callback for interaction
+--- * LookAt         (Optional) NPC looks at hero (Default: true)
+--- * Hero           (Optional) ScriptName of hero who can talk to NPC
+--- * WrongHeroMsg   (Optional) Wrong hero message
+--- * Player         (Optional) Player that can talk to NPC
+--- * WrongPlayerMsg (Optional) Wrong player message
+--- 
+--- @param _Data table Merchant definition table
+function NonPlayerCharacter.Update(_Data)
+    NonPlayerCharacter.Internal:UpdateNpc(_Data);
 end
 
 --- Deletes an NPC (but not the settler).
@@ -49,13 +70,13 @@ end
 --- (The TalkedTo value is reset.)
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerCharacter.Activate(_ScriptName)
-    Interaction.Internal:Activate(_ScriptName);
+    Interaction.Activate(_ScriptName);
 end
 
 --- Deactivates an existing active NPC.
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerCharacter.Deactivate(_ScriptName)
-    Interaction.Internal:Deactivate(_ScriptName);
+    Interaction.Deactivate(_ScriptName);
 end
 
 --- Checks if any hero has talked to the NPC.
@@ -72,6 +93,14 @@ end
 function NonPlayerCharacter.HeroTalkedTo(_HeroScriptName, _NpcScriptName)
     local ID = GetID(_HeroScriptName);
     return NonPlayerCharacter.Internal:TalkedToNpc(_NpcScriptName, ID);
+end
+
+--- Checks if the player has talked to the NPC.
+--- @param _PlayerID integer ID of player
+--- @param _NpcScriptName string  ScriptName of NPC
+--- @return boolean TalkedTo Player talked to NPC
+function NonPlayerCharacter.PlayerTalkedTo(_PlayerID, _NpcScriptName)
+    return NonPlayerCharacter.Internal:TalkedToNpc(_NpcScriptName, _PlayerID);
 end
 
 -- -------------------------------------------------------------------------- --
@@ -93,7 +122,7 @@ end
 
 function NonPlayerCharacter.Internal:CreateNpc(_Data)
     self:Install();
-    Interaction.Internal:CreateNpc(_Data);
+    Interaction.CreateNpc(_Data);
 
     local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
     Data.IsCharacter = true;
@@ -114,12 +143,35 @@ function NonPlayerCharacter.Internal:DeleteNpc(_ScriptName)
     Interaction.Internal:DeleteNpc(_ScriptName);
 end
 
+function NonPlayerCharacter.Internal:UpdateNpc(_Data)
+    self:Install();
+    local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
+    if not Data then
+        return self:CreateNpc(_Data);
+    end
+    if Data.IsCharacter then
+        Data.LookAt      = (_Data.LookAt ~= nil and _Data.LookAt) or Data.LookAt;
+        Data.Follow      = (_Data.Follow ~= nil and _Data.Follow) or Data.Follow;
+        Data.Distance    = _Data.Distance or Data.Distance;
+        Data.Target      = _Data.Target or Data.Target;
+        Data.Waypoints   = _Data.Waypoints or Data.Waypoints;
+        Data.WayCallback = _Data.WayCallback or Data.WayCallback;
+        Data.Wanderer    = _Data.StrayPoints or Data.Wanderer;
+        Data.Waittime    = _Data.Waittime or Data.Waittime;
+    end
+    Interaction.UpdateNpc(Data);
+end
+
 function NonPlayerCharacter.Internal:TalkedToNpc(_NpcScriptName, _ID)
     if Interaction.Internal.Data.IO[_NpcScriptName] then
         local Data = Interaction.Internal.Data.IO[_NpcScriptName];
         if Data.TalkedTo then
             if _ID and _ID ~= 0 then
-                return Data.TalkedTo == _ID;
+                if _ID > 17 then
+                    return Logic.EntityGetPlayer(Data.TalkedTo) == _ID;
+                else
+                    return Data.TalkedTo == _ID;
+                end
             end
             return true;
         end
@@ -140,6 +192,9 @@ function NonPlayerCharacter.Internal:OnNpcActivated(_ScriptName, _Data)
 end
 
 function NonPlayerCharacter.Internal:OnNpcDeactivated(_ScriptName, _Data)
+end
+
+function NonPlayerCharacter.Internal:OnNpcUpdated(_ScriptName, _Data)
 end
 
 function NonPlayerCharacter.Internal:OverrideNpcInteractionCallbacks()
@@ -167,6 +222,12 @@ function NonPlayerCharacter.Internal:OverrideNpcInteractionCallbacks()
     GameCallback_Logic_OnNpcDeactivated = function(_ScriptName, _Data)
         NonPlayerCharacter.Internal.Orig_GameCallback_Logic_OnNpcDeactivated(_ScriptName, _Data);
         NonPlayerCharacter.Internal:OnNpcDeactivated(_ScriptName, _Data);
+    end
+
+    self.Orig_GameCallback_Logic_OnNpcUpdated = GameCallback_Logic_OnNpcUpdated;
+    GameCallback_Logic_OnNpcUpdated = function(_ScriptName, _Data)
+        NonPlayerCharacter.Internal.Orig_GameCallback_Logic_OnNpcUpdated(_ScriptName, _Data);
+        NonPlayerCharacter.Internal:OnNpcUpdated(_ScriptName, _Data);
     end
 end
 
@@ -196,11 +257,13 @@ function NonPlayerCharacter.Internal:OnNpcRegularInteraction(_NpcScriptName, _Da
     local NpcID = GetID(_NpcScriptName);
     _Data.TalkedTo = HeroID;
     Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
-    Interaction.Internal:Deactivate(_NpcScriptName);
     if _Data.LookAt then
         LookAt(_NpcScriptName, _HeroScriptName);
     end
-    _Data:Callback(HeroID);
+    if _Data.Callback then
+        Interaction.Internal:Deactivate(_NpcScriptName);
+        _Data:Callback(HeroID);
+    end
     return _Data;
 end
 
@@ -211,8 +274,10 @@ function NonPlayerCharacter.Internal:OnNpcFolowInteraction(_NpcScriptName, _Data
         if IsNear(_NpcScriptName, _Data.Target, 1200) then
             _Data.TalkedTo = HeroID;
             Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
-            Interaction.Internal:Deactivate(_NpcScriptName);
-            _Data:Callback(HeroID);
+            if _Data.Callback then
+                Interaction.Internal:Deactivate(_NpcScriptName);
+                _Data:Callback(HeroID);
+            end
         else
             if _Data.WayCallback then
                 _Data:WayCallback(HeroID);
@@ -233,8 +298,10 @@ function NonPlayerCharacter.Internal:OnNpcWaypointInteraction(_NpcScriptName, _D
     if IsNear(_Data.ScriptName, LastWaypoint, 1200) then
         _Data.TalkedTo = HeroID;
         Interaction.Internal:HeroesLookAtNpc(HeroID, NpcID);
-        Interaction.Internal:Deactivate(_NpcScriptName);
-        _Data:Callback(HeroID);
+        if _Data.Callback then
+            Interaction.Internal:Deactivate(_NpcScriptName);
+            _Data:Callback(HeroID);
+        end
     else
         if _Data.WayCallback then
             _Data:WayCallback(HeroID);
