@@ -92,12 +92,21 @@ function CutsceneSystem.Internal:Install()
 end
 
 function CutsceneSystem.Internal:CreateScriptEvents()
+    -- Player pressed escape
+    self.Orig_GameCallback_Logic_PlayerEscape = GameCallback_Logic_PlayerEscape;
+    GameCallback_Logic_PlayerEscape = function(_PlayerID)
+        Syncer.InvokeEvent(BriefingSystem.Internal.Events.CutsceneFinished, _PlayerID);
+        return true;
+    end
+    -- Cutscene started
     self.Event.CutsceneStarted = Syncer.CreateEvent(function(_PlayerID)
         CutsceneSystem.Internal:CutsceneStarted(_PlayerID);
     end);
+    -- Cutscene finished
     self.Event.CutsceneFinished = Syncer.CreateEvent(function(_PlayerID)
         CutsceneSystem.Internal:CutsceneFinished(_PlayerID);
     end);
+    -- Page shown
     self.Event.PageDisplayed = Syncer.CreateEvent(function(_PlayerID)
         CutsceneSystem.Internal:NextPage(_PlayerID);
     end);
@@ -147,6 +156,9 @@ function CutsceneSystem.Internal:NextCutscene(_PlayerID)
 end
 
 function CutsceneSystem.Internal:CutsceneStarted(_PlayerID)
+    if not self.Data.Book[_PlayerID] then
+        return;
+    end
     Cinematic.Activate(_PlayerID, self.m_Book[_PlayerID][1]);
     -- Action
     if self.Data.Book[_PlayerID][2].Starting then
@@ -159,6 +171,9 @@ function CutsceneSystem.Internal:CutsceneStarted(_PlayerID)
 end
 
 function CutsceneSystem.Internal:CutsceneFinished(_PlayerID)
+    if not self.Data.Book[_PlayerID] then
+        return;
+    end
     Cinematic.Conclude(_PlayerID, self.m_Book[_PlayerID][1]);
     -- Action
     if self.Data.Book[_PlayerID][2].Finished then

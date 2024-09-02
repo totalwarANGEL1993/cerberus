@@ -46,6 +46,23 @@ function NonPlayerMerchant.Create(_Data)
     NonPlayerMerchant.Internal:CreateNpc(_Data);
 end
 
+--- Updates the data of the merchant. Offers must be updated separetly.
+--- 
+--- If the npc does not exist, it is automatically initalized.
+---
+--- Possible fields for definition:
+--- * ScriptName     (Required) ScriptName of NPC
+--- * SpawnPoint     (Optional) Spawnpoint for mercenaries
+--- * Hero           (Optional) ScriptName of hero who can talk to NPC
+--- * WrongHeroMsg   (Optional) Wrong hero message
+--- * Player         (Optional) Player that can talk to NPC
+--- * WrongPlayerMsg (Optional) Wrong player message
+--- 
+--- @param _Data table Merchant definition table
+function NonPlayerMerchant.Update(_Data)
+    NonPlayerMerchant.Internal:UpdateNpc(_Data);
+end
+
 --- Deletes an merchant (but not the settler).
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerMerchant.Delete(_ScriptName)
@@ -65,13 +82,13 @@ end
 --- (The TalkedTo value is reset.)
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerMerchant.Activate(_ScriptName)
-    Interaction.Internal:Activate(_ScriptName);
+    Interaction.Activate(_ScriptName);
 end
 
 --- Deactivates an existing active merchant NPC.
 --- @param _ScriptName string ScriptName of NPC
 function NonPlayerMerchant.Deactivate(_ScriptName)
-    Interaction.Internal:Deactivate(_ScriptName);
+    Interaction.Deactivate(_ScriptName);
 end
 
 --- Returns the amount of offerts.
@@ -172,7 +189,7 @@ end
 
 function NonPlayerMerchant.Internal:CreateNpc(_Data)
     self:Install();
-    Interaction.Internal:CreateNpc(_Data);
+    Interaction.CreateNpc(_Data);
 
     local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
     Data.IsMerchant = true;
@@ -197,10 +214,29 @@ function NonPlayerMerchant.Internal:DeleteNpc(_ScriptName)
     Interaction.Internal:DeleteNpc(_ScriptName);
 end
 
+function NonPlayerMerchant.Internal:UpdateNpc(_Data)
+    self:Install();
+    local Data = Interaction.Internal.Data.IO[_Data.ScriptName];
+    if not Data then
+        return self:CreateNpc(_Data);
+    end
+    if Data.IsMerchant then
+        Data.Waypoints  = _Data.Waypoints or Data.Waypoints;
+        Data.Wanderer   = _Data.StrayPoints or Data.Wanderer;
+        Data.Waittime   = _Data.Waittime or Data.Waittime;
+        Data.SpawnPoint = _Data.SpawnPoint or Data.SpawnPoint;
+    end
+    Interaction.UpdateNpc(Data);
+end
+
 function NonPlayerMerchant.Internal:OnNpcActivated(_ScriptName, _Data)
 end
 
 function NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName, _Data)
+    GUIAction_MerchantReady();
+end
+
+function NonPlayerMerchant.Internal:OnNpcUpdated(_ScriptName, _Data)
     GUIAction_MerchantReady();
 end
 
@@ -309,6 +345,12 @@ function NonPlayerMerchant.Internal:OverrideNpcInteractionCallbacks()
     GameCallback_Logic_OnNpcDeactivated = function(_ScriptName, _Data)
         NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcDeactivated(_ScriptName, _Data);
         NonPlayerMerchant.Internal:OnNpcDeactivated(_ScriptName, _Data);
+    end
+
+    self.Orig_GameCallback_Logic_OnNpcUpdated = GameCallback_Logic_OnNpcUpdated;
+    GameCallback_Logic_OnNpcUpdated = function(_ScriptName, _Data)
+        NonPlayerMerchant.Internal.Orig_GameCallback_Logic_OnNpcUpdated(_ScriptName, _Data);
+        NonPlayerMerchant.Internal:OnNpcUpdated(_ScriptName, _Data);
     end
 end
 

@@ -375,7 +375,7 @@ function AiTroopTrainer.Internal:ControlTroopRefilling(_ID)
                         local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
                         local CurAmount = Logic.LeaderGetNumberOfSoldiers(TroopID);
                         if MaxAmount > CurAmount and not IsFighting(TroopID)  and IsValidEntity(TroopID) then
-                            Tools.CreateSoldiersForLeader(ID, 1);
+                            Tools.CreateSoldiersForLeader(TroopID, 1);
                         end
                     end
                 end

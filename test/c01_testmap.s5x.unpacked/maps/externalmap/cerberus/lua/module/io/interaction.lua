@@ -1,6 +1,7 @@
 Lib.Require("comfort/CreateNameForEntity");
 Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/CopyTable");
+Lib.Require("comfort/Localize");
 Lib.Register("module/io/Interaction");
 
 --- 
@@ -30,6 +31,40 @@ function Interaction.Npc(_PlayerID)
     return Interaction.Internal.LastInteractionNpc[_PlayerID];
 end
 
+-- Checks, if the npc is active.
+--- @param _ScriptName string Scriptname of npc
+--- @return boolean Active NPC is active
+function Interaction.IsActive(_ScriptName)
+    return Interaction.Internal:IsActive(_ScriptName);
+end
+
+-- Checks, if the entity is an NPC.
+--- @param _ScriptName string Scriptname of npc
+--- @return boolean IsNPC Entity is NPC
+function Interaction.IsNpc(_ScriptName)
+    return Interaction.Internal:IsNpc(_ScriptName);
+end
+
+-- Creates a new NPC.
+-- DO NOT USE MANUALLY!
+function Interaction.CreateNpc(_Data)
+    Interaction.Internal:CreateNpc(_Data);
+end
+
+-- Activates an existing inactive NPC.
+-- DO NOT USE MANUALLY!
+function Interaction.Activate(_ScriptName)
+    Interaction.Internal:Activate(_ScriptName);
+end
+
+-- Deactivates an existing active NPC.
+-- DO NOT USE MANUALLY!
+function Interaction.Deactivate(_ScriptName)
+    Interaction.Internal:Deactivate(_ScriptName);
+end
+
+-- Installs the core NPC stuff.
+-- DO NOT USE MANUALLY!
 function Interaction.Install()
     Interaction.Internal:Install();
 end
@@ -71,6 +106,12 @@ end
 function GameCallback_Logic_OnNpcDeactivated(_Name, _Data)
 end
 
+--- Called when a npc is updated.
+--- @param _Name string Script name of npc
+--- @param _Data table  Data object of npc
+function GameCallback_Logic_OnNpcUpdated(_Name, _Data)
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -96,11 +137,11 @@ function Interaction.Internal:Install()
 end
 
 function Interaction.Internal:CreateNpc(_Data)
-    Interaction.Internal:DeleteNpc(_Data.ScriptName);
+    self:DeleteNpc(_Data.ScriptName);
 
     local Data = {
         ScriptName = _Data.ScriptName,
-        Callback   = _Data.Callback or function() end,
+        Callback   = _Data.Callback,
         Active     = false,
         Hero       = _Data.Hero,
         HeroInfo   = _Data.WrongHeroMsg,
@@ -134,7 +175,7 @@ end
 
 function Interaction.Internal:Activate(_ScriptName)
     local ID = GetID(_ScriptName);
-    if Logic.IsSettler(ID) == 1 then
+    if self.Data.IO[_ScriptName] and Logic.IsSettler(ID) == 1 then
         Logic.SetOnScreenInformation(ID, 1);
         self.Data.IO[_ScriptName].Active = true;
         GameCallback_Logic_OnNpcActivated(_ScriptName, self.Data.IO[_ScriptName]);
@@ -143,11 +184,35 @@ end
 
 function Interaction.Internal:Deactivate(_ScriptName)
     local ID = GetID(_ScriptName);
-    if Logic.IsSettler(ID) == 1 then
-        Logic.SetOnScreenInformation(ID, 0);
+    if self.Data.IO[_ScriptName] and Logic.IsSettler(ID) == 1 then
+        -- Only disable NPC if not used in any active quest
+        if not QuestSystem or not QuestSystem.IsQuestNpcUsedByQuest(_ScriptName) then
+            Logic.SetOnScreenInformation(ID, 0);
+        end
         self.Data.IO[_ScriptName].Active = false;
         GameCallback_Logic_OnNpcDeactivated(_ScriptName, self.Data.IO[_ScriptName]);
     end
+end
+
+function Interaction.Internal:UpdateNpc(_Data)
+    local Data = self.Data.IO[_Data.ScriptName];
+    if not Data then
+        return self:CreateNpc(_Data);
+    end
+    Data.Callback   = _Data.Callback or Data.Callback;
+    Data.Hero       = _Data.Hero or Data.Hero;
+    Data.HeroInfo   = _Data.WrongHeroMsg or Data.HeroInfo;
+    Data.Player     = _Data.Player or Data.Player;
+    Data.PlayerInfo = _Data.WrongPlayerMsg or Data.PlayerInfo;
+    GameCallback_Logic_OnNpcUpdated(_Data.ScriptName, Data);
+end
+
+function Interaction.Internal:IsNpc(_ScriptName)
+    return self.Data.IO[_ScriptName] ~= nil;
+end
+
+function Interaction.Internal:IsActive(_ScriptName)
+    return self:IsNpc(_ScriptName) and self.Data.IO[_ScriptName].Active == true;
 end
 
 function Interaction.Internal:HeroesLookAtNpc(_HeroID, _NpcID)
@@ -208,7 +273,7 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
             -- Deny if hero is not listed
             if not AnyHero then
                 if Data.HeroInfo and PlayerID == GUI.GetPlayerID() then
-                    Message(self:GetLocalizedMessage(Data.HeroInfo));
+                    Message(Localize(Data.HeroInfo));
                 end
                 return false;
             end
@@ -227,7 +292,7 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
             -- Deny if player is not listed
             if not AnyPlayer then
                 if Data.PlayerInfo and PlayerID == GUI.GetPlayerID() then
-                    Message(self:GetLocalizedMessage(Data.PlayerInfo));
+                    Message(Localize(Data.PlayerInfo));
                 end
                 return false;
             end
@@ -238,19 +303,6 @@ function Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID)
     return false;
 end
 
-function Interaction.Internal:GetLocalizedMessage(_Msg)
-    local Language = GetLanguage();
-    local Msg = _Msg;
-
-    if type(Msg) == "table" then
-        Msg = Msg[Language];
-    end
-    if string.find(Msg, "^[A-Za-z0-9_]+/[A-Za-z0-9_]+$") then
-        Msg = XGUIEng.GetStringTableText(Msg);
-    end
-    return Msg;
-end
-
 function Interaction.Internal:OverrideNpcInteraction()
     self.Orig_GameCallback_NPCInteraction = GameCallback_NPCInteraction;
     GameCallback_NPCInteraction = function(_HeroID, _NpcID)
@@ -259,22 +311,25 @@ function Interaction.Internal:OverrideNpcInteraction()
         local PlayerID = Logic.EntityGetPlayer(_HeroID);
         local HeroScriptName = CreateNameForEntity(_HeroID);
         local NpcScriptName = CreateNameForEntity(_NpcID);
-        Interaction.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
-        Interaction.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
+        -- NPCs of quests always have priority over NPC system!
+        if not QuestSystem or not QuestSystem.IsQuestNpcUsedByQuest(NpcScriptName) then
+            Interaction.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
+            Interaction.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
 
-        if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
-            local NpcID = _NpcID;
-            local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
-            if MerchantID ~= 0 then
-                NpcID = MerchantID;
-            end
-            local ScriptName = Logic.GetEntityName(NpcID);
-            local Data = Interaction.Internal.Data.IO[ScriptName];
-            if Data then
-                if Data.IsMerchant then
-                    GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID, Data);
-                else
-                    GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID, Data);
+            if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
+                local NpcID = _NpcID;
+                local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
+                if MerchantID ~= 0 then
+                    NpcID = MerchantID;
+                end
+                local ScriptName = Logic.GetEntityName(NpcID);
+                local Data = Interaction.Internal.Data.IO[ScriptName];
+                if Data then
+                    if Data.IsMerchant then
+                        GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID, Data);
+                    else
+                        GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID, Data);
+                    end
                 end
             end
         end

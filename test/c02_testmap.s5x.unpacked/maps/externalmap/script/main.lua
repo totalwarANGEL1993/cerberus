@@ -1,7 +1,7 @@
 function OnMapStart()
-    -- Script.Load("data\\maps\\externalmap\\cerberus\\loader.lua");
+    Script.Load("data\\maps\\externalmap\\cerberus\\loader.lua");
     -- Script.Load("data\\maps\\cerberus\\loader.lua");
-    Script.Load("E:\\Repositories\\cerberus\\loader.lua");
+    -- Script.Load("E:\\Repositories\\cerberus\\loader.lua");
     assert(Lib ~= nil, "Cerberus was not found!");
 
     Lib.Require("module/mp/BuyHero");
@@ -13,6 +13,8 @@ function OnMapStart()
 
     Placeholder.Install();
     BuyHero.Install();
+    BuyHero.SetNumberOfBuyableHeroes(1, 1);
+    BuyHero.SetNumberOfBuyableHeroes(2, 1);
 
     CreateChestsForPlayers();
     CreateMerchantsForPlayers();
@@ -141,8 +143,8 @@ function TestBriefing2(_ScriptName, _PlayerID, _Name)
     local PlayerName = UserTool_GetPlayerName(_PlayerID);
     local PlayerColor = "@color:"..table.concat({GUI.GetPlayerColor(_PlayerID)}, ",");
 
-    ASP(_ScriptName, "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
-    ASP(_ScriptName, "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(_ScriptName, "Page 1", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(_ScriptName, "Page 2", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
     AP {
         Name         = "ChoicePage1",
@@ -157,13 +159,16 @@ function TestBriefing2(_ScriptName, _PlayerID, _Name)
         },
     }
 
-    ASP("PathOption1", _ScriptName, "Page 4", "Option 2 was chosen.", true);
-    ASP(_ScriptName, "Page 5", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP("PathOption1", _ScriptName, "Page 4", "Option 1 was chosen. @cr Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(_ScriptName, "Page 5", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
     AP();
-    ASP("PathOption2", _ScriptName, "Page 5", "Option 2 was chosen.", true);
-    ASP(_ScriptName, "Page 6", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP("PathOption2", _ScriptName, "Page 7", "Option 2 was chosen. @cr Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    ASP(_ScriptName, "Page 8", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
-    -- SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
-    BriefingSystem.Start(_PlayerID, _Name, Briefing, 1, 2);
+    Briefing.Finished = function(_Data, _Abort)
+
+    end
+    SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
+    -- BriefingSystem.Start(_PlayerID, _Name, Briefing, 1, 2);
 end
 
