@@ -166,7 +166,7 @@ function TestBriefing2(_ScriptName, _PlayerID, _Name)
     ASP(_ScriptName, "Page 8", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
     Briefing.Finished = function(_Data, _Abort)
-
+        Message("It just work's! (Player " .._Data.PlayerID.. ")");
     end
     SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
     -- BriefingSystem.Start(_PlayerID, _Name, Briefing, 1, 2);

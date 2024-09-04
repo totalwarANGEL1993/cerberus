@@ -172,19 +172,18 @@ function Syncer.Internal:DeleteSyncEvent(_ID)
 end
 
 function Syncer.Internal:Call(_ID, ...)
-    arg = arg or {};
+    local PlayerID = GUI.GetPlayerID();
     if XNetwork.Manager_DoesExist() == 1 then
         -- Use CNetwork on community server
         if CNetwork then
             local Name = self.Data[_ID].CNetwork;
-            CNetwork.SendCommand(Name, _ID, GUI.GetPlayerID(), unpack(arg));
+            CNetwork.SendCommand(Name, _ID, PlayerID, unpack(arg));
         -- Use EMS syncer if not CNetwork
         elseif not CNetwork and EMS then
             local Name = self.Data[_ID].EMSHandler;
-            Sync.Call(Name, _ID, GUI.GetPlayerID(), unpack(arg));
-        -- Use tributes and messages
+            Sync.Call(Name, _ID, PlayerID, unpack(arg));
+        -- Use tributes and messages as fallback
         else
-            local PlayerID = GUI.GetPlayerID();
             local Time = Logic.GetTimeMs();
             local Msg = "";
             if table.getn(arg) > 0 then
@@ -196,7 +195,7 @@ function Syncer.Internal:Call(_ID, ...)
         end
         return;
     end
-    self.Data[_ID].Function(GUI.GetPlayerID(), unpack(arg));
+    self.Data[_ID].Function(PlayerID, unpack(arg));
 end
 
 function Syncer.Internal:IsMultiplayerGame()
@@ -399,7 +398,6 @@ function Syncer.Internal:OnTributePaidTrigger(_ID)
 end
 
 function Syncer.Internal:OnAcknowlegementReceivedTrigger(_PlayerID, _ID, _Hash, _Time, ...)
-    arg = arg or {};
     if _Time +2 < Logic.GetTime() then
         return true;
     end

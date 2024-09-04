@@ -225,6 +225,13 @@ function BriefingSystem.Internal:Install()
 end
 
 function BriefingSystem.Internal:CreateScriptEvents()
+    -- Briefing of player concludes
+    self.Events.PostBriefingConclude = Syncer.CreateEvent(function(_PlayerID, _Abort)
+        if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
+            BriefingSystem.Internal:ConcludeBriefing(_PlayerID, _Abort);
+        end
+    end);
+
     -- Player pressed escape
     self.Events.PostEscapePressed = Syncer.CreateEvent(function(_PlayerID)
         if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
@@ -438,6 +445,7 @@ function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefi
 end
 
 function BriefingSystem.Internal:EndBriefing(_PlayerID, _Abort)
+    local PlayerID = GUI.GetPlayerID();
     -- Disable cinematic mode
     for i= 1, BriefingSystem.MCButtonAmount, 1 do
         XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
@@ -446,6 +454,13 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID, _Abort)
     for k, v in pairs(self.Data.Book[_PlayerID].Exploration) do
         DestroyEntity(v);
     end
+    -- Send conclude event
+    if PlayerID ~= 17 and PlayerID == _PlayerID then
+        Syncer.InvokeEvent(self.Events.PostBriefingConclude, _Abort);
+    end
+end
+
+function BriefingSystem.Internal:ConcludeBriefing(_PlayerID, _Abort)
     -- Register briefing as finished
     Cinematic.Conclude(_PlayerID, self.Data.Book[_PlayerID].ID);
     -- Call finished
