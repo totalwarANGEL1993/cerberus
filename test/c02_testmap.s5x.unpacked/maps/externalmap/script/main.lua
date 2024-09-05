@@ -5,7 +5,7 @@ function OnMapStart()
     assert(Lib ~= nil, "Cerberus was not found!");
 
     Lib.Require("module/mp/BuyHero");
-    Lib.Require("module/cinematic/SpectatableBriefing");
+    Lib.Require("module/cinematic/BriefingSystem");
     Lib.Require("module/ui/Placeholder");
     Lib.Require("module/io/NonPlayerCharacter");
     Lib.Require("module/io/NonPlayerMerchant");
@@ -162,13 +162,21 @@ function TestBriefing2(_ScriptName, _PlayerID, _Name)
     ASP("PathOption1", _ScriptName, "Page 4", "Option 1 was chosen. @cr Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
     ASP(_ScriptName, "Page 5", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
     AP();
-    ASP("PathOption2", _ScriptName, "Page 7", "Option 2 was chosen. @cr Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
+    AP {
+        Name         = "PathOption2",
+        Target       = _ScriptName,
+        DialogCamera = true,
+        NoSkip       = true,
+        FadeIn       = 3,
+        Duration     = 3,
+    }
+    ASP(_ScriptName, "Page 7", "Option 2 was chosen. @cr Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
     ASP(_ScriptName, "Page 8", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquy.", true);
 
     Briefing.Finished = function(_Data, _Abort)
-
+        Message("It just work's! (Player " .._Data.PlayerID.. ")");
     end
-    SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
-    -- BriefingSystem.Start(_PlayerID, _Name, Briefing, 1, 2);
+    -- SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
+    BriefingSystem.Start(_PlayerID, _Name, Briefing, 1, 2);
 end
 
