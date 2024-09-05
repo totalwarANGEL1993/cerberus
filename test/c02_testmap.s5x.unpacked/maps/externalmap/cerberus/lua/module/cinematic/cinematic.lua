@@ -62,7 +62,7 @@ end
 --- @param _Name string Name of cinematic
 --- @return boolean Active The event is active
 function Cinematic.IsActive(_PlayerID, _Name)
-    return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Active;
+    return Cinematic.Internal:GetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Active;
 end
 
 --- Checks if the cinematic is currently active for at least one player.
@@ -82,7 +82,7 @@ end
 --- @param _Name string
 --- @return boolean Over The event is over
 function Cinematic.IsConcluded(_PlayerID, _Name)
-    return Cinematic.Internal:SetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Over;
+    return Cinematic.Internal:GetCinematicEventState(_PlayerID, _Name) == CinematicEventStatus.Over;
 end
 
 --- Checks if the cinematic is finished for at least one player.
@@ -383,7 +383,7 @@ function Cinematic.Internal:SetRegularPageStyle(_DisableMap)
     XGUIEng.ShowWidget("CinematicMC_Button2", 1);
     XGUIEng.ShowWidget("CinematicBar02", 1);
     XGUIEng.ShowWidget("CinematicBar01", 1);
-    XGUIEng.ShowWidget("CinematicBar00", 1);
+    XGUIEng.ShowWidget("CinematicBar00", 0);
 end
 
 function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
@@ -420,7 +420,7 @@ function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
     XGUIEng.ShowWidget("CinematicFrame", (_DisableMap and 0) or 1);
     XGUIEng.ShowWidget("CinematicBar02", 1);
     XGUIEng.ShowWidget("CinematicBar01", 1);
-    XGUIEng.ShowWidget("CinematicBar00", 1);
+    XGUIEng.ShowWidget("CinematicBar00", 0);
     for i= 1, _MCAmount, 1 do
         if XGUIEng.IsWidgetExisting("CinematicMC_Button" ..i) == 1 then
             XGUIEng.ShowWidget("CinematicMC_Button" ..i, 1);
@@ -449,6 +449,6 @@ function Cinematic.Internal:SetCutscenePageStyle()
     XGUIEng.ShowWidget("CinematicFrame", 0);
     XGUIEng.ShowWidget("CinematicBar02", 1);
     XGUIEng.ShowWidget("CinematicBar01", 1);
-    XGUIEng.ShowWidget("CinematicBar00", 1);
+    XGUIEng.ShowWidget("CinematicBar00", 0);
 end
 

@@ -103,6 +103,11 @@ function NonPlayerCharacter.PlayerTalkedTo(_PlayerID, _NpcScriptName)
     return NonPlayerCharacter.Internal:TalkedToNpc(_NpcScriptName, _PlayerID);
 end
 
+-- DO NOT CALL THIS MANUALLY!
+function NonPlayerCharacter.Install()
+    NonPlayerCharacter.Internal:Install();
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -340,8 +345,10 @@ function NonPlayerCharacter.Internal:OnTickNpcFollowController(_ScriptName, _Dat
     end
     if FollowID ~= nil and IsAlive(FollowID) then
         if _Data.Target and IsNear(_ScriptName, _Data.Target, _Data.Distance or 1200) then
-            Move(_ScriptName, _Data.Target);
-            _Data.Arrived = true;
+            if Logic.IsEntityMoving(GetID(_ScriptName)) == false then
+                Move(_ScriptName, _Data.Target);
+                _Data.Arrived = true;
+            end
         end
         if not _Data.Arrived and Logic.IsEntityMoving(GetID(_ScriptName)) == false then
             Move(_ScriptName, FollowID, 500);

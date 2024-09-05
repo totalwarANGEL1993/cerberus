@@ -1,3 +1,4 @@
+Lib.Require("comfort/GetValidEntitiesOfType");
 Lib.Register("comfort/GetAllLeader");
 
 -- Version: 1.0.0
@@ -7,20 +8,12 @@ Lib.Register("comfort/GetAllLeader");
 --- @param _PlayerID number ID of player
 --- @return table List List of leaders
 function GetAllLeader(_PlayerID)
-    local LeaderList = {};
-    local FirstID = Logic.GetNextLeader(_PlayerID, 0);
-    if FirstID ~= 0 then
-        local PrevID = FirstID;
-        table.insert(LeaderList, FirstID);
-        while true do
-            local NextID = Logic.GetNextLeader(_PlayerID, PrevID);
-            if NextID == FirstID then
-                break;
-            end
-            table.insert(LeaderList, NextID);
-            PrevID = NextID;
+    local PlayerEntities = GetValidEntitiesOfType(_PlayerID, 0);
+    for i= table.getn(PlayerEntities), 1, -1 do
+        if Logic.IsLeader(PlayerEntities[i]) == 0 then
+            table.remove(PlayerEntities, i);
         end
     end
-    return LeaderList;
+    return PlayerEntities;
 end
 

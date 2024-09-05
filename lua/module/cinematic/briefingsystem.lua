@@ -1,16 +1,22 @@
 Lib.Require("comfort/GetMaxAmountOfPlayer");
-Lib.Require("comfort/Round");
 Lib.Require("comfort/Localize");
+Lib.Require("comfort/IsInTable");
+Lib.Require("comfort/Round");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Require("module/ui/Placeholder");
 Lib.Require("module/mp/Syncer");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/cinematic/BriefingSystem");
 
----@diagnostic disable: duplicate-set-field
+--- @diagnostic disable: duplicate-set-field
 
 --- 
 --- Briefing System
+---
+--- Briefings are a method of giving exposition to the player. Usually they are
+--- only used in singleplayer but they can also be used in multiplayer and even
+--- shown to other players who are mere watchers and can not interact with the
+--- briefing in any way apart from reading the text.
 ---
 --- Defines the following callbacks:
 --- - GameCallback_Logic_BriefingStarted(_PlayerID, _Briefing)
@@ -25,7 +31,7 @@ Lib.Register("module/cinematic/BriefingSystem");
 --- - GameCallback_Logic_BriefingOptionSelected(_PlayerID, _Briefing, _PageID, _OptionID, _NextPageID)
 ---   An option was selected
 ---
---- Version 1.3.0
+--- Version 1.4.0
 --- 
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,
@@ -61,7 +67,8 @@ BriefingSystem = BriefingSystem or {
 --- @param _PlayerID number     Player the briefing is started for
 --- @param _BriefingName string Name of Briefing (must be unique for player)
 --- @param _Briefing table      Definition of briefing
-function BriefingSystem.Start(_PlayerID, _BriefingName, _Briefing)
+--- @param ... integer          List of watchers
+function BriefingSystem.Start(_PlayerID, _BriefingName, _Briefing, ...)
     -- Transmute some fields
     if _Briefing.NoSkip ~= nil then
         _Briefing.DisableSkipping = _Briefing.NoSkip == true;
@@ -70,7 +77,7 @@ function BriefingSystem.Start(_PlayerID, _BriefingName, _Briefing)
         _Briefing.RestoreCamera = _Briefing.ResetCamera == true;
     end
 
-    BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
+    BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing, unpack(arg));
 end
 
 --- Binds the page function to the briefing.
@@ -119,7 +126,9 @@ end
 --- Fields to configure:
 --- * Name       - Name of Page
 --- * Title      - Headline of the page
+--- * TitleAlter - Headline alteration for watchers
 --- * Text       - Text of the page
+--- * TextAlter  - Text alteration for watchers
 --- * CloseUp    - Use dialog camera settings
 --- * Action     - Function called when page is shown
 --- * Flight     - Fly from last position
@@ -184,10 +193,6 @@ end
 function GameCallback_Logic_BriefingOptionSelected(_PlayerID, _Briefing, _PageID, _OptionID, _NextPageID)
 end
 
-function GameCallback_Logic_BriefingTick(_PlayerID, _Briefing, _PageID)
-    return true;
-end
-
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -225,13 +230,6 @@ function BriefingSystem.Internal:Install()
 end
 
 function BriefingSystem.Internal:CreateScriptEvents()
-    -- Briefing of player concludes
-    self.Events.PostBriefingConclude = Syncer.CreateEvent(function(_PlayerID, _Abort)
-        if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
-            BriefingSystem.Internal:ConcludeBriefing(_PlayerID, _Abort);
-        end
-    end);
-
     -- Player pressed escape
     self.Events.PostEscapePressed = Syncer.CreateEvent(function(_PlayerID)
         if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
@@ -418,18 +416,36 @@ function BriefingSystem.Internal:IsBriefingActive(_PlayerID)
     return self.Data.Book[PlayerID] ~= nil;
 end
 
+function BriefingSystem.Internal:IsPlayerWatching(_PlayerID, _WatchingID)
+    if self:IsBriefingActive(_PlayerID) then
+        local Data = self.Data.Book[_PlayerID];
+        return Data and Data.IsSpectated and IsInTable(_WatchingID, Data.Watchers);
+    end
+    return false;
+end
+
 function BriefingSystem.Internal:IsBriefingActiveForAnyPlayer()
-    for i= 1, GetMaxAmountOfPlayer() do
-        if self:IsBriefingActive(i) then
+    for PlayerID = 1, GetMaxAmountOfPlayer() do
+        if self:IsBriefingActive(PlayerID) then
             return true;
         end
     end
     return false;
 end
 
-function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing)
+function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefing, ...)
     -- Just to be sure...
     self:Install();
+    -- watchers mode
+    _Briefing.Watchers = {};
+    if arg and table.getn(arg) > 0 then
+        _Briefing.IsSpectated = true;
+        for i= 1, table.getn(arg) do
+            if arg[i] ~= 17 and arg[i] ~= _PlayerID then
+                table.insert(_Briefing.Watchers, arg[i]);
+            end
+        end
+    end
     -- Abort if event can not be created
     if not Cinematic.Define(_PlayerID, _BriefingName) then
         return;
@@ -446,33 +462,39 @@ end
 
 function BriefingSystem.Internal:EndBriefing(_PlayerID, _Abort)
     local PlayerID = GUI.GetPlayerID();
+    local Data = self.Data.Book[_PlayerID];
     -- Disable cinematic mode
     for i= 1, BriefingSystem.MCButtonAmount, 1 do
         XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
     end
     -- Destroy explorations
-    for k, v in pairs(self.Data.Book[_PlayerID].Exploration) do
+    for k, v in pairs(Data.Exploration) do
         DestroyEntity(v);
     end
-    -- Send conclude event
-    if PlayerID ~= 17 and PlayerID == _PlayerID then
-        Syncer.InvokeEvent(self.Events.PostBriefingConclude, _Abort);
-    end
-end
-
-function BriefingSystem.Internal:ConcludeBriefing(_PlayerID, _Abort)
     -- Register briefing as finished
-    Cinematic.Conclude(_PlayerID, self.Data.Book[_PlayerID].ID);
+    local BriefingName = Data.ID;
+    Cinematic.Conclude(_PlayerID, BriefingName);
     -- Call finished
     if self.Data.Book[_PlayerID].Finished then
         self.Data.Book[_PlayerID]:Finished(_Abort);
     end
     -- Call game callback
-    GameCallback_Logic_BriefingFinished(_PlayerID, self.Data.Book[_PlayerID], _Abort);
-    -- Invalidate briefing
-    self.Data.Book[_PlayerID] = nil;
+    GameCallback_Logic_BriefingFinished(_PlayerID, Data, _Abort);
     -- Hide cinematic
     Cinematic.Hide(_PlayerID);
+    -- End briefing for watchers
+    if Data.IsSpectated and Data.Watchers then
+        for _, WatchingID in pairs(Data.Watchers) do
+            if self:IsPlayerWatching(_PlayerID, WatchingID) then
+                if Cinematic.IsActive(WatchingID, BriefingName) then
+                    Cinematic.Conclude(WatchingID, BriefingName);
+                    Cinematic.Hide(WatchingID);
+                end
+            end
+        end
+    end
+    -- Invalidate briefing
+    self.Data.Book[_PlayerID] = nil;
     -- Dequeue next briefing
     if self.Data.Queue[_PlayerID] and table.getn(self.Data.Queue[_PlayerID]) > 0 then
         local NewBriefing = table.remove(self.Data.Queue[_PlayerID], 1);
@@ -492,8 +514,10 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     self.Data.Book[_PlayerID].PlayerID    = _PlayerID;
     self.Data.Book[_PlayerID].Page        = 0;
 
+    local Data = self.Data.Book[_PlayerID];
+
     -- Calculate duration and height
-    for k, v in pairs(self.Data.Book[_PlayerID]) do
+    for k, v in pairs(Data) do
         if type(v) == "table" then
             if v.Target then
                 self.Data.Book[_PlayerID][k].Position = GetPosition(v.Target);
@@ -514,15 +538,26 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     end
 
     -- Register briefing as active
-    Cinematic.Activate(_PlayerID, self.Data.Book[_PlayerID].ID);
+    Cinematic.Activate(_PlayerID, Data.ID);
     -- Call function on start
-    if self.Data.Book[_PlayerID].Starting then
-        self.Data.Book[_PlayerID]:Starting();
+    if Data.Starting then
+        Data:Starting();
     end
     -- Call game callback
-    GameCallback_Logic_BriefingStarted(_PlayerID, self.Data.Book[_PlayerID]);
+    GameCallback_Logic_BriefingStarted(_PlayerID, Data);
     -- Show cinematic
-    Cinematic.Show(_PlayerID, self.Data.Book[_PlayerID].RestoreCamera, true);
+    Cinematic.Show(_PlayerID, Data.RestoreCamera, true);
+    -- Start briefing for watchers
+    if Data.IsSpectated and Data.Watchers then
+        for _, WatchingID in pairs(Data.Watchers) do
+            if self:IsPlayerWatching(_PlayerID, WatchingID) then
+                if not Cinematic.IsAnyActive(WatchingID) then
+                    Cinematic.Activate(WatchingID, Data.ID);
+                    Cinematic.Show(WatchingID, Data.RestoreCamera, true);
+                end
+            end
+        end
+    end
     -- Show nex page
     self:NextPage(_PlayerID, true);
 end
@@ -553,6 +588,7 @@ function BriefingSystem.Internal:NextPage(_PlayerID, _FirstPage)
         local ID = Logic.CreateEntity(Entities.XD_ScriptEntity, Position.X, Position.Y, 0, _PlayerID);
         Logic.SetEntityExplorationRange(ID, math.ceil(Page.Explore/100));
         table.insert(self.Data.Book[_PlayerID].Exploration, ID);
+        -- TODO: Exploration for other players
     end
     -- Stop Speech
     Stream.Stop();
@@ -563,17 +599,15 @@ function BriefingSystem.Internal:NextPage(_PlayerID, _FirstPage)
 end
 
 function BriefingSystem.Internal:CanPageBeSkipped(_PlayerID)
+    local PlayerID = GUI.GetPlayerID();
     local Data = self.Data.Book[_PlayerID];
     -- Skipping is disabled for the briefing
     if not Data or Data.DisableSkipping then
         return false;
     end
     -- Only local/leading player can skip
-    -- (Must be done her. Dirty bud necessary...)
-    if GUI.GetPlayerID() ~= _PlayerID then
-        if not Data.IsSpectatable or Data.LeaderPlayerID ~= _PlayerID then
-            return false;
-        end
+    if PlayerID ~= _PlayerID and not self:IsPlayerWatching(_PlayerID, PlayerID) then
+        return false;
     end
 
     local PageID = Data.Page;
@@ -618,6 +652,7 @@ function BriefingSystem.Internal:GetPageID(_Name, _PlayerID)
 end
 
 function BriefingSystem.Internal:RenderPage(_PlayerID)
+    local PlayerID = GUI.GetPlayerID();
     -- Check page exists
     if not self.Data.Book[_PlayerID] then
         return;
@@ -634,7 +669,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     -- Invoke game callback
     GameCallback_Logic_BriefingPageShown(_PlayerID, Data, Page);
     -- Only for local player
-    if _PlayerID ~= GUI.GetPlayerID() or _PlayerID == 17 then
+    if _PlayerID ~= GUI.GetPlayerID() and not self:IsPlayerWatching(_PlayerID, PlayerID) then
         return;
     end
     -- Render signal
@@ -707,13 +742,13 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     end
 
     local Title = self:GetPageHeadline(_PlayerID, Data.Page);
-    self:PrintHeadline(Title);
+    self:PrintHeadline(_PlayerID, Title);
 
     local Text = self:GetPageText(_PlayerID, Data.Page);
-    self:PrintText(Text);
+    self:PrintText(_PlayerID, Text);
 
     if Page.MC then
-        self:PrintOptions(Data, Page);
+        self:PrintOptions(_PlayerID, Data, Page);
     else
         Mouse.CursorHide();
         for i= 1, BriefingSystem.MCButtonAmount, 1 do
@@ -724,8 +759,14 @@ end
 
 --- @diagnostic disable-next-line: duplicate-set-field
 function BriefingSystem.Internal:GetPageHeadline(_PlayerID, _PageID)
+    local PlayerID = GUI.GetPlayerID();
     if self:IsBriefingActive(_PlayerID) then
         local Page = self.Data.Book[_PlayerID][_PageID];
+        if self:IsPlayerWatching(_PlayerID, PlayerID) then
+            if Page.TitleAlter then
+                return Page.TitleAlter;
+            end
+        end
         if Page.Title then
             return Page.Title;
         end
@@ -735,8 +776,14 @@ end
 
 --- @diagnostic disable-next-line: duplicate-set-field
 function BriefingSystem.Internal:GetPageText(_PlayerID, _PageID)
+    local PlayerID = GUI.GetPlayerID();
     if self:IsBriefingActive(_PlayerID) then
         local Page = self.Data.Book[_PlayerID][_PageID];
+        if self:IsPlayerWatching(_PlayerID, PlayerID) then
+            if Page.TextAlter then
+                return Page.TextAlter;
+            end
+        end
         if Page.Text then
             return Page.Text;
         end
@@ -769,24 +816,21 @@ function BriefingSystem.Internal:ControlBriefing()
                 return false;
             end
             -- HACK: fix MC buttons
-            -- (Doen't work on display for some reason)
+            -- (Dosen't work on display for some reason)
             for j= 1, BriefingSystem.MCButtonAmount, 1 do
                 XGUIEng.DisableButton("CinematicMC_Button" ..j, 1);
                 XGUIEng.DisableButton("CinematicMC_Button" ..j, 0);
             end
-            -- Briefing tick
-            if GameCallback_Logic_BriefingTick(PlayerID, self.Data.Book[PlayerID], PageID) then
-                -- Jump to page
-                if type(self.Data.Book[PlayerID][PageID]) ~= "table" then
-                    self.Data.Book[PlayerID].Page = self:GetPageID(self.Data.Book[PlayerID][PageID], PlayerID) -1;
-                    self:NextPage(PlayerID, self.Data.Book[PlayerID].Page > 0);
-                    return false;
-                end
-                -- Next page after duration is up
-                local TimePassed = Logic.GetCurrentTurn() - self.Data.Book[PlayerID][PageID].StartTime;
-                if not self.Data.Book[PlayerID][PageID].MC and TimePassed > self.Data.Book[PlayerID][PageID].Duration then
-                    self:NextPage(PlayerID, false);
-                end
+            -- Jump to page
+            if type(self.Data.Book[PlayerID][PageID]) ~= "table" then
+                self.Data.Book[PlayerID].Page = self:GetPageID(self.Data.Book[PlayerID][PageID], PlayerID) -1;
+                self:NextPage(PlayerID, self.Data.Book[PlayerID].Page > 0);
+                return false;
+            end
+            -- Next page after duration is up
+            local TimePassed = Logic.GetCurrentTurn() - self.Data.Book[PlayerID][PageID].StartTime;
+            if not self.Data.Book[PlayerID][PageID].MC and TimePassed > self.Data.Book[PlayerID][PageID].Duration then
+                self:NextPage(PlayerID, false);
             end
         end
     end
@@ -843,7 +887,11 @@ function BriefingSystem.Internal:AdjustBriefingPageCamHeight(_Page)
     return _Page;
 end
 
-function BriefingSystem.Internal:PrintHeadline(_Text)
+function BriefingSystem.Internal:PrintHeadline(_PlayerID, _Text)
+    local PlayerID = GUI.GetPlayerID();
+    if _PlayerID ~= PlayerID and not self:IsPlayerWatching(_PlayerID, PlayerID) then
+        return;
+    end
     -- Create local copy of text
     local Text = Localize(_Text);
     -- Add title format
@@ -856,7 +904,11 @@ function BriefingSystem.Internal:PrintHeadline(_Text)
     XGUIEng.SetText("CinematicMC_Headline", Text or "");
 end
 
-function BriefingSystem.Internal:PrintText(_Text)
+function BriefingSystem.Internal:PrintText(_PlayerID, _Text)
+    local PlayerID = GUI.GetPlayerID();
+    if _PlayerID ~= PlayerID and not self:IsPlayerWatching(_PlayerID, PlayerID) then
+        return;
+    end
     -- Create local copy of text
     local Text = Localize(_Text);
     -- Replace placeholders
@@ -865,19 +917,10 @@ function BriefingSystem.Internal:PrintText(_Text)
     XGUIEng.SetText("CinematicMC_Text", Text or "");
 end
 
-function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
-    local Language = GetLanguage();
+function BriefingSystem.Internal:PrintOptions(_PlayerID, _Briefing, _Page)
+    local PlayerID = GUI.GetPlayerID();
     if _Page.MC then
-        -- Add the option to hide choices so that a player is stuck on the
-        -- choice page until external intervention
-        if _Briefing.IsReadOnly then
-            Mouse.CursorHide();
-            for i= 1, table.getn(_Page.MC), 1 do
-                if BriefingSystem.MCButtonAmount >= i then
-                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
-                end
-            end
-        else
+        if _PlayerID == PlayerID then
             -- Display choices normally
             Mouse.CursorShow();
             for i= 1, table.getn(_Page.MC), 1 do
@@ -889,6 +932,15 @@ function BriefingSystem.Internal:PrintOptions(_Briefing, _Page)
                     local Text = Localize(_Page.MC[i][1]);
                     Text = Placeholder.Replace(Text);
                     XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
+                end
+            end
+        elseif self:IsPlayerWatching(_PlayerID, PlayerID) then
+            -- Add the option to hide choices so that a player is stuck on the
+            -- choice page until external intervention
+            Mouse.CursorHide();
+            for i= 1, table.getn(_Page.MC), 1 do
+                if BriefingSystem.MCButtonAmount >= i then
+                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
                 end
             end
         end
@@ -959,16 +1011,16 @@ end
 
 function BriefingSystem.Internal:SetFaderAlpha(_PlayerID, _AlphaFactor)
     local PlayerID = GUI.GetPlayerID();
-    if PlayerID ~= _PlayerID or PlayerID == 17 then
+    if PlayerID ~= _PlayerID and not self:IsPlayerWatching(_PlayerID, PlayerID) then
         return;
     end
     local AlphaFactor = _AlphaFactor;
-    if XGUIEng.IsWidgetShown("Cinematic") == 1 then
-        local FaderWidget = "CinematicBar00";
-        if XGUIEng.IsWidgetExisting("CinematicFader") == 1 then
-            FaderWidget = "CinematicFader";
-        end
 
+    local FaderWidget = "CinematicBar00";
+    if XGUIEng.IsWidgetExisting("CinematicFader") == 1 then
+        FaderWidget = "CinematicFader";
+    end
+    if XGUIEng.IsWidgetShown("Cinematic") == 1 then
         AlphaFactor = (AlphaFactor > 1 and 1) or AlphaFactor;
         AlphaFactor = (AlphaFactor < 0 and 0) or AlphaFactor;
 
