@@ -686,8 +686,8 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
             or 1
     );
 
-    local RenderFoW = (Data.RenderFoW or Page.RenderFoW and 1) or 0;
-    local RenderSky = (Data.RenderSky or Page.RenderSky and 1) or 0;
+    local RenderFoW = (Data.RenderFoW and 1) or (Page.RenderFoW and 1) or 0;
+    local RenderSky = (Data.RenderSky and 1) or (Page.RenderSky and 1) or 0;
     Display.SetRenderFogOfWar(RenderFoW);
     Display.SetRenderSky(RenderSky);
     Camera.ScrollUpdateZMode(0);
