@@ -8,7 +8,7 @@ Lib.Register("module/ai/AiTroopSpawner");
 --- Allows to create spawners that can supply multiple armies with new
 --- troops. The unit roster is the same for all armies.
 ---
---- Version 1.2.0
+--- Version 1.2.1
 ---
 
 AiTroopSpawner = AiTroopSpawner or {
@@ -395,19 +395,21 @@ function AiTroopSpawner.Internal:ControllSpawner(_Index)
         for SpawnerID,_ in pairs(SpawnerList) do
             local Index = self:GetIndexByID(SpawnerID);
             local Spawner = self.Data.Spawners[Index];
-            for j= 1, Spawner.MaxSpawn do
-                if AiArmy.GetMaxNumberOfLeader(ArmyID) > AiArmy.GetNumberOfLeader(ArmyID)
-                or AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
-                or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
-                    local DoSpawn = true;
-                    if AiArmy.IsInitallyFilled(ArmyID) == true then
-                        DoSpawn = Spawner.Tick == true;
-                    end
-                    if DoSpawn then
-                        local Types = AiArmy.GetAllowedTypes(ArmyID);
-                        local CreatedID = self:Spawn(Index, ArmyID, Types);
-                        if CreatedID > 0 then
-                            AiArmy.AddTroop(ArmyID, CreatedID, true);
+            if IsExisting(Spawner.ScriptName) then
+                for j= 1, Spawner.MaxSpawn do
+                    if AiArmy.GetMaxNumberOfLeader(ArmyID) > AiArmy.GetNumberOfLeader(ArmyID)
+                    or AiArmy.IsCommandOfTypeActive(ArmyID, AiArmyCommand.Refill)
+                    or AiArmy.IsArmyNear(ArmyID, AiArmy.GetHomePosition(ArmyID), 1500) then
+                        local DoSpawn = true;
+                        if AiArmy.IsInitallyFilled(ArmyID) == true then
+                            DoSpawn = Spawner.Tick == true;
+                        end
+                        if DoSpawn then
+                            local Types = AiArmy.GetAllowedTypes(ArmyID);
+                            local CreatedID = self:Spawn(Index, ArmyID, Types);
+                            if CreatedID > 0 then
+                                AiArmy.AddTroop(ArmyID, CreatedID, true);
+                            end
                         end
                     end
                 end

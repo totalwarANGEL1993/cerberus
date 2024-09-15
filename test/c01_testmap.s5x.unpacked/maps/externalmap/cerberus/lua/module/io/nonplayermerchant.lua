@@ -162,6 +162,11 @@ function NonPlayerMerchant.RemoveOffer(_ScriptName, _Index)
     NonPlayerMerchant.Internal:RemoveOffer(_ScriptName, _Index);
 end
 
+-- DO NOT CALL THIS MANUALLY!
+function NonPlayerMerchant.Install()
+    NonPlayerMerchant.Internal:Install();
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 

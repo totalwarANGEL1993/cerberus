@@ -2,7 +2,6 @@ Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/Localize");
 Lib.Require("comfort/IsInTable");
 Lib.Require("comfort/Round");
-Lib.Require("comfort/Localize");
 Lib.Require("module/cinematic/Cinematic");
 Lib.Require("module/ui/Placeholder");
 Lib.Require("module/mp/Syncer");
@@ -32,7 +31,7 @@ Lib.Register("module/cinematic/BriefingSystem");
 --- - GameCallback_Logic_BriefingOptionSelected(_PlayerID, _Briefing, _PageID, _OptionID, _NextPageID)
 ---   An option was selected
 ---
---- Version 1.4.0
+--- Version 1.4.1
 --- 
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,
@@ -192,10 +191,6 @@ function GameCallback_Logic_BriefingPageShown(_PlayerID, _Briefing, _PageID)
 end
 
 function GameCallback_Logic_BriefingOptionSelected(_PlayerID, _Briefing, _PageID, _OptionID, _NextPageID)
-end
-
-function GameCallback_Logic_BriefingTick(_PlayerID, _Briefing, _PageID)
-    return true;
 end
 
 -- -------------------------------------------------------------------------- --
@@ -614,13 +609,6 @@ function BriefingSystem.Internal:CanPageBeSkipped(_PlayerID)
     if PlayerID ~= _PlayerID and not self:IsPlayerWatching(_PlayerID, PlayerID) then
         return false;
     end
-    -- Only local/leading player can skip
-    -- (Must be done her. Dirty bud necessary...)
-    if GUI.GetPlayerID() ~= _PlayerID then
-        if not Data.IsSpectatable or Data.LeaderPlayerID ~= _PlayerID then
-            return false;
-        end
-    end
 
     local PageID = Data.Page;
     if Data[PageID] then
@@ -698,8 +686,8 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
             or 1
     );
 
-    local RenderFoW = (Data.RenderFoW or Page.RenderFoW and 1) or 0;
-    local RenderSky = (Data.RenderSky or Page.RenderSky and 1) or 0;
+    local RenderFoW = (Data.RenderFoW and 1) or (Page.RenderFoW and 1) or 0;
+    local RenderSky = (Data.RenderSky and 1) or (Page.RenderSky and 1) or 0;
     Display.SetRenderFogOfWar(RenderFoW);
     Display.SetRenderSky(RenderSky);
     Camera.ScrollUpdateZMode(0);

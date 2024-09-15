@@ -25,7 +25,7 @@ Lib.Register("module/ai/AiArmy");
 --- Everything else is very similar to what default armies are doing. A higher
 --- instance of controller is advised but not explicitly required.
 ---
---- Version 1.3.2
+--- Version 1.3.3
 ---
 
 AiArmy = AiArmy or {};
@@ -568,6 +568,7 @@ end
 -- Internal
 
 AiArmy.Internal = AiArmy.Internal or {
+    CleanUp = {0},
     Data = {},
 };
 
@@ -594,6 +595,7 @@ function AiArmy.Internal:Controller()
         end
     end
 
+    self:ManageUnitsMarkedForKill();
     for i= table.getn(QualifyingArmies), 1, -1 do
         local Army = QualifyingArmies[i];
         Army:SetLastTick(Turn);
@@ -775,6 +777,27 @@ function AiArmy.Internal:GetLeadingEntityCategory(_TroopID)
         return "Cannon";
     end
     return "Sword";
+end
+
+function AiArmy.Internal:ManageUnitsMarkedForKill()
+    for j= self.CleanUp[1] +1, 2, -1 do
+        local Alive = IsValidEntity(self.CleanUp[j]);
+        local Fighting = IsFighting(self.CleanUp[j]);
+        if not Alive or not Fighting then
+            local ID = table.remove(self.CleanUp, j);
+            self.CleanUp[1] = self.CleanUp[1] -1;
+            AiArmyData_TroopIdToArmyId[ID] = nil;
+            if Alive and not Fighting then
+                local Soldiers = {Logic.GetSoldiersAttachedToLeader(ID)};
+                for i= Soldiers[1] +1, 2, -1 do
+                    if IsValidEntity(Soldiers[i]) then
+                        SetHealth(Soldiers[i], 0);
+                    end
+                end
+                SetHealth(ID, 0);
+            end
+        end
+    end
 end
 
 -- -------------------------------------------------------------------------- --
@@ -1584,25 +1607,6 @@ function AiArmy.Internal.Army:ManageArmyMembers()
         end
     end
 
-    -- Update troop cleanup
-    for j= self.CleanUp[1] +1, 2, -1 do
-        local Alive = IsValidEntity(self.CleanUp[j]);
-        local Fighting = IsFighting(self.CleanUp[j]);
-        if not Alive or not Fighting then
-            local ID = table.remove(self.CleanUp, j);
-            self.CleanUp[1] = self.CleanUp[1] -1;
-            AiArmyData_TroopIdToArmyId[ID] = nil;
-            self:LockOn(ID, nil);
-            if not Fighting then
-                local Soldiers = {Logic.GetSoldiersAttachedToLeader(ID)};
-                for i= Soldiers[1] +1, 1, -1 do
-                    SetHealth(Soldiers[i], 0);
-                end
-                SetHealth(ID, 0);
-            end
-        end
-    end
-
     -- Update troop targets
     for k,v in pairs(self.Targets) do
         if not IsValidEntity(v[1]) or not IsValidEntity(v[2]) or Logic.GetTime() > v[3]+5 then
@@ -1691,15 +1695,15 @@ function AiArmy.Internal.Army:Abandon(_KillLater)
     for i= self.Reinforcements[1] +1, 2, -1 do
         local ID = self:RemoveTroop(self.Reinforcements[i]);
         if _KillLater and ID ~= 0 and IsExisting(ID) then
-            table.insert(self.CleanUp, ID);
-            self.CleanUp[1] = self.CleanUp[1] +1;
+            table.insert(AiArmy.Internal.CleanUp, ID);
+            AiArmy.Internal.CleanUp[1] = AiArmy.Internal.CleanUp[1] +1;
         end
     end
     for i= self.Troops[1] +1, 2, -1 do
         local ID = self:RemoveTroop(self.Troops[i]);
         if _KillLater and ID ~= 0 and IsExisting(ID) then
-            table.insert(self.CleanUp, ID);
-            self.CleanUp[1] = self.CleanUp[1] +1;
+            table.insert(AiArmy.Internal.CleanUp, ID);
+            AiArmy.Internal.CleanUp[1] = AiArmy.Internal.CleanUp[1] +1;
         end
     end
 end

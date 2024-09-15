@@ -343,7 +343,9 @@ function Interaction_Internal_NpcController(_Name)
     if not IsExisting(_Name) then
         return true;
     end
-    local Data = Interaction.Internal.Data.IO[_Name];
-    GameCallback_Logic_OnTickNpcController(_Name, Data);
+    if Interaction.Internal.Data.IO[_Name] then
+        local Data = Interaction.Internal.Data.IO[_Name];
+        GameCallback_Logic_OnTickNpcController(_Name, Data);
+    end
 end
 
