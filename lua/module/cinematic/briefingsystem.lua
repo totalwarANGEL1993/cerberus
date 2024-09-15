@@ -461,7 +461,6 @@ function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefi
 end
 
 function BriefingSystem.Internal:EndBriefing(_PlayerID, _Abort)
-    local PlayerID = GUI.GetPlayerID();
     local Data = self.Data.Book[_PlayerID];
     -- Disable cinematic mode
     for i= 1, BriefingSystem.MCButtonAmount, 1 do
