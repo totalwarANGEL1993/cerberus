@@ -25,7 +25,7 @@ Lib.Register("module/ai/AiArmy");
 --- Everything else is very similar to what default armies are doing. A higher
 --- instance of controller is advised but not explicitly required.
 ---
---- Version 1.3.2
+--- Version 1.3.3
 ---
 
 AiArmy = AiArmy or {};

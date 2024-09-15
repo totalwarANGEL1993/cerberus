@@ -31,7 +31,7 @@ Lib.Register("module/cinematic/BriefingSystem");
 --- - GameCallback_Logic_BriefingOptionSelected(_PlayerID, _Briefing, _PageID, _OptionID, _NextPageID)
 ---   An option was selected
 ---
---- Version 1.4.0
+--- Version 1.4.1
 --- 
 BriefingSystem = BriefingSystem or {
     TimerPerChar = 0.6,

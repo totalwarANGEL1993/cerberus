@@ -11,7 +11,7 @@ Lib.Register("module/weather/WeatherMaker");
 ---
 --- Fixes weather sets for zoom factors up until 2.5 (more is just stupid).
 --- 
---- Version 1.0.0
+--- Version 1.0.1
 --- 
 
 WeatherMaker = WeatherMaker or {};
@@ -96,7 +96,7 @@ function WeatherMaker.Internal:Install()
         self.Orig_Mission_OnSaveGameLoaded = Mission_OnSaveGameLoaded;
         Mission_OnSaveGameLoaded = function()
             WeatherMaker.Internal.Orig_Mission_OnSaveGameLoaded();
-            WeatherMaker.Internal:UpdateGfx();
+            WeatherMaker.Internal:UpdateGfxDelayed();
         end
     end
 end
@@ -123,5 +123,14 @@ function WeatherMaker.Internal:InitWeatherDisplay(_ID)
 	Display.GfxSetSetFogParams(_ID, unpack(Data.Fog));
 	Display.GfxSetSetLightParams(_ID, unpack(Data.Light));
     Display.SetRenderUseGfxSets(1);
+end
+
+-- Delays the reset of the GFX by 1 turn.
+function WeatherMaker.Internal:UpdateGfxDelayed()
+    WeatherMaker_Internal_UpdateGfxDelay = function()
+        WeatherMaker.Internal:UpdateGfx();
+        return true;
+    end
+    StartSimpleHiResJob("WeatherMaker_Internal_UpdateGfxDelay");
 end
 

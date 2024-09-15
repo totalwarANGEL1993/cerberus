@@ -8,7 +8,7 @@ Lib.Register("module/ai/AiTroopSpawner");
 --- Allows to create spawners that can supply multiple armies with new
 --- troops. The unit roster is the same for all armies.
 ---
---- Version 1.2.0
+--- Version 1.2.1
 ---
 
 AiTroopSpawner = AiTroopSpawner or {
