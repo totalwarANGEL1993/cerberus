@@ -427,7 +427,7 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
     if IsExisting(Spawner.ScriptName) then
         for i= table.getn(Spawner.Refilling), 1, -1 do
             local TroopID = Spawner.Refilling[i];
-            if not IsExisting(Spawner.Refilling[i]) then
+            if not IsExisting(TroopID) then
                 table.remove(self.Data.Spawners[_Index].Refilling, i);
             else
                 local SpawnPos = GetPosition(Spawner.SpawnPoint);
