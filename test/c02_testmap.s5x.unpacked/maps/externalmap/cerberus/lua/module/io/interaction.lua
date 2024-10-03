@@ -2,6 +2,7 @@ Lib.Require("comfort/CreateNameForEntity");
 Lib.Require("comfort/GetMaxAmountOfPlayer");
 Lib.Require("comfort/CopyTable");
 Lib.Require("comfort/Localize");
+Lib.Require("module/mp/Syncer");
 Lib.Register("module/io/Interaction");
 
 --- 
@@ -307,29 +308,32 @@ function Interaction.Internal:OverrideNpcInteraction()
     self.Orig_GameCallback_NPCInteraction = GameCallback_NPCInteraction;
     GameCallback_NPCInteraction = function(_HeroID, _NpcID)
         Interaction.Internal.Orig_GameCallback_NPCInteraction(_HeroID, _NpcID);
+        self:OnNpcInteraction(_HeroID, _NpcID);
+    end
+end
 
-        local PlayerID = Logic.EntityGetPlayer(_HeroID);
-        local HeroScriptName = CreateNameForEntity(_HeroID);
-        local NpcScriptName = CreateNameForEntity(_NpcID);
-        -- NPCs of quests always have priority over NPC system!
-        if not QuestSystem or not QuestSystem.IsQuestNpcUsedByQuest(NpcScriptName) then
-            Interaction.Internal.LastInteractionHero[PlayerID] = HeroScriptName;
-            Interaction.Internal.LastInteractionNpc[PlayerID] = NpcScriptName;
+function Interaction.Internal:OnNpcInteraction(_HeroID, _NpcID)
+    local PlayerID = Logic.EntityGetPlayer(_HeroID);
+    local HeroScriptName = CreateNameForEntity(_HeroID);
+    local NpcScriptName = CreateNameForEntity(_NpcID);
+    -- NPCs of quests always have priority over NPC system!
+    if not QuestSystem or not QuestSystem.IsQuestNpcUsedByQuest(NpcScriptName) then
+        self.LastInteractionHero[PlayerID] = HeroScriptName;
+        self.LastInteractionNpc[PlayerID] = NpcScriptName;
 
-            if Interaction.Internal:IsInteractionPossible(_HeroID, _NpcID) then
-                local NpcID = _NpcID;
-                local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
-                if MerchantID ~= 0 then
-                    NpcID = MerchantID;
-                end
-                local ScriptName = Logic.GetEntityName(NpcID);
-                local Data = Interaction.Internal.Data.IO[ScriptName];
-                if Data then
-                    if Data.IsMerchant then
-                        GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID, Data);
-                    else
-                        GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID, Data);
-                    end
+        if self:IsInteractionPossible(_HeroID, _NpcID) then
+            local NpcID = _NpcID;
+            local MerchantID = Logic.GetMerchantBuildingId(_NpcID);
+            if MerchantID ~= 0 then
+                NpcID = MerchantID;
+            end
+            local ScriptName = Logic.GetEntityName(NpcID);
+            local Data = self.Data.IO[ScriptName];
+            if Data then
+                if Data.IsMerchant then
+                    GameCallback_Logic_InteractWithMerchant(PlayerID, _HeroID, NpcID, Data);
+                else
+                    GameCallback_Logic_InteractWithCharacter(PlayerID, _HeroID, NpcID, Data);
                 end
             end
         end

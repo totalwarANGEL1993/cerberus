@@ -12,7 +12,9 @@ Lib.Register("module/cinematic/Cinematic");
 --- 
 --- Version 1.2.0
 --- 
-Cinematic = Cinematic or {}
+Cinematic = Cinematic or {
+    MCButtonAmount = 2,
+}
 
 --- List of states for cinematic events.
 --- * Inactive Event is not active
@@ -116,6 +118,13 @@ end
 --- @param _PlayerID integer ID of player.
 function Cinematic.Hide(_PlayerID)
     Cinematic.Internal:DisableCinematicMode(_PlayerID);
+end
+
+--- Changes the amount of multiple choice buttons.
+--- (More than 2 buttons must be created inside the GUI XML!)
+--- @param _Amount number Amount of buttons
+function Cinematic.SetMCButtonCount(_Amount)
+    Cinematic.MCButtonAmount = _Amount;
 end
 
 -- -------------------------------------------------------------------------- --
@@ -355,13 +364,13 @@ function Cinematic.Internal:SetPageStyle(_DisableMap, _MCAmount, _PageStyle)
     if _MCAmount and _MCAmount > 2 or _PageStyle == 2 then
         self:SetVisualNovelPageStyle(_DisableMap, _MCAmount);
     elseif _PageStyle == 3 then
-        self:SetCutscenePageStyle();
+        self:SetCutscenePageStyle(_MCAmount);
     else
-        self:SetRegularPageStyle(_DisableMap);
+        self:SetRegularPageStyle(_DisableMap, _MCAmount);
     end
 end
 
-function Cinematic.Internal:SetRegularPageStyle(_DisableMap)
+function Cinematic.Internal:SetRegularPageStyle(_DisableMap, _MCAmount)
     XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);
     XGUIEng.SetWidgetPositionAndSize("Cinematic_Text", 200, 668, 624, 100);
     XGUIEng.SetWidgetPositionAndSize("CinematicMC_Text", 200, 668, 624, 100);
@@ -372,27 +381,24 @@ function Cinematic.Internal:SetRegularPageStyle(_DisableMap)
     XGUIEng.SetMaterialTexture("CinematicBar02", 0, "data/graphics/textures/gui/cutscene_top.dds");
     XGUIEng.SetMaterialColor("CinematicBar02", 0, 255, 255, 255, 255);
     XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, 1024, 180);
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button1", 75, 720, 412, 46);
-    XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button2", 549, 720, 412, 46);
 
     XGUIEng.ShowWidget("CinematicMiniMapOverlay", (_DisableMap and 0) or 1);
     XGUIEng.ShowWidget("CinematicMiniMap", (_DisableMap and 0) or 1);
     XGUIEng.ShowWidget("CinematicFrameBG", (_DisableMap and 0) or 1);
     XGUIEng.ShowWidget("CinematicFrame", (_DisableMap and 0) or 1);
-    XGUIEng.ShowWidget("CinematicMC_Button1", 1);
-    XGUIEng.ShowWidget("CinematicMC_Button2", 1);
     XGUIEng.ShowWidget("CinematicBar02", 1);
     XGUIEng.ShowWidget("CinematicBar01", 1);
     XGUIEng.ShowWidget("CinematicBar00", 0);
+
+    if _MCAmount == 0 then
+        XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button1", 914, 728, 100, 30);
+    else
+        XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button1", 75, 720, 412, 46);
+        XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button2", 549, 720, 412, 46);
+    end
 end
 
 function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
-    local SW, SH = GUI.GetScreenSize();
-    local SWF, SHF = 1024, 384;
-    local CD, CH, CW = 10, 40, 500;
-    local CX = 262;
-    local CY = Round(SHF - ((_MCAmount / 2) * (CH + (CD / 2))));
-
     -- Set widget apperance
     XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);
     XGUIEng.SetWidgetPositionAndSize("Cinematic_Text", 200, 668, 624, 100);
@@ -405,14 +411,6 @@ function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
     XGUIEng.SetMaterialColor("CinematicBar02", 0, 255, 255, 255, 255);
     XGUIEng.SetWidgetPositionAndSize("CinematicBar02", 0, 0, 1024, 180);
 
-    -- Set answers
-    for i= 1, _MCAmount, 1 do
-        if XGUIEng.IsWidgetExisting("CinematicMC_Button" ..i) == 1 then
-            XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button" ..i, CX, CY, CW, CH);
-            CY = CY + (CH + CD);
-        end
-    end
-
     -- Set widget visability
     XGUIEng.ShowWidget("CinematicMiniMapOverlay", (_DisableMap and 0) or 1);
     XGUIEng.ShowWidget("CinematicMiniMap", (_DisableMap and 0) or 1);
@@ -421,16 +419,28 @@ function Cinematic.Internal:SetVisualNovelPageStyle(_DisableMap, _MCAmount)
     XGUIEng.ShowWidget("CinematicBar02", 1);
     XGUIEng.ShowWidget("CinematicBar01", 1);
     XGUIEng.ShowWidget("CinematicBar00", 0);
-    for i= 1, _MCAmount, 1 do
-        if XGUIEng.IsWidgetExisting("CinematicMC_Button" ..i) == 1 then
-            XGUIEng.ShowWidget("CinematicMC_Button" ..i, 1);
-        else
-            GUI.AddStaticNote("Debug: Widget CinematicMC_Button" ..i.. " does not exist!");
+
+    -- Set answers
+    if _MCAmount == 0 then
+        XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button1", 914, 728, 100, 30);
+    else
+        local SW, SH = GUI.GetScreenSize();
+        local SWF, SHF = 1024, 384;
+        local CD, CH, CW = 10, 40, 500;
+        local CX = 262;
+        local CY = Round(SHF - ((_MCAmount / 2) * (CH + (CD / 2))));
+        for i= 1, _MCAmount, 1 do
+            if XGUIEng.IsWidgetExisting("CinematicMC_Button" ..i) == 1 then
+                XGUIEng.SetWidgetPositionAndSize("CinematicMC_Button" ..i, CX, CY, CW, CH);
+                CY = CY + (CH + CD);
+            else
+                GUI.AddStaticNote("Debug: Widget CinematicMC_Button" ..i.. " does not exist!");
+            end
         end
     end
 end
 
-function Cinematic.Internal:SetCutscenePageStyle()
+function Cinematic.Internal:SetCutscenePageStyle(_MCAmount)
     -- Set widget apperance
     XGUIEng.SetWidgetPositionAndSize("CinematicMC_Container", 0, 0, 1024, 768);
     XGUIEng.SetWidgetPositionAndSize("Cinematic_Text", 200, 668, 624, 100);

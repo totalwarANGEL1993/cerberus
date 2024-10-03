@@ -44,7 +44,6 @@ BriefingSystem = BriefingSystem or {
     BriefingZoomAngle = 48,
     BriefingRotationAngle = -45,
     BriefingExploration = 6000,
-    MCButtonAmount = 2,
 }
 
 -- -------------------------------------------------------------------------- --
@@ -91,13 +90,6 @@ end
 --- @return function AMC Function for simplyfied selection pages
 function BriefingSystem.AddPages(_Briefing)
     return BriefingSystem.Internal:AddPages(_Briefing);
-end
-
---- Changes the amount of multiple choice buttons.
---- (More than 2 buttons must be created inside the GUI XML!)
---- @param _Amount number Amount of buttons
-function BriefingSystem.SetMCButtonCount(_Amount)
-    BriefingSystem.MCButtonAmount = _Amount;
 end
 
 --- Returns the selected answer from the page.
@@ -206,6 +198,12 @@ BriefingSystem.Internal = BriefingSystem.Internal or {
         Book = {},
         Queue = {},
     },
+    Text = {
+        Continue = {
+            de = "@center Weiter",
+            en = "@center Continue",
+        }
+    },
 }
 
 function BriefingSystem.Internal:Install()
@@ -246,13 +244,13 @@ function BriefingSystem.Internal:CreateScriptEvents()
             local Page = Briefing[_PageID];
             if Page then
                 if Page.MC then
-                    for k, v in pairs(Page.MC) do
-                        if v and v.ID == _OptionID then
+                    for _, Choice in pairs(Page.MC) do
+                        if Choice and Choice.ID == _OptionID then
                             local NextPageID = 0;
-                            if type(v[2]) == "function" then
-                                NextPageID = BriefingSystem.Internal:GetPageID(v[2](v), _PlayerID) -1;
+                            if type(Choice[2]) == "function" then
+                                NextPageID = BriefingSystem.Internal:GetPageID(Choice[2](Choice), _PlayerID) -1;
                             else
-                                NextPageID = BriefingSystem.Internal:GetPageID(v[2], _PlayerID) -1;
+                                NextPageID = BriefingSystem.Internal:GetPageID(Choice[2], _PlayerID) -1;
                             end
                             BriefingSystem.Internal.Data.Book[_PlayerID].Page = NextPageID;
                             BriefingSystem.Internal.Data.Book[_PlayerID][_PageID].MC.Selected = _OptionID;
@@ -261,6 +259,8 @@ function BriefingSystem.Internal:CreateScriptEvents()
                             return;
                         end
                     end
+                else
+                    BriefingSystem.Internal:NextPage(_PlayerID, false);
                 end
             end
         end
@@ -268,15 +268,6 @@ function BriefingSystem.Internal:CreateScriptEvents()
 end
 
 function BriefingSystem.Internal:OverrideBriefingFunctions()
-    self.Orig_GameCallback_Logic_PlayerEscape = GameCallback_Logic_PlayerEscape;
-    GameCallback_Logic_PlayerEscape = function(_PlayerID)
-        if BriefingSystem.Internal:IsBriefingActive(_PlayerID) then
-            Syncer.InvokeEvent(BriefingSystem.Internal.Events.PostEscapePressed);
-            return false;
-        end
-        return true;
-    end
-
     BriefingMCButtonSelected = function(_Selected)
         BriefingSystem.Internal:BriefingMCButtonSelected(_Selected);
     end
@@ -437,8 +428,8 @@ function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefi
     -- Just to be sure...
     self:Install();
     -- watchers mode
-    _Briefing.Watchers = {};
-    if arg and table.getn(arg) > 0 then
+    if arg and table.getn(arg) > 1 then
+        _Briefing.Watchers = {};
         _Briefing.IsSpectated = true;
         for i= 1, table.getn(arg) do
             if arg[i] ~= 17 and arg[i] ~= _PlayerID then
@@ -450,12 +441,12 @@ function BriefingSystem.Internal:StartBriefing(_PlayerID, _BriefingName, _Briefi
     if not Cinematic.Define(_PlayerID, _BriefingName) then
         return;
     end
-    -- Insert in Queue
-    table.insert(self.Data.Queue[_PlayerID], {_BriefingName, CopyTable(_Briefing)});
     -- Start briefing if possible
     if Cinematic.IsAnyActive(_PlayerID) then
+        table.insert(self.Data.Queue[_PlayerID], {_BriefingName, CopyTable(_Briefing)});
         return;
     end
+    table.insert(self.Data.Queue[_PlayerID], 1, {_BriefingName, CopyTable(_Briefing)});
     self:NextBriefing(_PlayerID);
     return true;
 end
@@ -463,12 +454,12 @@ end
 function BriefingSystem.Internal:EndBriefing(_PlayerID, _Abort)
     local Data = self.Data.Book[_PlayerID];
     -- Disable cinematic mode
-    for i= 1, BriefingSystem.MCButtonAmount, 1 do
+    for i= 1, Cinematic.MCButtonAmount, 1 do
         XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
     end
     -- Destroy explorations
-    for k, v in pairs(Data.Exploration) do
-        DestroyEntity(v);
+    for _, Entity in pairs(Data.Exploration) do
+        DestroyEntity(Entity);
     end
     -- Register briefing as finished
     local BriefingName = Data.ID;
@@ -484,10 +475,12 @@ function BriefingSystem.Internal:EndBriefing(_PlayerID, _Abort)
     -- End briefing for watchers
     if Data.IsSpectated and Data.Watchers then
         for _, WatchingID in pairs(Data.Watchers) do
-            if self:IsPlayerWatching(_PlayerID, WatchingID) then
-                if Cinematic.IsActive(WatchingID, BriefingName) then
-                    Cinematic.Conclude(WatchingID, BriefingName);
-                    Cinematic.Hide(WatchingID);
+            if GUI.GetPlayerID() == WatchingID then
+                if self:IsPlayerWatching(_PlayerID, WatchingID) then
+                    if Cinematic.IsActive(WatchingID, BriefingName) then
+                        Cinematic.Conclude(WatchingID, BriefingName);
+                        Cinematic.Hide(WatchingID);
+                    end
                 end
             end
         end
@@ -516,22 +509,22 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     local Data = self.Data.Book[_PlayerID];
 
     -- Calculate duration and height
-    for k, v in pairs(Data) do
-        if type(v) == "table" then
-            if v.Target then
-                self.Data.Book[_PlayerID][k].Position = GetPosition(v.Target);
+    for Index, Page in pairs(Data) do
+        if type(Page) == "table" then
+            if Page.Target then
+                self.Data.Book[_PlayerID][Index].Position = GetPosition(Page.Target);
             end
-            self.Data.Book[_PlayerID][k] = self:AdjustBriefingPageCamHeight(v);
-            if not v.Duration then
-                local Text = v.Text or "";
+            self.Data.Book[_PlayerID][Index] = self:AdjustBriefingPageCamHeight(Page);
+            if not Page.Duration then
+                local Text = Page.Text or "";
                 if type(Text) == "table" then
                     Text = Text.de or "";
                 end
                 local TextLength = (string.len(Text) +60) * BriefingSystem.TimerPerChar;
-                local Duration   = v.Duration or TextLength;
-                self.Data.Book[_PlayerID][k].Duration = Duration;
+                local Duration   = Page.Duration or TextLength;
+                self.Data.Book[_PlayerID][Index].Duration = Duration;
             else
-                self.Data.Book[_PlayerID][k].Duration = v.Duration * 10;
+                self.Data.Book[_PlayerID][Index].Duration = Page.Duration * 10;
             end
         end
     end
@@ -549,10 +542,12 @@ function BriefingSystem.Internal:NextBriefing(_PlayerID)
     -- Start briefing for watchers
     if Data.IsSpectated and Data.Watchers then
         for _, WatchingID in pairs(Data.Watchers) do
-            if self:IsPlayerWatching(_PlayerID, WatchingID) then
-                if not Cinematic.IsAnyActive(WatchingID) then
-                    Cinematic.Activate(WatchingID, Data.ID);
-                    Cinematic.Show(WatchingID, Data.RestoreCamera, true);
+            if GUI.GetPlayerID() == WatchingID then
+                if self:IsPlayerWatching(_PlayerID, WatchingID) then
+                    if not Cinematic.IsAnyActive(WatchingID) then
+                        Cinematic.Activate(WatchingID, Data.ID);
+                        Cinematic.Show(WatchingID, Data.RestoreCamera, true);
+                    end
                 end
             end
         end
@@ -619,10 +614,6 @@ function BriefingSystem.Internal:CanPageBeSkipped(_PlayerID)
         if Data[PageID].MC then
             return false;
         end
-        -- 0.5 seconds must have passed between two page skips
-        if math.abs(Data[PageID].StartTime - Logic.GetCurrentTurn()) < 5 then
-            return false;
-        end
     end
     -- Page can be skipped
     return true;
@@ -661,6 +652,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     if not Page then
         return;
     end
+    self.Data.Book[_PlayerID].OptionDisplayFix = true;
     -- Call page action for all players
     if Page.Action then
         Page:Action(Data);
@@ -680,7 +672,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     Cinematic.Internal:SetPageStyle(
         Page.MiniMap ~= true,
         (Page.MC and table.getn(Page.MC)) or 0,
-        (BriefingSystem.MCButtonAmount > 2 and 2)
+        (Cinematic.MCButtonAmount > 2 and 2)
             or Data.PageStyle
             or 1
     );
@@ -746,14 +738,7 @@ function BriefingSystem.Internal:RenderPage(_PlayerID)
     local Text = self:GetPageText(_PlayerID, Data.Page);
     self:PrintText(_PlayerID, Text);
 
-    if Page.MC then
-        self:PrintOptions(_PlayerID, Data, Page);
-    else
-        Mouse.CursorHide();
-        for i= 1, BriefingSystem.MCButtonAmount, 1 do
-            XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
-        end
-    end
+    self:PrintOptions(_PlayerID, Data, Page);
 end
 
 --- @diagnostic disable-next-line: duplicate-set-field
@@ -814,12 +799,17 @@ function BriefingSystem.Internal:ControlBriefing()
                 self:EndBriefing(PlayerID);
                 return false;
             end
+
             -- HACK: fix MC buttons
             -- (Dosen't work on display for some reason)
-            for j= 1, BriefingSystem.MCButtonAmount, 1 do
-                XGUIEng.DisableButton("CinematicMC_Button" ..j, 1);
-                XGUIEng.DisableButton("CinematicMC_Button" ..j, 0);
+            if self.Data.Book[PlayerID].OptionDisplayFix then
+                self.Data.Book[PlayerID].OptionDisplayFix = nil;
+                for j= 1, Cinematic.MCButtonAmount, 1 do
+                    XGUIEng.DisableButton("CinematicMC_Button" ..j, 1);
+                    XGUIEng.DisableButton("CinematicMC_Button" ..j, 0);
+                end
             end
+
             -- Jump to page
             if type(self.Data.Book[PlayerID][PageID]) ~= "table" then
                 self.Data.Book[PlayerID].Page = self:GetPageID(self.Data.Book[PlayerID][PageID], PlayerID) -1;
@@ -918,31 +908,42 @@ end
 
 function BriefingSystem.Internal:PrintOptions(_PlayerID, _Briefing, _Page)
     local PlayerID = GUI.GetPlayerID();
+    local IsWatchingPlayer = self:IsPlayerWatching(_PlayerID, PlayerID);
     if _Page.MC then
         if _PlayerID == PlayerID then
             -- Display choices normally
-            Mouse.CursorShow();
+            -- Mouse.CursorShow();
             for i= 1, table.getn(_Page.MC), 1 do
-                if BriefingSystem.MCButtonAmount >= i then
-                    -- Fix buttons (doesn't work here)
-                    XGUIEng.DisableButton("CinematicMC_Button" ..i, 1);
-                    XGUIEng.DisableButton("CinematicMC_Button" ..i, 0);
+                if Cinematic.MCButtonAmount >= i then
                     -- Set text
                     local Text = Localize(_Page.MC[i][1]);
                     Text = Placeholder.Replace(Text);
                     XGUIEng.SetText("CinematicMC_Button" ..i, Text or "");
+                    XGUIEng.ShowWidget("CinematicMC_Button" ..i, 1);
                 end
             end
-        elseif self:IsPlayerWatching(_PlayerID, PlayerID) then
+        elseif IsWatchingPlayer then
             -- Add the option to hide choices so that a player is stuck on the
             -- choice page until external intervention
-            Mouse.CursorHide();
+            -- Mouse.CursorHide();
             for i= 1, table.getn(_Page.MC), 1 do
-                if BriefingSystem.MCButtonAmount >= i then
+                if Cinematic.MCButtonAmount >= i then
                     XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
                 end
             end
         end
+    else
+        local Skip = 0;
+        if not IsWatchingPlayer and self:CanPageBeSkipped(_PlayerID) then
+            Skip = 1;
+        end
+        for i= 2, Cinematic.MCButtonAmount, 1 do
+            XGUIEng.ShowWidget("CinematicMC_Button" ..i, 0);
+        end
+        XGUIEng.ShowWidget("CinematicMC_Button1", Skip);
+
+        local Text = Localize(self.Text.Continue);
+        XGUIEng.SetText("CinematicMC_Button1", Text);
     end
 end
 
