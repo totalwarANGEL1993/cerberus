@@ -3,7 +3,6 @@ Lib.Require("comfort/GetResourceName");
 Lib.Require("comfort/KeyOf");
 Lib.Require("module/ui/Placeholder");
 Lib.Require("module/io/Interaction");
-Lib.Require("module/mp/Syncer");
 Lib.Register("module/io/NonPlayerMerchant");
 
 --- 

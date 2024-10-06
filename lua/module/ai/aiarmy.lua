@@ -404,10 +404,13 @@ function AiArmy.SetFormationController(_ID, _Controller)
     end
 end
 
---- Sets the percentage when the army is defeated.
---- @param _Threshold number Defeated threshold
-function AiArmy.SetAliveThreshold(_Threshold)
-    AiArmy.Internal.Army:SetAliveThreshold(_Threshold)
+--- Sets the min percentage of troops needed to be alive.
+--- @param _ID integer        ID of army
+--- @param _Threshold integer Defeated threshold
+function AiArmy.SetAliveThreshold(_ID, _Threshold)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID]:SetAliveThreshold(_Threshold);
+    end
 end
 
 --- Returns a list of enemies of the army in the area.
