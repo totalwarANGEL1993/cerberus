@@ -18,6 +18,7 @@ function OnMapStart()
     Lib.Require("comfort/IsDeadWrapper");
     Lib.Require("module/ai/AiArmy");
     Lib.Require("module/ai/AiTroopSpawner");
+    Lib.Require("module/ai/AiTroopTrainer");
     Lib.Require("module/archive/Archive");
     Lib.Require("module/cinematic/BriefingSystem");
     Lib.Require("module/lua/Overwrite");
@@ -38,7 +39,9 @@ function OnMapStart()
     Tools.GiveResouces(1, 99999, 9999, 9999, 9999, 9999, 9999);
 
     --CreateTroopSpawnersTest()
-    --CreateAttackArmiesTest()
+    --CreateAttackArmiesTest1()
+    CreateTroopTrainersTest()
+    CreateAttackArmiesTest2()
 
 
     UseWeatherSet("HighlandsWeatherSet");
@@ -67,6 +70,8 @@ function CreateTroopSpawnersTest()
         ScriptName = "P6barracks1",
         SpawnPoint = "P6barracks1Spawn",
         SpawnAmount = 1,
+        Sequentially = true,
+        Endlessly = true,
         AllowedTypes = {
             {Entities.PU_LeaderPoleArm1, 3},
             {Entities.PU_LeaderSword1, 3},
@@ -77,6 +82,8 @@ function CreateTroopSpawnersTest()
         ScriptName = "P6archery1",
         SpawnPoint = "P6archery1Spawn",
         SpawnAmount = 2,
+        Sequentially = true,
+        Endlessly = true,
         AllowedTypes = {
             {Entities.PU_LeaderBow1, 3},
         }
@@ -86,6 +93,8 @@ function CreateTroopSpawnersTest()
         ScriptName = "P6stable1",
         SpawnPoint = "P6stable1Spawn",
         SpawnAmount = 1,
+        Sequentially = true,
+        Endlessly = true,
         AllowedTypes = {
             {Entities.PU_LeaderCavalry1, 3},
         }
@@ -95,10 +104,64 @@ function CreateTroopSpawnersTest()
         ScriptName = "P6foundry1",
         SpawnPoint = "P6foundry1Spawn",
         SpawnAmount = 1,
+        Sequentially = true,
+        Endlessly = true,
         AllowedTypes = {
             {Entities.PV_Cannon1, 0},
         }
     }
+end
+
+function CreateTroopTrainersTest()
+    P6BarracksTrainer = AiArmyRefiller.CreateTrainer {
+        ScriptName = "P6barracks1",
+        RallyPoint = GetPosition("P6militaryCenter2"),
+    }
+
+    P6ArcheryTrainer = AiArmyRefiller.CreateTrainer {
+        ScriptName = "P6archery1",
+        RallyPoint = GetPosition("P6militaryCenter2"),
+    }
+
+    P6StableTrainer = AiArmyRefiller.CreateTrainer {
+        ScriptName = "P6stable1",
+        RallyPoint = GetPosition("P6militaryCenter2"),
+    }
+
+    P6FoundryTrainer = AiArmyRefiller.CreateTrainer {
+        ScriptName = "P6foundry1",
+        RallyPoint = GetPosition("P6militaryCenter2"),
+    }
+end
+
+function CreateAttackArmiesTest1()
+    P6Army1 = AiArmy.New(6, 8, GetPosition("Player6_PatrolPoint1"), 3500);
+    AiTroopSpawner.AddArmy(P6BarracksSpawner, P6Army1);
+    AiTroopSpawner.AddArmy(P6ArcherySpawner, P6Army1);
+    AiTroopSpawner.AddArmy(P6StableSpawner, P6Army1);
+    AiTroopSpawner.AddArmy(P6FoundrySpawner, P6Army1);
+end
+
+function CreateAttackArmiesTest2()
+    P6Army2 = AiArmy.New(6, 8, GetPosition("Player6_PatrolPoint1"), 3500);
+    AiTroopTrainer.AddArmy(P6BarracksTrainer, P6Army2);
+    AiTroopTrainer.AddArmy(P6ArcheryTrainer, P6Army2);
+    AiTroopTrainer.AddArmy(P6StableTrainer, P6Army2);
+    AiTroopTrainer.AddArmy(P6FoundryTrainer, P6Army2);
+end
+
+function MakeTestArmiesAttack1()
+    AiArmy.ClearCommands(P6Army1);
+    AiArmy.PushCommand(P6Army1, AiArmy.CreateCommand(AiArmyCommand.Move, "Player2_AttackTarget4"), false);
+    AiArmy.PushCommand(P6Army1, AiArmy.CreateCommand(AiArmyCommand.Battle, "Player2_AttackTarget4"), false);
+    AiArmy.PushCommand(P6Army1, AiArmy.CreateCommand(AiArmyCommand.Move, "Player6_PatrolPoint3"), false);
+end
+
+function MakeTestArmiesAttack2()
+    AiArmy.ClearCommands(P6Army2);
+    AiArmy.PushCommand(P6Army2, AiArmy.CreateCommand(AiArmyCommand.Move, "Player2_AttackTarget4"), false);
+    AiArmy.PushCommand(P6Army2, AiArmy.CreateCommand(AiArmyCommand.Battle, "Player2_AttackTarget4"), false);
+    AiArmy.PushCommand(P6Army2, AiArmy.CreateCommand(AiArmyCommand.Move, "Player6_PatrolPoint3"), false);
 end
 
 function WeakenTestArmies()
@@ -115,21 +178,6 @@ function WeakenTestArmies()
             end
         end
     end
-end
-
-function CreateAttackArmiesTest()
-    P6Army1 = AiArmy.New(6, 8, GetPosition("Player6_PatrolPoint1"), 3500);
-    AiTroopSpawner.AddArmy(P6BarracksSpawner, P6Army1);
-    AiTroopSpawner.AddArmy(P6ArcherySpawner, P6Army1);
-    AiTroopSpawner.AddArmy(P6StableSpawner, P6Army1);
-    AiTroopSpawner.AddArmy(P6FoundrySpawner, P6Army1);
-end
-
-function MakeTestArmiesAttack()
-    AiArmy.ClearCommands(P6Army1);
-    AiArmy.PushCommand(P6Army1, AiArmy.CreateCommand(AiArmyCommand.Move, "Player2_AttackTarget4"), false);
-    AiArmy.PushCommand(P6Army1, AiArmy.CreateCommand(AiArmyCommand.Battle, "Player2_AttackTarget4"), false);
-    AiArmy.PushCommand(P6Army1, AiArmy.CreateCommand(AiArmyCommand.Move, "Player6_PatrolPoint3"), false);
 end
 
 
