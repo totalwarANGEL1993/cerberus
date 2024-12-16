@@ -273,6 +273,26 @@ function AiArmy.SetAllowedTypes(_ID, _Types)
     end
 end
 
+--- Returns the categories the army will accept from a trainer.
+--- @param _ID integer ID of army
+--- @return table Allowed List of allowed types
+function AiArmy.GetAllowedCategories(_ID)
+    local AllowedTypes = {};
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AllowedTypes = AiArmyData_ArmyIdToArmyInstance[_ID]:GetAllowedCategories();
+    end
+    return AllowedTypes;
+end
+
+--- Sets the categories the army will accept from a trainer.
+--- @param _ID integer ID of army
+--- @param _Types table? List of allowed types
+function AiArmy.SetAllowedCategories(_ID, _Types)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AllowedTypes = AiArmyData_ArmyIdToArmyInstance[_ID]:SetAllowedCategories(_Types);
+    end
+end
+
 --- Returns the number of leader attached to the army.
 --- @param _ID integer ID of army
 --- @return integer Amount Leader count of army
@@ -955,6 +975,7 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     HomePosition     = nil,
     DefeatThreshold  = 0.20,
     LastTick         = 0,
+    AllowedUpCats    = {},
     AllowedTypes     = {},
 
     Reinforcements   = {0},
@@ -1523,7 +1544,10 @@ function AiArmy.Internal.Army:ExecuteFallbackCommand(_Data)
     end
     -- Finish command if army arrived at home position
     if GetDistance(self:GetArmyPosition(), Position) <= 1200 then
-        self:DispatchTroopsToSpawner();
+        local Remaining = self:DispatchTroopsToSpawner();
+        if table.getn(Remaining) > 0 then
+            self:Abandon(true);
+        end
         return true;
     end
     -- Move back to home position
@@ -1571,9 +1595,13 @@ function AiArmy.Internal.Army:ChangePlayer(_PlayerID)
     -- Change reinforcement
     local Reinforcements = {0};
     for i= self.Reinforcements[1] +1, 2, -1 do
-        local ID = ChangePlayer(Reinforcements[i], _PlayerID);
-        Reinforcements[1] = Reinforcements[1] + 1;
-        table.insert(Reinforcements, ID);
+        if Logic.LeaderGetBarrack(self.Reinforcements[i]) == 0 then
+            local ID = ChangePlayer(Reinforcements[i], _PlayerID);
+            Reinforcements[1] = Reinforcements[1] + 1;
+            table.insert(Reinforcements, ID);
+        else
+            DestroyEntity(Reinforcements[i]);
+        end
     end
     self.Reinforcements = Reinforcements;
     -- Save player
@@ -1583,19 +1611,21 @@ end
 function AiArmy.Internal.Army:ManageArmyMembers()
     -- Update reinforcements
     for j= self.Reinforcements[1] +1, 2, -1 do
-        if not IsValidEntity(self.Reinforcements[j]) then
-            local ID = table.remove(self.Reinforcements, j);
-            self.Reinforcements[1] = self.Reinforcements[1] -1;
-            AiArmyData_ReinforcementIdToArmyId[ID] = nil;
-        elseif GetDistance(self.Reinforcements[j], self:GetArmyPosition()) <= 1500 then
-            local ID = table.remove(self.Reinforcements, j);
-            self.Reinforcements[1] = self.Reinforcements[1] -1;
-            AiArmyData_ReinforcementIdToArmyId[ID] = nil;
-            self:AddTroop(ID, false);
-        else
-            if Logic.IsEntityMoving(self.Reinforcements[j]) == false then
-                local Position = self:GetArmyPosition();
-                Logic.GroupAttackMove(self.Reinforcements[j], Position.X, Position.Y);
+        if Logic.LeaderGetBarrack(self.Reinforcements[j]) == 0 then
+            if not IsValidEntity(self.Reinforcements[j]) then
+                local ID = table.remove(self.Reinforcements, j);
+                self.Reinforcements[1] = self.Reinforcements[1] -1;
+                AiArmyData_ReinforcementIdToArmyId[ID] = nil;
+            elseif GetDistance(self.Reinforcements[j], self:GetArmyPosition()) <= 1500 then
+                local ID = table.remove(self.Reinforcements, j);
+                self.Reinforcements[1] = self.Reinforcements[1] -1;
+                AiArmyData_ReinforcementIdToArmyId[ID] = nil;
+                self:AddTroop(ID, false);
+            else
+                if Logic.IsEntityMoving(self.Reinforcements[j]) == false then
+                    local Position = self:GetArmyPosition();
+                    Logic.GroupAttackMove(self.Reinforcements[j], Position.X, Position.Y);
+                end
             end
         end
     end
@@ -1674,12 +1704,14 @@ end
 function AiArmy.Internal.Army:GetWeakenedTroops()
     local ToRemove = {};
     for i= self.Reinforcements[1] +1, 2, -1 do
-        local MaxHealth = Logic.GetEntityMaxHealth(self.Reinforcements[i]);
-        local Health = Logic.GetEntityHealth(self.Reinforcements[i]);
-        local MaxSoldiers = Logic.LeaderGetMaxNumberOfSoldiers(self.Reinforcements[i]);
-        local Soldiers = Logic.LeaderGetNumberOfSoldiers(self.Reinforcements[i]);
-        if Soldiers < MaxSoldiers or Health < MaxHealth then
-            table.insert(ToRemove, self.Reinforcements[i]);
+        if Logic.LeaderGetBarrack(self.Reinforcements[i]) == 0 then
+            local MaxHealth = Logic.GetEntityMaxHealth(self.Reinforcements[i]);
+            local Health = Logic.GetEntityHealth(self.Reinforcements[i]);
+            local MaxSoldiers = Logic.LeaderGetMaxNumberOfSoldiers(self.Reinforcements[i]);
+            local Soldiers = Logic.LeaderGetNumberOfSoldiers(self.Reinforcements[i]);
+            if Soldiers < MaxSoldiers or Health < MaxHealth then
+                table.insert(ToRemove, self.Reinforcements[i]);
+            end
         end
     end
     for i= self.Troops[1] +1, 2, -1 do
@@ -1729,12 +1761,16 @@ function AiArmy.Internal.Army:DispatchTroopsToSpawner()
         if RefillerCount == 1 then
             if AiArmyRefiller.AddTroop(PossibleRefillerIDs[1], WeakenedList[i]) == true then
                 AiArmy.RemoveTroop(self.ID, WeakenedList[i]);
+                AiArmy.AddTroop(self.ID, WeakenedList[i], true);
+                table.remove(WeakenedList, i);
             end
         else
             local Index = math.random(1, RefillerCount);
             while (true) do
                 if AiArmyRefiller.AddTroop(PossibleRefillerIDs[Index], WeakenedList[i]) then
                     AiArmy.RemoveTroop(self.ID, WeakenedList[i]);
+                    AiArmy.AddTroop(self.ID, WeakenedList[i], true);
+                    table.remove(WeakenedList, i);
                     break;
                 end
                 Index = math.random(1, RefillerCount);
@@ -1786,6 +1822,14 @@ end
 
 function AiArmy.Internal.Army:SetAllowedTypes(_Types)
     self.AllowedTypes = _Types or {};
+end
+
+function AiArmy.Internal.Army:GetAllowedCategories()
+    return self.AllowedUpCats;
+end
+
+function AiArmy.Internal.Army:SetAllowedCategories(_Types)
+    self.AllowedUpCats = _Types or {};
 end
 
 -- -------------------------------------------------------------------------- --
@@ -1848,8 +1892,9 @@ function AiArmy.Internal.Army:GetCurrentStregth(_WithReinforcments)
         local StrValue = 1;
         if Logic.IsLeader(Troops[i]) == 1 then
             local MaxSoldiers = Logic.LeaderGetMaxNumberOfSoldiers(Troops[i]);
+            local MinSoldiers = Logic.LeaderGetNumberOfSoldiers(Troops[i]);
             if MaxSoldiers > 0 then
-                StrValue = (Logic.LeaderGetNumberOfSoldiers(Troops[i])/MaxSoldiers);
+                StrValue = (MinSoldiers + 1) / (MaxSoldiers + 1);
             end
         end
         CurStrength = CurStrength + StrValue;
