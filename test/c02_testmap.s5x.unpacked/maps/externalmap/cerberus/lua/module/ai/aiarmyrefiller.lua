@@ -1,3 +1,4 @@
+Lib.Require("comfort/IsValidEntity");
 Lib.Require("module/ai/AiTroopSpawner");
 Lib.Require("module/ai/AiTroopTrainer");
 Lib.Register("module/ai/AiArmyRefiller");
@@ -270,6 +271,13 @@ function AiArmyRefiller.GetRefillersOfArmy(_ArmyID)
     return AiArmyRefiller.Internal:GetRefillersOfArmy(_ArmyID);
 end
 
+--- Returns the refillers ID the troop is attached to or 0 if not attached.
+--- @param _TroopID integer ID of troop
+--- @return integer ID ID of refiller
+function AiArmyRefiller.GetRefillerOfTroop(_TroopID)
+    return AiArmyRefiller.Internal:GetRefillerOfTroop(_TroopID);
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal
 
@@ -344,6 +352,28 @@ function AiArmyRefiller.Internal:GetRefillersOfArmy(_ArmyID)
         end
     end
     return RefillerIDs;
+end
+
+function AiArmyRefiller.Internal:GetRefillerOfTroop(_TroopID)
+    if IsValidEntity(_TroopID) then
+        local TroopSpawnerID = AiTroopSpawner.GetSpawnerOfTroop(_TroopID);
+        if TroopSpawnerID > 0 then
+            for RefillerID, SpawnerID in pairs(self.Data.Refillers.Spawner) do
+                if SpawnerID == TroopSpawnerID then
+                    return RefillerID;
+                end
+            end
+        end
+        local TroopTrainerID = AiTroopTrainer.GetTrainerOfTroop(_TroopID);
+        if TroopTrainerID > 0 then
+            for RefillerID, TrainerID in pairs(self.Data.Refillers.Trainer) do
+                if TrainerID == TroopTrainerID then
+                    return RefillerID;
+                end
+            end
+        end
+    end
+    return 0;
 end
 
 function AiArmyRefiller.Internal:GetByEntity(_Entity)

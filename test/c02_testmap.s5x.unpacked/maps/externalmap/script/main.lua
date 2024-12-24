@@ -176,7 +176,6 @@ function TestBriefing2(_ScriptName, _PlayerID, _Name)
     Briefing.Finished = function(_Data, _Abort)
         Message("It just work's! (Player " .._Data.PlayerID.. ")");
     end
-    -- SpectatableBriefing.Start(_PlayerID, _Name, Briefing, 1, 2);
     BriefingSystem.Start(_PlayerID, _Name, Briefing, 1, 2);
 end
 

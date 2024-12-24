@@ -196,6 +196,13 @@ function AiTroopTrainer.GetTrainersOfArmy(_ArmyID)
     return SpawnerIDs;
 end
 
+--- Returns the trainers ID the troop is attached to or 0 if not attached.
+--- @param _TroopID integer ID of troop
+--- @return integer ID ID of trainer
+function AiTroopTrainer.GetTrainerOfTroop(_TroopID)
+    return AiTroopTrainer.Internal:GetTrainerOfTroop(_TroopID);
+end
+
 --- Changes the owner of the trainer.
 --- @param _ID integer ID of trainer
 --- @param _PlayerID integer New owner
@@ -353,6 +360,19 @@ function AiTroopTrainer.Internal:RemoveTroop(_ID, _TroopID)
             end
         end
     end
+end
+
+function AiTroopTrainer.Internal:GetTrainerOfTroop(_TroopID)
+    if IsValidEntity(_TroopID) then
+        for _, Trainer in pairs(self.Data.Trainers) do
+            for i= 1, table.getn(Trainer.Refilling) do
+                if Trainer.Refilling[i] == _TroopID then
+                    return Trainer.ID;
+                end
+            end
+        end
+    end
+    return 0;
 end
 
 function AiTroopTrainer.Internal:CanTroopBeAdded(_ID, _TroopID)

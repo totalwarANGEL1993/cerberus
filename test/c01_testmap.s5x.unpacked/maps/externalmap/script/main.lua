@@ -38,10 +38,10 @@ function OnMapStart()
 
     Tools.GiveResouces(1, 99999, 9999, 9999, 9999, 9999, 9999);
 
-    --CreateTroopSpawnersTest()
-    --CreateAttackArmiesTest1()
-    CreateTroopTrainersTest()
-    CreateAttackArmiesTest2()
+    CreateTroopSpawnersTest()
+    CreateAttackArmiesTest1()
+    -- CreateTroopTrainersTest()
+    -- CreateAttackArmiesTest2()
 
 
     UseWeatherSet("HighlandsWeatherSet");
@@ -69,7 +69,7 @@ function CreateTroopSpawnersTest()
     P6BarracksSpawner = AiArmyRefiller.CreateSpawner {
         ScriptName = "P6barracks1",
         SpawnPoint = "P6barracks1Spawn",
-        SpawnAmount = 1,
+        SpawnAmount = 2,
         Sequentially = true,
         Endlessly = true,
         AllowedTypes = {
@@ -81,7 +81,7 @@ function CreateTroopSpawnersTest()
     P6ArcherySpawner = AiArmyRefiller.CreateSpawner {
         ScriptName = "P6archery1",
         SpawnPoint = "P6archery1Spawn",
-        SpawnAmount = 2,
+        SpawnAmount = 1,
         Sequentially = true,
         Endlessly = true,
         AllowedTypes = {
@@ -103,7 +103,7 @@ function CreateTroopSpawnersTest()
     P6FoundrySpawner = AiArmyRefiller.CreateSpawner {
         ScriptName = "P6foundry1",
         SpawnPoint = "P6foundry1Spawn",
-        SpawnAmount = 1,
+        SpawnAmount = 2,
         Sequentially = true,
         Endlessly = true,
         AllowedTypes = {

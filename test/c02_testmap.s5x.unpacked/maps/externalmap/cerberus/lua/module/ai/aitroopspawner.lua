@@ -170,6 +170,13 @@ function AiTroopSpawner.GetSpawnersOfArmy(_ArmyID)
     return SpawnerIDs;
 end
 
+--- Returns the spawners ID the troop is attached to or 0 if not attached.
+--- @param _TroopID integer ID of troop
+--- @return integer ID ID of spawner
+function AiTroopSpawner.GetSpawnerOfTroop(_TroopID)
+    return AiTroopSpawner.Internal:GetSpawnerOfTroop(_TroopID);
+end
+
 --- Changes the owner of the spawner.
 --- @param _ID integer ID of spawner
 --- @param _PlayerID integer New owner
@@ -322,6 +329,19 @@ function AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID)
             end
         end
     end
+end
+
+function AiTroopSpawner.Internal:GetSpawnerOfTroop(_TroopID)
+    if IsValidEntity(_TroopID) then
+        for _, Spawner in pairs(self.Data.Spawners) do
+            for i= 1, table.getn(Spawner.Refilling) do
+                if Spawner.Refilling[i] == _TroopID then
+                    return Spawner.ID;
+                end
+            end
+        end
+    end
+    return 0;
 end
 
 function AiTroopSpawner.Internal:CanTroopBeAdded(_ID, _TroopID)
