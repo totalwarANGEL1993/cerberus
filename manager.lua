@@ -10,7 +10,6 @@ LibWriter = {
         "module/cinematic/cinematic",
         "module/cinematic/briefingsystem",
         "module/cinematic/cutscenesystem",
-        "module/cinematic/spectatablebriefing",
         "module/entity/entitymover",
         "module/entity/entitytracker",
         "module/entity/svlib",

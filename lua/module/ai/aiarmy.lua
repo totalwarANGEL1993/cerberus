@@ -7,6 +7,7 @@ Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/GetEnemiesInArea");
 Lib.Require("comfort/GetEntityCategoriesAsString");
 Lib.Require("comfort/GetGeometricCenter");
+Lib.Require("comfort/GetReachablePosition");
 Lib.Require("comfort/IsFighting");
 Lib.Require("comfort/IsTraining");
 Lib.Require("comfort/IsInCone");
@@ -55,7 +56,14 @@ AiArmyCommand = {
     Finish = 11,
     --- Calls a custom command.
     Custom = 12,
-}
+};
+
+AiArmyGroupMode = {
+    -- Meele is grouped in front
+    Engage = 1,
+    -- Ranged is grouped in front
+    Skirmish = 2,
+};
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -418,9 +426,9 @@ end
 --- Sets a function that overwrites which formation is given to troops.
 --- @param _ID integer          ID of army
 --- @param _Controller function Formation controller function
-function AiArmy.SetFormationController(_ID, _Controller)
+function AiArmy.SetTroopFormationController(_ID, _Controller)
     if AiArmyData_ArmyIdToArmyInstance[_ID] then
-        return AiArmyData_ArmyIdToArmyInstance[_ID]:SetFormationController(_Controller);
+        return AiArmyData_ArmyIdToArmyInstance[_ID]:SetTroopFormationController(_Controller);
     end
 end
 
@@ -1005,12 +1013,13 @@ function AiArmy.Internal.Army:New(_PlayerID, _Strength, _Position, _RodeLength)
     local Army = CopyTable(self);
     Army.ID = AiArmyData_IdSequence;
     Army.PlayerID = _PlayerID;
-    --- @diagnostic disable-next-line: undefined-field
-    Army.Tick = math.mod(self.ID, 10);
+    Army.TroopFormationController = nil;
     Army.HomePosition = _Position;
     Army.RodeLength = _RodeLength;
     Army.Strength = _Strength;
-    Army.FormationController = nil;
+    Army.GroupMode = AiArmyGroupMode.Engage;
+    --- @diagnostic disable-next-line: undefined-field
+    Army.Tick = math.mod(self.ID, 10);
     return Army;
 end
 
@@ -1073,7 +1082,7 @@ end
 function AiArmy.Internal.Army:ClearCommands()
     -- Delete targets
     for i= 2, self.Troops[1] +1 do
-        self:LockOn(self.Troops[i], nil);
+        self:LockOn(self.Troops[i], nil, nil);
     end
     -- Delete commands
     for i= 1, table.getn(self.Commands) do
@@ -1168,6 +1177,7 @@ end
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteIdleCommand(_Data)
     self:NormalizedArmySpeed();
+    self.GroupMode = AiArmyGroupMode.Engage;
 
     local Position = _Data[3] or self:GetArmyPosition();
     if type(Position) ~= "table" then
@@ -1190,11 +1200,7 @@ function AiArmy.Internal.Army:ExecuteIdleCommand(_Data)
     end
     -- Move troops back to army position if necessary and finish command
     Position = _Data[1] or self:GetArmyPosition();
-    for i= self.Troops[1] +1, 2, -1 do
-        if GetDistance(self.Troops[i], Position) > 1200 then
-            Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
-        end
-    end
+    self:MoveTroopsIntoBlock(Position, true, 600);
     return true;
 end
 
@@ -1202,6 +1208,7 @@ end
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteWaitCommand(_Data)
+    self.GroupMode = AiArmyGroupMode.Skirmish;
     local Position = _Data[2] or self:GetArmyPosition();
     if type(Position) ~= "table" then
         Position = GetPosition(Position);
@@ -1226,6 +1233,7 @@ function AiArmy.Internal.Army:ExecuteWaitCommand(_Data)
     local AreaSize = _Data[3] or self.RodeLength;
     local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
     if Enemies[1] then
+        self.GroupMode = AiArmyGroupMode.Engage;
         self:PushCommand(self:CreateCommand(AiArmyCommand.Refill), false, 1);
         self:PushCommand(self:CreateCommand(AiArmyCommand.Fallback), false, 1);
         self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, AreaSize), false, 1);
@@ -1234,11 +1242,7 @@ function AiArmy.Internal.Army:ExecuteWaitCommand(_Data)
     end
     -- Move troops back to army position if necessary
     self:NormalizedArmySpeed();
-    for i= self.Troops[1] +1, 2, -1 do
-        if GetDistance(self.Troops[i], Position) > 1200 then
-            Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
-        end
-    end
+    self:MoveTroopsIntoBlock(Position, true, 600);
     return false;
 end
 
@@ -1257,6 +1261,7 @@ end
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
+    self.GroupMode = AiArmyGroupMode.Skirmish;
     local Position = self:GetArmyPosition();
     local Rotation = self:GetArmyRotation();
     local Destination = _Data[1] or self.HomePosition;
@@ -1272,7 +1277,7 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         return true;
     end
     -- Regroup army if necessary
-    if self:IsScattered() then
+    if self:IsScattered(false) and self:IsAllowedToRegroup() then
         self:PushCommand(self:CreateCommand(AiArmyCommand.Regroup), false, 1);
         self:PushCommand(self:CreateCommand(AiArmyCommand.Stop), false, 1);
         self:ExecuteCommand();
@@ -1284,7 +1289,9 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         self.PlayerID, Position, AreaSize, Rotation
     );
     if Enemies[1] then
-        self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, self.RodeLength), false, 1);
+        local Location = GetPosition(Enemies[1]);
+        self.GroupMode = AiArmyGroupMode.Engage;
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Location, self.RodeLength), false, 1);
         self:ExecuteCommand();
         return false;
     end
@@ -1293,6 +1300,7 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         self.PlayerID, Position, self.RodeLength
     );
     if Enemies[1] then
+        self.GroupMode = AiArmyGroupMode.Engage;
         self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, self.RodeLength), false, 1);
         self:ExecuteCommand();
         return false;
@@ -1301,12 +1309,9 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
     Position = (type(Destination) == "table" and Destination) or GetPosition(Destination);
     -- Check if army should attack wall
     if ArePositionsConnected(Position, Position) then
-        for i= self.Troops[1] +1, 2, -1 do
-            if Logic.IsEntityMoving(self.Troops[i]) == false or _Data[3] then
-                Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
-            end
-        end
+        self:MoveTroopsIntoBlock(Position, _Data[3]);
     else
+        self.GroupMode = AiArmyGroupMode.Skirmish;
         self:PushCommand(self:CreateCommand(AiArmyCommand.Siege, Position, AreaSize), false, 1);
         self:ExecuteCommand();
     end
@@ -1317,6 +1322,7 @@ end
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
+    self.GroupMode = AiArmyGroupMode.Engage;
     local Position = self:GetArmyPosition();
     local Rotation = self:GetArmyRotation();
     local Destination = _Data[1] or self.HomePosition;
@@ -1332,7 +1338,7 @@ function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
         return true;
     end
     -- Regroup army if necessary
-    if self:IsScattered() then
+    if self:IsScattered(false) and self:IsAllowedToRegroup() then
         self:PushCommand(self:CreateCommand(AiArmyCommand.Regroup), false, 1);
         self:PushCommand(self:CreateCommand(AiArmyCommand.Stop), false, 1);
         self:ExecuteCommand();
@@ -1345,6 +1351,7 @@ function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
     );
     if Enemies[1] then
         local Location = GetPosition(Enemies[1]);
+        self.GroupMode = AiArmyGroupMode.Engage;
         self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Location, self.RodeLength), false, 1);
         self:ExecuteCommand();
         return false;
@@ -1354,6 +1361,7 @@ function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
         self.PlayerID, Position, self.RodeLength
     );
     if Enemies[1] then
+        self.GroupMode = AiArmyGroupMode.Engage;
         self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, self.RodeLength), false, 1);
         self:ExecuteCommand();
         return false;
@@ -1362,12 +1370,9 @@ function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
     Position = (type(Destination) == "table" and Destination) or GetPosition(Destination);
     -- Check if army should attack wall
     if ArePositionsConnected(Position, Position) then
-        for i= self.Troops[1] +1, 2, -1 do
-            if Logic.IsEntityMoving(self.Troops[i]) == false or _Data[3] then
-                Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
-            end
-        end
+        self:MoveTroopsIntoBlock(Position, _Data[3]);
     else
+        self.GroupMode = AiArmyGroupMode.Skirmish;
         self:PushCommand(self:CreateCommand(AiArmyCommand.Siege, Position, AreaSize), false, 1);
         self:ExecuteCommand();
     end
@@ -1406,17 +1411,22 @@ function AiArmy.Internal.Army:ExecuteBattleCommand(_Data)
     -- Control fighting
     self:ResetArmySpeed();
     for j= 2, self.Troops[1] +1 do
-        -- Move back
-        if GetDistance(self.Troops[j], Position) > AreaSize then
+        -- Move back to center of spread to far
+        local TroopMaxArea = AreaSize;
+        if Logic.IsEntityInCategory(self.Troops[j], EntityCategories.Meele) == 1 then
+            local MeleeBonus = Logic.GetEntityExplorationRange(self.Troops[j]) * 100;
+            TroopMaxArea = TroopMaxArea + MeleeBonus;
+        end
+        if GetDistance(self.Troops[j], Position) > TroopMaxArea then
             --- @diagnostic disable-next-line: undefined-field
             Logic.MoveSettler(self.Troops[j], Position.X, Position.Y);
-            self:LockOn(self.Troops[j], nil);
+            self:LockOn(self.Troops[j], nil, nil);
         -- Attack enemies
         else
             if not self.Targets[self.Troops[j]] then
                 if Enemies[1] then
                     local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], Enemies);
-                    self:LockOn(self.Troops[j], TargetID);
+                    self:LockOn(self.Troops[j], TargetID, AreaSize);
                     Logic.GroupAttack(self.Troops[j], TargetID);
                 end
             end
@@ -1451,9 +1461,14 @@ function AiArmy.Internal.Army:ExecuteSiegeCommand(_Data)
     local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
     for j= 2, self.Troops[1] +1 do
         -- Move back to center of spread to far
-        if GetDistance(Position, self.Troops[j]) > AreaSize then
+        local TroopMaxArea = AreaSize;
+        if Logic.IsEntityInCategory(self.Troops[j], EntityCategories.Meele) == 1 then
+            local MeleeBonus = Logic.GetEntityExplorationRange(self.Troops[j]) * 100;
+            TroopMaxArea = TroopMaxArea + MeleeBonus;
+        end
+        if GetDistance(Position, self.Troops[j]) > TroopMaxArea then
             Logic.MoveSettler(self.Troops[j], Position.X, Position.Y);
-            self:LockOn(self.Troops[j], nil);
+            self:LockOn(self.Troops[j], nil, nil);
         -- Attack wall or defend army
         else
             -- Melee will only attack troops
@@ -1461,8 +1476,8 @@ function AiArmy.Internal.Army:ExecuteSiegeCommand(_Data)
                 if not self.Targets[self.Troops[j]] and Enemies[1] then
                     local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], Enemies);
                     local Location = GetPosition(TargetID);
-                    self:LockOn(self.Troops[j], TargetID);
-                    Logic.GroupAttackMove(self.Troops[j], Location.X, Location.Y);
+                    self:LockOn(self.Troops[j], TargetID, AreaSize);
+                    Logic.GroupAttackMove(self.Troops[j], Location.X, Location.Y, -1);
                 end
             -- Ranged will consider both target lists
             else
@@ -1472,7 +1487,7 @@ function AiArmy.Internal.Army:ExecuteSiegeCommand(_Data)
                         MergedEnemies = CopyTable(MergedEnemies, Enemies);
                     end
                     local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], MergedEnemies);
-                    self:LockOn(self.Troops[j], TargetID);
+                    self:LockOn(self.Troops[j], TargetID, AreaSize);
                     Logic.GroupAttack(self.Troops[j], TargetID);
                 end
             end
@@ -1485,17 +1500,39 @@ end
 --- @param _Data table Command Parameter
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteRegroupCommand(_Data)
-    local Position = self:GetArmyPosition();
-    -- Finish command if regrouped
-    if not self:IsScattered() then
-        for i= self.Troops[1] +1, 2, -1 do
-            Logic.SettlerStand(self.Troops[i]);
-        end
+    -- Finish command if army is defeated
+    if self:GetCurrentStregth(true) <= self.DefeatThreshold then
+        self.LastRegroupTurn = nil;
+        self:ClearCommands();
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Fallback), false);
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Refill), false);
         return true;
     end
-    -- Regroup army
+    -- Check for enemies
+    local Position = self:GetArmyPosition();
+    local Enemies = AiArmy.Internal:GetEnemiesInCircle(self.PlayerID, Position, self.RodeLength);
+    if Enemies[1] then
+        self:PushCommand(self:CreateCommand(AiArmyCommand.Battle, Position, self.RodeLength), false, 1);
+        self:ExecuteCommand();
+        return false;
+    end
+    -- Check is any troop moving
+    local IsMoving = false;
     for i= self.Troops[1] +1, 2, -1 do
-        Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
+        if Logic.IsEntityMoving(self.Troops[i]) == true then
+            IsMoving = true;
+            break;
+        end
+    end
+    -- Move into formation
+    if not IsMoving then
+        if self:IsScattered(false) and self:IsAllowedToRegroup() then
+            self.LastRegroupTurn = Logic.GetCurrentTurn();
+            self:MoveTroopsIntoBlock(Position);
+        else
+            self.LastRegroupTurn = Logic.GetCurrentTurn();
+            return true;
+        end
     end
     return false;
 end
@@ -1505,7 +1542,7 @@ end
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteRefillCommand(_Data)
     local Position = self:GetArmyPosition();
-    -- Finish command if army has refillers left
+    -- Finish command if army has no refillers left
     local RefillerList = AiArmyRefiller.GetRefillersOfArmy(self.ID);
     if table.getn(RefillerList) == 0 then
         return true;
@@ -1522,7 +1559,7 @@ function AiArmy.Internal.Army:ExecuteRefillCommand(_Data)
         return false;
     end
     -- Regroup if army has spread to much
-    if self:IsScattered() then
+    if self:IsScattered(false) and self:IsAllowedToRegroup() then
         self:PushCommand(self:CreateCommand(AiArmyCommand.Regroup), false, 1);
         self:PushCommand(self:CreateCommand(AiArmyCommand.Stop), false, 1);
         self:ExecuteCommand();
@@ -1552,13 +1589,7 @@ function AiArmy.Internal.Army:ExecuteFallbackCommand(_Data)
     end
     -- Move back to home position
     self:ResetArmySpeed();
-    for i= self.Troops[1] +1, 2, -1 do
-        if Logic.IsEntityMoving(self.Troops[i]) == false then
-            if GetDistance(self:GetArmyPosition(), Position) > 1200 then
-                Logic.MoveSettler(self.Troops[i], Position.X, Position.Y, -1);
-            end
-        end
-    end
+    self:MoveTroopsIntoBlock(Position, false, 600);
     return false;
 end
 
@@ -1588,6 +1619,9 @@ function AiArmy.Internal.Army:ChangePlayer(_PlayerID)
     local Troops = {0};
     for i= self.Troops[1] +1, 2, -1 do
         local ID = ChangePlayer(Troops[i], _PlayerID);
+        if IsValidEntity(ID) then
+            AI.Army_EnableLeaderAi(ID, 0);
+        end
         Troops[1] = Troops[1] -1;
         table.insert(Troops, ID);
     end
@@ -1611,20 +1645,22 @@ end
 function AiArmy.Internal.Army:ManageArmyMembers()
     -- Update reinforcements
     for j= self.Reinforcements[1] +1, 2, -1 do
-        if Logic.LeaderGetBarrack(self.Reinforcements[j]) == 0 then
-            if not IsValidEntity(self.Reinforcements[j]) then
+        local TroopID = self.Reinforcements[j];
+        local Refiller = AiArmyRefiller.GetRefillerOfTroop(TroopID);
+        if Logic.LeaderGetBarrack(TroopID) == 0 then
+            if not IsValidEntity(TroopID) then
                 local ID = table.remove(self.Reinforcements, j);
                 self.Reinforcements[1] = self.Reinforcements[1] -1;
                 AiArmyData_ReinforcementIdToArmyId[ID] = nil;
-            elseif GetDistance(self.Reinforcements[j], self:GetArmyPosition()) <= 1500 then
+            elseif GetDistance(TroopID, self:GetArmyPosition()) <= 1500 then
                 local ID = table.remove(self.Reinforcements, j);
                 self.Reinforcements[1] = self.Reinforcements[1] -1;
                 AiArmyData_ReinforcementIdToArmyId[ID] = nil;
                 self:AddTroop(ID, false);
             else
-                if Logic.IsEntityMoving(self.Reinforcements[j]) == false then
+                if Refiller == 0 and Logic.IsEntityMoving(TroopID) == false then
                     local Position = self:GetArmyPosition();
-                    Logic.GroupAttackMove(self.Reinforcements[j], Position.X, Position.Y);
+                    Logic.GroupAttackMove(TroopID, Position.X, Position.Y);
                 end
             end
         end
@@ -1633,7 +1669,7 @@ function AiArmy.Internal.Army:ManageArmyMembers()
     -- Update current troops
     for j= self.Troops[1] +1, 2, -1 do
         if not IsValidEntity(self.Troops[j]) then
-            self:LockOn(self.Troops[j], nil);
+            self:LockOn(self.Troops[j], nil, nil);
             local ID = table.remove(self.Troops, j);
             self.Troops[1] = self.Troops[1] -1;
             AiArmyData_TroopIdToArmyId[ID] = nil;
@@ -1642,8 +1678,19 @@ function AiArmy.Internal.Army:ManageArmyMembers()
 
     -- Update troop targets
     for k,v in pairs(self.Targets) do
-        if not IsValidEntity(v[1]) or not IsValidEntity(v[2]) or Logic.GetTime() > v[3]+5 then
+        if (not IsValidEntity(v[1]) or not IsValidEntity(v[2])) then
             self.Targets[k] = nil;
+        elseif Logic.GetTime() > v[4]+15 then
+            self.Targets[k] = nil;
+        else
+            local MaxDistance = v[3];
+            if Logic.IsEntityInCategory(v[1], EntityCategories.Meele) == 1 then
+                local MeleeBonus = Logic.GetEntityExplorationRange(v[1]) * 100;
+                MaxDistance = MaxDistance + MeleeBonus;
+            end
+            if Logic.CheckEntitiesDistance(v[1], v[2], MaxDistance) == 0 then
+                self.Targets[k] = nil;
+            end
         end
     end
 end
@@ -1658,10 +1705,16 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
         end
 
         if IsValidEntity(_ID) then
-            if self.FormationController then
-                self:FormationController(_ID);
+            if self.TroopFormationController then
+                self:TroopFormationController(_ID);
             else
-                self:ChoseFormation(_ID);
+                if Logic.IsEntityInCategory(_ID, EntityCategories.EvilLeader) == 1 then
+                    return;
+                elseif Logic.IsEntityInCategory(_ID, EntityCategories.CavalryHeavy) == 1 then
+                    Logic.LeaderChangeFormationType(_ID, 6);
+                    return;
+                end
+                Logic.LeaderChangeFormationType(_ID, 4);
             end
         end
         if _Reinforcement then
@@ -1669,6 +1722,9 @@ function AiArmy.Internal.Army:AddTroop(_ID, _Reinforcement)
             table.insert(self.Reinforcements, _ID);
             self.Reinforcements[1] = self.Reinforcements[1] +1;
         else
+            if IsValidEntity(_ID) then
+                AI.Army_EnableLeaderAi(_ID, 0);
+            end
             AiArmyData_TroopIdToArmyId[_ID] = self.ID;
             table.insert(self.Troops, _ID);
             self.Troops[1] = self.Troops[1] +1;
@@ -1692,6 +1748,9 @@ function AiArmy.Internal.Army:RemoveTroop(_ID)
     end
     for i= table.getn(self.Troops), 1, -1 do
         if self.Troops[i] == _ID then
+            if IsValidEntity(_ID) then
+                AI.Army_EnableLeaderAi(_ID, 1);
+            end
             AiArmyData_TroopIdToArmyId[_ID] = nil;
             local ID = table.remove(self.Troops, i);
             self.Troops[1] = self.Troops[1] -1;
@@ -1736,9 +1795,12 @@ function AiArmy.Internal.Army:Abandon(_KillLater)
     end
     for i= self.Troops[1] +1, 2, -1 do
         local ID = self:RemoveTroop(self.Troops[i]);
-        if _KillLater and ID ~= 0 and IsExisting(ID) then
-            table.insert(AiArmy.Internal.CleanUp, ID);
-            AiArmy.Internal.CleanUp[1] = AiArmy.Internal.CleanUp[1] +1;
+        if IsValidEntity(ID) then
+            AI.Army_EnableLeaderAi(ID, 1);
+            if _KillLater and ID ~= 0 then
+                table.insert(AiArmy.Internal.CleanUp, ID);
+                AiArmy.Internal.CleanUp[1] = AiArmy.Internal.CleanUp[1] +1;
+            end
         end
     end
 end
@@ -1752,37 +1814,38 @@ function AiArmy.Internal.Army:DispatchTroopsToSpawner()
     end
     local WeakenedList = self:GetWeakenedTroops();
     for i= table.getn(WeakenedList), 1, -1 do
-        local PossibleRefillerIDs = {};
+        local PossibleRefillerIDs = {0};
         for j= RefillerCount, 1, -1 do
             if AiArmyRefiller.CanTroopBeAdded(RefillerList[j], WeakenedList[i]) then
+                PossibleRefillerIDs[1] = PossibleRefillerIDs[1] + 1;
                 table.insert(PossibleRefillerIDs, RefillerList[j]);
             end
         end
-        if RefillerCount == 1 then
-            if AiArmyRefiller.AddTroop(PossibleRefillerIDs[1], WeakenedList[i]) == true then
+        if PossibleRefillerIDs[1] == 1 then
+            if AiArmyRefiller.AddTroop(PossibleRefillerIDs[2], WeakenedList[i]) == true then
                 AiArmy.RemoveTroop(self.ID, WeakenedList[i]);
                 AiArmy.AddTroop(self.ID, WeakenedList[i], true);
                 table.remove(WeakenedList, i);
             end
         else
-            local Index = math.random(1, RefillerCount);
+            local Index = math.random(2, PossibleRefillerIDs[1] +1);
             while (true) do
-                if AiArmyRefiller.AddTroop(PossibleRefillerIDs[Index], WeakenedList[i]) then
+                if AiArmyRefiller.AddTroop(PossibleRefillerIDs[Index], WeakenedList[i]) == true then
                     AiArmy.RemoveTroop(self.ID, WeakenedList[i]);
                     AiArmy.AddTroop(self.ID, WeakenedList[i], true);
                     table.remove(WeakenedList, i);
                     break;
                 end
-                Index = math.random(1, RefillerCount);
+                Index = math.random(2, PossibleRefillerIDs[1] +1);
             end
         end
     end
     return WeakenedList;
 end
 
-function AiArmy.Internal.Army:LockOn(_TroopID, _TargetID)
+function AiArmy.Internal.Army:LockOn(_TroopID, _TargetID, _Area)
     if _TargetID ~= nil then
-        self.Targets[_TroopID] = {_TroopID, _TargetID, Logic.GetTime()};
+        self.Targets[_TroopID] = {_TroopID, _TargetID, _Area, Logic.GetTime()};
     else
         for k,v in pairs(self.Targets) do
             if v[1] == _TroopID then
@@ -1794,14 +1857,17 @@ end
 
 function AiArmy.Internal.Army:SetActive(_Active)
     self.Active = _Active == true;
+    if not self.Active then
+        self.LastRegroupTurn = nil;
+    end
 end
 
 function AiArmy.Internal.Army:SetRodeLength(_RodeLength)
     self.RodeLength = _RodeLength;
 end
 
-function AiArmy.Internal.Army:SetFormationController(_FormationController)
-    self.FormationController = _FormationController;
+function AiArmy.Internal.Army:SetTroopFormationController(_TroopFormationController)
+    self.TroopFormationController = _TroopFormationController;
 end
 
 function AiArmy.Internal.Army:SetStrength(_Strength)
@@ -1846,13 +1912,6 @@ function AiArmy.Internal.Army:GetArmyRotation()
     if self:GetNumberOfLeader(false) > 0 then
         local Orientations = {};
         for i= 2, self.Troops[1] +1 do
-            if Logic.IsLeader(self.Troops[i]) == 1 then
-                local SoldierList = {Logic.GetSoldiersAttachedToLeader(self.Troops[i])};
-                for j= 2, SoldierList[1] +1 do
-                    local Orientation = Logic.GetEntityOrientation(SoldierList[j]);
-                    table.insert(Orientations, Orientation);
-                end
-            end
             local Orientation = Logic.GetEntityOrientation(self.Troops[i]);
             table.insert(Orientations, Orientation);
         end
@@ -1871,6 +1930,114 @@ function AiArmy.Internal.Army:GetArmyPosition()
         table.insert(Troops, self.Troops[i]);
     end
     return GetGeometricCenter(unpack(Troops));
+end
+
+function AiArmy.Internal.Army:MoveTroopsIntoBlock(_Position, _Abort, _MinDistance)
+    local ArmyPosition = self:GetArmyPosition();
+    local Position = _Position;
+    if type(_Position) ~= "table" then
+        Position = GetPosition(_Position);
+    end
+    local Rotation = self:GetArmyRotation();
+    local PositionMap = self:GetPositionsInBlock(Position);
+    for i= 2, self.Troops[1] +1, 1 do
+        if _Abort or Logic.IsEntityMoving(self.Troops[i]) == false then
+            local TroopPosition = PositionMap[self.Troops[i]];
+            if not TroopPosition then
+                PositionMap[self.Troops[i]] = ArmyPosition;
+                TroopPosition = ArmyPosition;
+            end
+            if IsValidPosition(TroopPosition) then
+                if not _MinDistance or GetDistance(self.Troops[i], TroopPosition) > _MinDistance then
+                    Logic.GroupAttackMove(self.Troops[i], TroopPosition.X, TroopPosition.Y, 0 + Rotation);
+                end
+            end
+        end
+    end
+    return PositionMap;
+end
+
+function AiArmy.Internal.Army:GetPositionsInBlock(_Position)
+    local Position = _Position or self:GetArmyPosition();
+    if type(_Position) ~= "table" then
+        Position = GetPosition(_Position);
+    end
+    local RowCount = self.TroopsPerLine or 3;
+    local Rotation = self:GetArmyRotation();
+    local Distance = 500;
+
+    local PositionMap = {};
+    if self.Troops[1] == 1 then
+        PositionMap[self.Troops[2]] = Position;
+    else
+        local LeaderPerRow = math.ceil(self.Troops[1]/RowCount);
+        local getModLi = function(i)
+            i = i -1;
+            return -(math.floor(i/RowCount)-math.floor(LeaderPerRow/2)) * Distance
+        end
+        local getModRei = function(i)
+            i = i -1;
+            return (math.mod(i,RowCount)-math.floor(RowCount/2)) * Distance;
+        end
+
+        local Temp = {};
+        if self.GroupMode == AiArmyGroupMode.Engage then
+            Temp = self:SortTroopListForEngage();
+        elseif self.GroupMode == AiArmyGroupMode.Skirmish then
+            Temp = self:SortTroopListForSkirmish();
+        else
+            Temp = CopyTable(self.Troops);
+        end
+
+        local n = table.getn(Temp);
+        for i= 1, n do
+            local FormationPos = GetCirclePosition(Position, getModLi(i), 0 + Rotation);
+            FormationPos = GetCirclePosition(FormationPos, getModRei(i), 0 + Rotation + 270);
+            FormationPos = GetReachablePosition(Temp[i], FormationPos);
+            PositionMap[Temp[i]] = FormationPos;
+        end
+    end
+    return PositionMap
+end
+
+function AiArmy.Internal.Army:SortTroopListForEngage()
+    local Temp = {};
+    for i= 2, self.Troops[1] +1, 1 do
+        if Logic.IsHero(self.Troops[i]) == 1 then
+            local Type = Logic.GetEntityType(self.Troops[i]);
+            -- TODO: Use ranged hero mapping
+            if Type == Entities.PU_Hero5 or Entities.PU_Hero10 then
+                table.insert(Temp, self.Troops[i]);
+            else
+                table.insert(Temp, 1, self.Troops[i]);
+            end
+        elseif Logic.IsEntityInCategory(self.Troops[i], EntityCategories.Melee) == 1 then
+            table.insert(Temp, 1, self.Troops[i]);
+        else
+            table.insert(Temp, self.Troops[i]);
+        end
+    end
+    return Temp;
+end
+
+function AiArmy.Internal.Army:SortTroopListForSkirmish()
+    local Temp = {};
+    for i= 2, self.Troops[1] +1, 1 do
+        if Logic.IsHero(self.Troops[i]) == 1 then
+            local Type = Logic.GetEntityType(self.Troops[i]);
+            -- TODO: Use ranged hero mapping
+            if Type == Entities.PU_Hero5 or Entities.PU_Hero10 then
+                table.insert(Temp, 1, self.Troops[i]);
+            else
+                table.insert(Temp, self.Troops[i]);
+            end
+        elseif Logic.IsEntityInCategory(self.Troops[i], EntityCategories.Melee) == 1 then
+            table.insert(Temp, self.Troops[i]);
+        else
+            table.insert(Temp, 1, self.Troops[i]);
+        end
+    end
+    return Temp;
 end
 
 function AiArmy.Internal.Army:IsAlive()
@@ -1902,25 +2069,39 @@ function AiArmy.Internal.Army:GetCurrentStregth(_WithReinforcments)
     return CurStrength / self.Strength;
 end
 
-function AiArmy.Internal.Army:IsScattered()
-    for i= 2, self.Troops[1] +1 do
-        if IsExisting(self.Troops[i]) then
-            if GetDistance(self:GetArmyPosition(), self.Troops[i]) > 1000 then
-                return true;
+function AiArmy.Internal.Army:IsScattered(_SingleDeviant)
+    local PositionMap = self:GetPositionsInBlock(self:GetArmyPosition());
+    if _SingleDeviant then
+        for i= 2, self.Troops[1] +1, 1 do
+            if PositionMap[self.Troops[i]] then
+                if GetDistance(self.Troops[i], PositionMap[self.Troops[i]]) > 300 then
+                    return true;
+                end
             end
+        end
+    else
+        local TotalDistance = 0;
+        for i= 2, self.Troops[1] +1, 1 do
+            if PositionMap[self.Troops[i]] then
+                TotalDistance = TotalDistance + GetDistance(self.Troops[i], PositionMap[self.Troops[i]]);
+            end
+        end
+        if TotalDistance / self.Troops[1] > 500 then
+            return true;
         end
     end
     return false;
 end
 
-function AiArmy.Internal.Army:ChoseFormation(_TroopID)
-    if Logic.IsEntityInCategory(_TroopID, EntityCategories.EvilLeader) == 1 then
-        return;
-    elseif Logic.IsEntityInCategory(_TroopID, EntityCategories.CavalryHeavy) == 1 then
-        Logic.LeaderChangeFormationType(_TroopID, 6);
-        return;
+function AiArmy.Internal.Army:IsAllowedToRegroup()
+    return Logic.GetCurrentTurn() - self:GetLastRegroupTurn() > 150;
+end
+
+function AiArmy.Internal.Army:GetLastRegroupTurn()
+    if self.LastRegroupTurn then
+        return self.LastRegroupTurn;
     end
-    Logic.LeaderChangeFormationType(_TroopID, 4);
+    return 0;
 end
 
 function AiArmy.Internal.Army:NormalizedArmySpeed()
