@@ -91,7 +91,7 @@ function Archive.GetWidgetSize(_Name)
 end
 
 --- Reloads the definition of all entities.
---- (Files can be overwritten file by putting them in the right path.)
+--- (Files can be overwritten by putting them in the right path.)
 function Archive.ReloadEntities()
     if Archive.Internal.Data.HookType == 1 then
         CEntity.ReloadEntities();

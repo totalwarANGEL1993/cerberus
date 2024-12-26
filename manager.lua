@@ -136,7 +136,7 @@ function LibWriter:CopyModules()
     local imports = self:ReadFilesLoop();
     for i= table.getn(imports), 1, -1 do
         local index = string.find(imports[i], "/[^/]*$");
-        local Path = "var/cerberus/"..imports[i]:sub(1, index-1);
+        local Path = "var/cerberus/lua/"..imports[i]:sub(1, index-1);
         local File = imports[i]:sub(index+1):lower();
         if not self:IsDir(Path) then
             self:CreateFolder(Path);
