@@ -493,7 +493,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
         local HasAnyType = table.getn(_RequestedTypes) == 0;
         for i= 1, table.getn(_RequestedTypes) do
             for j= 1, table.getn(AllowedTypes) do
-                if _RequestedTypes[i][1] == AllowedTypes[j][1] then
+                if _RequestedTypes[i] == AllowedTypes[j][1] then
                     HasAnyType = true;
                     break;
                 end
@@ -525,7 +525,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                                 local TypeFound = false;
                                 for i= 1, table.getn(_RequestedTypes) do
                                     local Type = self.Data.Spawners[_Index].AllowedTypes[AllowedTypes.Index];
-                                    if Type and _RequestedTypes[i][1] == Type[1] then
+                                    if Type and _RequestedTypes[i] == Type[1] then
                                         TypeFound = true;
                                     end
                                 end
@@ -541,7 +541,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                             local Type = self.Data.Spawners[_Index].AllowedTypes[TroopIndex][1];
                             local TypeFound = false;
                             for i= 1, table.getn(_RequestedTypes) do
-                                if _RequestedTypes[i][1] == Type then
+                                if _RequestedTypes[i] == Type then
                                     TypeFound = true;
                                 end
                             end
@@ -551,7 +551,8 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                             TroopIndex = 0;
                         end
                     end
-                    if TroopIndex > 0 then
+                    local TrainingAmount = table.getn(self.Data.Spawners[_Index].Refilling);
+                    if TroopIndex > 0 and TrainingAmount == 0 then
                         TroopID = self:CreateTroop(_Index, PlayerID, TroopIndex);
                     end
                 end
@@ -603,7 +604,7 @@ end
 function AiTroopSpawner.Internal:IsInTroopTable(_Type, _RequestedTypes)
     local RequestedTypes = CopyTable(_RequestedTypes);
     for i= table.getn(RequestedTypes), 1, -1 do
-        if RequestedTypes[i][1] == _Type then
+        if RequestedTypes[i] == _Type then
             return true;
         end
     end

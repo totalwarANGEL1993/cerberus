@@ -1,4 +1,5 @@
 Lib.Require("comfort/GetDistance");
+Lib.Require("comfort/IsInTable");
 Lib.Require("module/trigger/Job");
 Lib.Register("module/ai/AiTroopSpawner");
 
@@ -493,7 +494,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
         local HasAnyType = table.getn(_RequestedTypes) == 0;
         for i= 1, table.getn(_RequestedTypes) do
             for j= 1, table.getn(AllowedTypes) do
-                if _RequestedTypes[i][1] == AllowedTypes[j][1] then
+                if _RequestedTypes[i] == AllowedTypes[j][1] then
                     HasAnyType = true;
                     break;
                 end
@@ -525,7 +526,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                                 local TypeFound = false;
                                 for i= 1, table.getn(_RequestedTypes) do
                                     local Type = self.Data.Spawners[_Index].AllowedTypes[AllowedTypes.Index];
-                                    if Type and _RequestedTypes[i][1] == Type[1] then
+                                    if Type and _RequestedTypes[i] == Type[1] then
                                         TypeFound = true;
                                     end
                                 end
@@ -541,7 +542,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                             local Type = self.Data.Spawners[_Index].AllowedTypes[TroopIndex][1];
                             local TypeFound = false;
                             for i= 1, table.getn(_RequestedTypes) do
-                                if _RequestedTypes[i][1] == Type then
+                                if _RequestedTypes[i] == Type then
                                     TypeFound = true;
                                 end
                             end
@@ -552,7 +553,7 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
                         end
                     end
                     if TroopIndex > 0 then
-                        TroopID = self:CreateTroop(_Index, PlayerID, TroopIndex);
+                        TroopID = self:CreateTroop(_Index, PlayerID, _ArmyID, TroopIndex);
                     end
                 end
             end
@@ -561,9 +562,13 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
     return TroopID;
 end
 
-function AiTroopSpawner.Internal:CreateTroop(_Index, _PlayerID, _Selected)
+function AiTroopSpawner.Internal:CreateTroop(_Index, _PlayerID, _ArmyID, _Selected)
+    local TypeData = self.Data.Spawners[_Index].Require[_Selected];
+    local AllowedTypes = AiArmy.GetAllowedTypes(_ArmyID);
+    if not IsInTable(TypeData[1], AllowedTypes) then
+        return 0;
+    end
     local Position = GetPosition(self.Data.Spawners[_Index].SpawnPoint);
-    local TypeData = self.Data.Spawners[_Index].AllowedTypes[_Selected];
     local TroopID  = AI.Entity_CreateFormation(_PlayerID, TypeData[1], 0, 0, Position.X, Position.Y, 0, 0, TypeData[2] or 0, 0);
     if TroopID ~= 0 then
         local MaxAmount = Logic.LeaderGetMaxNumberOfSoldiers(TroopID);
@@ -603,7 +608,7 @@ end
 function AiTroopSpawner.Internal:IsInTroopTable(_Type, _RequestedTypes)
     local RequestedTypes = CopyTable(_RequestedTypes);
     for i= table.getn(RequestedTypes), 1, -1 do
-        if RequestedTypes[i][1] == _Type then
+        if RequestedTypes[i] == _Type then
             return true;
         end
     end
