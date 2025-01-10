@@ -1,5 +1,4 @@
 Lib.Require("comfort/GetLanguage");
-Lib.Require("comfort/CopyTable");
 Lib.Require("module/trigger/Job");
 Lib.Require("module/ui/Placeholder");
 Lib.Register("module/tutorial/Tutorial");
@@ -172,7 +171,7 @@ function Tutorial.Internal:AddMessage(_Page)
                      self.Data.ContinueText;
     end
     -- Add page
-    table.insert(self.Data.Messages, CopyTable(_Page));
+    table.insert(self.Data.Messages, _Page);
 end
 
 function Tutorial.Internal:PrintTutorialMessage()
@@ -243,6 +242,7 @@ function Tutorial.Internal:NextPageTrigger()
     end
     -- No condition
     if not MessageData.Condition then
+        self.Data.Messages[self.Data.Iterator].NextTrigger = nil;
         Game.GameTimeReset();
         self:PrintTutorialMessage();
         return true;

@@ -2105,12 +2105,24 @@ function AiArmy.Internal.Army:GetLastRegroupTurn()
 end
 
 function AiArmy.Internal.Army:NormalizedArmySpeed()
+    for EntityID, Factor in pairs(self:GetNormalizedSpeedFactors()) do
+        self:SetTroopSpeed(EntityID, Factor);
+    end
+end
+
+function AiArmy.Internal.Army:ResetArmySpeed()
+    for EntityID, Factor in pairs(self:GetResetSpeedFactors()) do
+        self:SetTroopSpeed(EntityID, Factor);
+    end
+end
+
+function AiArmy.Internal.Army:GetNormalizedSpeedFactors()
     -- FIXME: Use server functions if available
+    -- Calculate average speed
     local TroopSpeed = 0;
     local AbsoluteTroopAmount = 0;
     local Dividend = 0;
     local TroopSpeedTable = {};
-    -- Get unit speeds
     for i= 2, self.Troops[1] +1, 1 do
         local First = self:GetTroopSpeedConfigKey(self.Troops[i]);
         First = (AiArmyConstants.SpeedWeighting[First] and First) or "_Others";
@@ -2119,24 +2131,27 @@ function AiArmy.Internal.Army:NormalizedArmySpeed()
         TroopSpeedTable[First][2] = (TroopSpeedTable[First][2] or 0) +1;
         AbsoluteTroopAmount = AbsoluteTroopAmount +1;
     end
-    -- Calculate army
     for k, v in pairs(TroopSpeedTable) do
         Dividend = Dividend + (v[1] * v[2] * AiArmyConstants.BaseSpeed[k]);
     end
     Dividend = Dividend + AiArmyConstants.SpeedWeighting["_Others"];
     TroopSpeed = Dividend / (AbsoluteTroopAmount+1);
-    -- Set speed factor
+    -- Calculate unit speed
+    local Factors = {};
     for i= 2, self.Troops[1] +1, 1 do
         local First = self:GetTroopSpeedConfigKey(self.Troops[i]);
         local NewSpeed = (TroopSpeed >= 250 and TroopSpeed) or 250;
-        self:SetTroopSpeed(self.Troops[i], NewSpeed/AiArmyConstants.BaseSpeed[First]);
+        Factors[self.Troops[i]] = NewSpeed/AiArmyConstants.BaseSpeed[First];
     end
+    return Factors;
 end
 
-function AiArmy.Internal.Army:ResetArmySpeed()
+function AiArmy.Internal.Army:GetResetSpeedFactors()
+    local Factors = {};
     for i= 2, self.Troops[1] +1, 1 do
-        self:SetTroopSpeed(self.Troops[i], 1.0);
+        Factors[self.Troops[i]] = 1.0;
     end
+    return Factors;
 end
 
 function AiArmy.Internal.Army:SetTroopSpeed(_TroopID, _Factor)

@@ -10,7 +10,7 @@ function IsFighting(_Entity)
     local ID = GetID(_Entity);
     if ID ~= 0 then
         local Task = Logic.GetCurrentTaskList(ID);
-        return Task and string.find(Task, "BATTLE") ~= nil;
+        return Task and string.find(Task, "TL_BATTLE") ~= nil;
     end
     return false;
 end

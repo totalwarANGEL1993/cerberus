@@ -563,9 +563,9 @@ function AiTroopSpawner.Internal:Spawn(_Index, _ArmyID, _RequestedTypes)
 end
 
 function AiTroopSpawner.Internal:CreateTroop(_Index, _PlayerID, _ArmyID, _Selected)
-    local TypeData = self.Data.Spawners[_Index].Require[_Selected];
+    local TypeData = self.Data.Spawners[_Index].AllowedTypes[_Selected];
     local AllowedTypes = AiArmy.GetAllowedTypes(_ArmyID);
-    if not IsInTable(TypeData[1], AllowedTypes) then
+    if AllowedTypes[1] and not IsInTable(TypeData[1], AllowedTypes) then
         return 0;
     end
     local Position = GetPosition(self.Data.Spawners[_Index].SpawnPoint);

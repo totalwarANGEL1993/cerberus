@@ -24,19 +24,21 @@ function CopyTable(_Source, _Dest)
     end
     -- Overwrite associative part
     for k,v in pairs(_Source) do
-        if type(k) == "number" then
-            if k <= 0 or k > LastIndex then
-                if type(v) == "table" then
-                    Result[k] = Result[k] or CopyTable(v);
-                else
-                    Result[k] = Result[k] or v;
+        if not Result[k] then
+            if type(k) == "number" then
+                if k <= 0 or k > LastIndex then
+                    if type(v) == "table" then
+                        Result[k] = CopyTable(v);
+                    else
+                        Result[k] = v;
+                    end
                 end
-            end
-        else
-            if type(v) == "table" then
-                Result[k] = Result[k] or CopyTable(v);
             else
-                Result[k] = Result[k] or v;
+                if type(v) == "table" then
+                    Result[k] = CopyTable(v);
+                else
+                    Result[k] = v;
+                end
             end
         end
     end
