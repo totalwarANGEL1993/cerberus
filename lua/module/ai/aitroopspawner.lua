@@ -18,6 +18,7 @@ AiTroopSpawner = AiTroopSpawner or {
 };
 
 AiArmySpawnerData_SpawnerIdToSpawnerInstance = {};
+AiArmySpawnerData_EntityIdToSpawnerId = {};
 
 -- -------------------------------------------------------------------------- --
 -- API
@@ -317,6 +318,7 @@ function AiTroopSpawner.Internal:AddTroop(_ID, _TroopID)
     if self:CanTroopBeAdded(_ID, _TroopID) then
         self:RemoveTroop(_ID, _TroopID);
         table.insert(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling, _TroopID);
+        AiArmySpawnerData_EntityIdToSpawnerId[_TroopID] = _ID;
         return true;
     end
     return false;
@@ -329,18 +331,13 @@ function AiTroopSpawner.Internal:RemoveTroop(_ID, _TroopID)
                 table.remove(AiArmySpawnerData_SpawnerIdToSpawnerInstance[_ID].Refilling, i);
             end
         end
+        AiArmySpawnerData_EntityIdToSpawnerId[_TroopID] = nil;
     end
 end
 
 function AiTroopSpawner.Internal:GetSpawnerOfTroop(_TroopID)
     if IsValidEntity(_TroopID) then
-        for _, Spawner in pairs(self.Data.Spawners) do
-            for i= 1, table.getn(Spawner.Refilling) do
-                if Spawner.Refilling[i] == _TroopID then
-                    return Spawner.ID;
-                end
-            end
-        end
+        return AiArmySpawnerData_EntityIdToSpawnerId[_TroopID] or 0;
     end
     return 0;
 end
@@ -450,6 +447,7 @@ function AiTroopSpawner.Internal:ControlTroopRefilling(_Index)
             local TroopID = Spawner.Refilling[i];
             if not IsExisting(TroopID) then
                 table.remove(self.Data.Spawners[_Index].Refilling, i);
+                AiArmySpawnerData_EntityIdToSpawnerId[TroopID] = nil;
             else
                 local SpawnPos = GetPosition(Spawner.SpawnPoint);
                 if GetDistance(TroopID, SpawnPos) > AiTroopSpawner.RefillDistance then

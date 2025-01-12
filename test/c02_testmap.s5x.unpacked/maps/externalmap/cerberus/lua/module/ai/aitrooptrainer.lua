@@ -25,6 +25,7 @@ AiTroopTrainer = AiTroopTrainer or {
 };
 
 AiArmyTrainerData_TrainerIdToTrainerInstance = {};
+AiArmySpawnerData_EntityIdToTrainerId = {};
 
 AiArmyTrainerConstants_CannonCategoryToType = {
     [UpgradeCategories.Cannon1] = Entities.PV_Cannon1,
@@ -347,6 +348,7 @@ function AiTroopTrainer.Internal:AddTroop(_ID, _TroopID)
     if self:CanTroopBeAdded(_ID, _TroopID) then
         self:RemoveTroop(_ID, _TroopID);
         table.insert(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Refilling, _TroopID);
+        AiArmySpawnerData_EntityIdToTrainerId[_TroopID] = _ID;
         return true;
     end
     return false;
@@ -359,18 +361,13 @@ function AiTroopTrainer.Internal:RemoveTroop(_ID, _TroopID)
                 table.remove(AiArmyTrainerData_TrainerIdToTrainerInstance[_ID].Refilling, i);
             end
         end
+        AiArmySpawnerData_EntityIdToTrainerId[_TroopID] = nil;
     end
 end
 
 function AiTroopTrainer.Internal:GetTrainerOfTroop(_TroopID)
     if IsValidEntity(_TroopID) then
-        for _, Trainer in pairs(self.Data.Trainers) do
-            for i= 1, table.getn(Trainer.Refilling) do
-                if Trainer.Refilling[i] == _TroopID then
-                    return Trainer.ID;
-                end
-            end
-        end
+        return AiArmySpawnerData_EntityIdToTrainerId[_TroopID] or 0;
     end
     return 0;
 end
@@ -583,6 +580,7 @@ function AiTroopTrainer.Internal:ControlTroopRefilling(_Index)
                 if CurAmount >= MaxAmount then
                     if AiArmy.GetArmyOfTroop(TroopID) ~= 0 then
                         table.remove(self.Data.Trainers[_Index].Refilling, i);
+                        AiArmySpawnerData_EntityIdToTrainerId[TroopID] = nil;
                     end
                 else
                     local SpawnPos = GetPosition(Trainer.SpawnPoint);
