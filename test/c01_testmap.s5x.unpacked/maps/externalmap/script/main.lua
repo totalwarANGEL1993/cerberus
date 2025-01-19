@@ -135,7 +135,7 @@ function CreateTroopTrainersTest()
 end
 
 function CreateAttackArmiesTest1()
-    P6Army1 = AiArmy.New(6, 8, GetPosition("Player6_PatrolPoint1"), 3500);
+    P6Army1 = AiArmy.New(6, 8, GetPosition("Player6_PatrolPoint1"), 2000);
     AiTroopSpawner.AddArmy(P6BarracksSpawner, P6Army1);
     AiTroopSpawner.AddArmy(P6ArcherySpawner, P6Army1);
     AiTroopSpawner.AddArmy(P6StableSpawner, P6Army1);

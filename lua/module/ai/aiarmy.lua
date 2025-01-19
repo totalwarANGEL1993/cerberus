@@ -3,6 +3,8 @@ Lib.Require("comfort/AverageAngle");
 Lib.Require("comfort/CopyTable");
 Lib.Require("comfort/GetConeCenter");
 Lib.Require("comfort/GetConeEnd");
+Lib.Require("comfort/GetConeMantlePoints");
+Lib.Require("comfort/GetConeEndPoints");
 Lib.Require("comfort/GetDistance");
 Lib.Require("comfort/GetEnemiesInArea");
 Lib.Require("comfort/GetEntityCategoriesAsString");
@@ -568,6 +570,14 @@ function AiArmy.PopCommand(_ID)
     end
 end
 
+--- Activates/Deactivates the display of all armies vision cones.
+--- @param _Flag boolean Active flag
+function AiArmy.ActivateVisionDebug(_ID, _Flag)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        AiArmyData_ArmyIdToArmyInstance[_ID].Debug.ShowVision = _Flag == true;
+    end
+end
+
 -- -------------------------------------------------------------------------- --
 -- Game Callbacks
 
@@ -601,6 +611,12 @@ end
 AiArmy.Internal = AiArmy.Internal or {
     CleanUp = {0},
     Data = {},
+    Debug = {
+        VisionCone = {
+            Show = false,
+            Data = {Entities = {0}},
+        }
+    }
 };
 
 function AiArmy.Internal:Install()
@@ -639,28 +655,14 @@ end
 function AiArmy.Internal:GetEnemiesInCone(_PlayerID, _Position, _Area, _Angle, _CategoryList)
     local Enemies = {};
     local AreaCenter = GetConeCenter(_Position, _Area, _Angle);
-
-    -- Debug
-    -- local ConeCenterID = 0;
-    -- local ConeEndID = 0;
-    -- Logic.DestroyEffect(gvDebugConeCenter or 0);
-    -- Logic.DestroyEffect(gvDebugConeEnd or 0);
-    -- local AreaEnd = GetConeEnd(_Position, _Area, _Angle);
-    -- if IsValidPosition(AreaCenter) then
-    --     ConeCenterID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaCenter.X, AreaCenter.Y, 0)
-    -- end
-    -- if IsValidPosition(AreaEnd) then
-    --     ConeEndID = Logic.CreateEffect(GGL_Effects.FXTerrainPointer, AreaEnd.X, AreaEnd.Y, 0)
-    -- end
-    -- gvDebugConeCenter = ConeCenterID;
-    -- gvDebugConeEnd = ConeEndID;
+    local ClampAngle = 50;
 
     if IsValidPosition(AreaCenter) then
         if not AreEntitiesOfDiplomacyStateInArea(_PlayerID, AreaCenter, _Area, Diplomacy.Hostile, _CategoryList) then
             return Enemies;
         end
         for _,ID in ipairs(self:GetEnemiesInCircle(_PlayerID, AreaCenter, _Area, nil, _CategoryList)) do
-            if IsInCone(ID, _Position, _Area, _Angle, 50) then
+            if IsInCone(ID, _Position, _Area, _Angle, ClampAngle) then
                 table.insert(Enemies, ID);
             end
         end
@@ -676,6 +678,68 @@ end
 function AiArmy.Internal:GetEnemiesInConeRegularFilter(_PlayerID, _Position, _Area, _Angle)
     local CategoryList = {"Cannon", "DefendableBuilding", "Hero", "Leader", "MilitaryBuilding", "Serf"};
     return self:GetEnemiesInCone(_PlayerID, _Position, _Area, _Angle, CategoryList);
+end
+
+function AiArmy.Internal:GetArmyVisionConeDebugEntities(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        return AiArmyData_ArmyIdToArmyInstance[_ID].Debug.VisionEntities;
+    end
+    return {0};
+end
+
+function AiArmy.Internal:SetArmyVisionConeDebugEntities(_ID, _Data)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Data = {0};
+        for i= 1, table.getn(_Data) do
+            table.insert(Data, _Data[i]);
+            Data[1] = Data[1] +1;
+        end
+        AiArmyData_ArmyIdToArmyInstance[_ID].Debug.VisionEntities = Data;
+    end
+end
+
+function AiArmy.Internal:ClearArmyVisionDebugEntities(_ID)
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local DebugEntities = self:GetArmyVisionConeDebugEntities(_ID);
+        for i= 2, DebugEntities[1] +1 do
+            Logic.DestroyEntity(DebugEntities[i]);
+        end
+    end
+end
+
+function AiArmy.Internal:UpdateArmyVisionDebugEntities(_ID, _Position, _Area, _Angle)
+    local ClampAngle = 50;
+    if AiArmyData_ArmyIdToArmyInstance[_ID] then
+        local Army = AiArmyData_ArmyIdToArmyInstance[_ID];
+        local DebugEntities = self:GetArmyVisionConeDebugEntities(_ID);
+        for i= 2, DebugEntities[1] +1 do
+            Logic.DestroyEntity(DebugEntities[i]);
+        end
+        if Army.Debug.ShowVision then
+            local EntityList = {};
+            self:SetArmyVisionConeDebugEntities(_ID, EntityList);
+
+            local LeftPoints, RightPoints = GetConeMantlePoints(_Position, _Area, _Angle, ClampAngle, 15);
+            for i= 1, 15 do
+                if IsValidPosition(LeftPoints[i]) then
+                    local ID = Logic.CreateEntity(Entities.XD_CoordinateEntity, LeftPoints[i].X, LeftPoints[i].Y, 0, Army.PlayerID);
+                    table.insert(EntityList, ID);
+                end
+                if IsValidPosition(RightPoints[i]) then
+                    local ID = Logic.CreateEntity(Entities.XD_CoordinateEntity, RightPoints[i].X, RightPoints[i].Y, 0, Army.PlayerID);
+                    table.insert(EntityList, ID);
+                end
+            end
+            local EndPoints = GetConeEndPoints(_Position, _Area, _Angle, ClampAngle, 10);
+            for i= 1, 10 do
+                if IsValidPosition(EndPoints[i]) then
+                    local ID = Logic.CreateEntity(Entities.XD_CoordinateEntity, EndPoints[i].X, EndPoints[i].Y, 0, Army.PlayerID);
+                    table.insert(EntityList, ID);
+                end
+            end
+            self:SetArmyVisionConeDebugEntities(_ID, EntityList);
+        end
+    end
 end
 
 function AiArmy.Internal:GetEnemiesInCircle(_PlayerID, _Position, _Area, _TroopID, _CategoryList)
@@ -996,8 +1060,11 @@ AiArmy.Internal.Army = AiArmy.Internal.Army or {
     Commands         = {Sequence = 0},
     Data             = {},
     Debug            = {
-        ShowPosition = false,
-        Position     = 0,
+        ShowVision       = false,
+        VisionEntities   = {0},
+        ShowPosition     = false,
+        PositionEntities = {0},
+        Position         = 0,
     },
 };
 
@@ -1116,6 +1183,8 @@ function AiArmy.Internal.Army:ExecuteCommand()
         CommandType,
         unpack(CommandData)
     );
+
+    AiArmy.Internal:ClearArmyVisionDebugEntities(self.ID);
 
     if CommandType == AiArmyCommand.Idle then
         CommandDone = self:ExecuteIdleCommand(CommandData) == true;
@@ -1284,7 +1353,8 @@ function AiArmy.Internal.Army:ExecuteMoveCommand(_Data)
         return false;
     end
     -- Check if enemies are in vision cone and attack them
-    local AreaSize = self.RodeLength * 1.0;
+    local AreaSize = self.RodeLength * 2.0;
+    AiArmy.Internal:UpdateArmyVisionDebugEntities(self.ID, Position, AreaSize, Rotation);
     local Enemies = AiArmy.Internal:GetEnemiesInConeRegularFilter(
         self.PlayerID, Position, AreaSize, Rotation
     );
@@ -1345,7 +1415,8 @@ function AiArmy.Internal.Army:ExecuteAdvanceCommand(_Data)
         return false;
     end
     -- Check if enemies are in vision cone and attack them
-    local AreaSize = self.RodeLength * 1.5;
+    local AreaSize = self.RodeLength * 2.5;
+    AiArmy.Internal:UpdateArmyVisionDebugEntities(self.ID, Position, AreaSize, Rotation);
     local Enemies = AiArmy.Internal:GetEnemiesInConeRegularFilter(
         self.PlayerID, Position, AreaSize, Rotation
     );
@@ -1395,18 +1466,11 @@ function AiArmy.Internal.Army:ExecuteBattleCommand(_Data)
         self:PushCommand(self:CreateCommand(AiArmyCommand.Refill), false);
         return true;
     end
-    -- Find enemies closeby or in target area
-    local Enemies = {};
+    -- Find enemies in target area
     local AreaSize = _Data[2] or self.RodeLength;
-    local EnemiesClose = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, ArmyPosition, AreaSize);
-    if EnemiesClose[1] then
-        Enemies = EnemiesClose;
-    else
-        local EnemiesTarget = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
-        if not EnemiesTarget[1] then
-            return true;
-        end
-        Enemies = EnemiesTarget;
+    local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
+    if not Enemies[1] then
+        return true;
     end
     -- Control fighting
     self:ResetArmySpeed();
@@ -1440,6 +1504,7 @@ end
 --- @return boolean Done Command is done
 function AiArmy.Internal.Army:ExecuteSiegeCommand(_Data)
     local Position = _Data[1] or self:GetArmyPosition();
+    local Rotation = self:GetArmyRotation();
     if type(Position) ~= "table" then
         Position = GetPosition(Position);
     end
@@ -1451,13 +1516,14 @@ function AiArmy.Internal.Army:ExecuteSiegeCommand(_Data)
         return true;
     end
     -- Find a wall to attack
-    local AreaSize = (_Data[2] or self.RodeLength) * 1.25;
-    local Walls = AiArmy.Internal:GetEnemiesFortificationFilter(self.PlayerID, Position, AreaSize);
+    local AreaSize = (_Data[2] or self.RodeLength) * 0.75;
+    local Walls = AiArmy.Internal:GetEnemiesFortificationFilter(self.PlayerID, Position, AreaSize, Rotation);
     if not Walls[1] then
         return true;
     end
     -- Control fighting
     self:ResetArmySpeed();
+    AreaSize = (_Data[2] or self.RodeLength) * 1.25;
     local Enemies = AiArmy.Internal:GetEnemiesRegularFilter(self.PlayerID, Position, AreaSize);
     for j= 2, self.Troops[1] +1 do
         -- Move back to center of spread to far
@@ -1471,7 +1537,8 @@ function AiArmy.Internal.Army:ExecuteSiegeCommand(_Data)
             self:LockOn(self.Troops[j], nil, nil);
         -- Attack wall or defend army
         else
-            -- Melee will only attack troops
+            -- Melee will only attack from enemy list
+            -- FIXME: Should only attack if target is reachable?
             if Logic.IsEntityInCategory(self.Troops[j], EntityCategories.Melee) == 1 then
                 if not self.Targets[self.Troops[j]] and Enemies[1] then
                     local TargetID = AiArmy.Internal:PriorityTarget(AreaSize, self.Troops[j], Enemies);
